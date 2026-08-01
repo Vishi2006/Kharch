@@ -1,0 +1,9 @@
+{
+  "name": "kharch-root",
+  "version": "1.0.0",
+  "description": "Root workspace configuration for Kharch PWA",
+  "scripts": {
+    "dev:backend": "npm start --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend"
+  }
+}

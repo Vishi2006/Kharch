@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e1b4b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  
+  <!-- Face/Beard Art representing User Profile + Finance slot -->
+  <g transform="translate(0, 15)">
+    <!-- Golden Coin (representing forehead/mind focused on money management) -->
+    <circle cx="256" cy="160" r="70" fill="url(#goldGrad)" />
+    <!-- Coin Slot inside the coin -->
+    <rect x="236" y="125" width="40" height="12" rx="6" fill="#1e1b4b"/>
+    
+    <!-- Glasses -->
+    <path d="M190 200 H240 M272 200 H322 M240 200 H272" stroke="#ffffff" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <circle cx="215" cy="205" r="25" stroke="#ffffff" stroke-width="12" fill="none"/>
+    <circle cx="297" cy="205" r="25" stroke="#ffffff" stroke-width="12" fill="none"/>
+    
+    <!-- Nose -->
+    <path d="M256 195 V235 H245" stroke="#ffffff" stroke-width="12" stroke-linecap="round" fill="none"/>
+    
+    <!-- Mustache & Beard -->
+    <!-- Mustache -->
+    <path d="M200 260 C220 260 230 250 256 250 C282 250 292 260 312 260 C325 260 325 280 312 280 C290 280 275 268 256 268 C237 268 222 280 200 280 C187 280 187 260 200 260 Z" fill="#ffffff"/>
+    
+    <!-- Beard outline (big, thick, premium) -->
+    <path d="M150 210 C150 320 200 420 256 420 C312 420 362 320 362 210 C340 215 310 220 280 220 C256 220 256 220 232 220 C202 220 172 215 150 210 Z" fill="#ffffff" opacity="0.12"/>
+    <path d="M150 210 C150 320 200 420 256 420 C312 420 362 320 362 210 M170 240 C190 320 220 380 256 380 C292 380 322 320 342 240" stroke="#ffffff" stroke-width="12" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>
