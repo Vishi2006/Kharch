@@ -15,6 +15,9 @@ connectDB();
 
 const app = express();
 
+// Trust first proxy (required for rate limiting on Render/Heroku)
+app.set('trust proxy', 1);
+
 // Security Middleware
 app.use(helmet({
   crossOriginResourcePolicy: false, // Required if sharing assets/images locally
