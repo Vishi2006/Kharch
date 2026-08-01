@@ -125,10 +125,11 @@ router.post('/google', async (req, res) => {
     const sessionToken = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
 
     // 4. Set HttpOnly cookie
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('token', sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
@@ -151,7 +152,12 @@ router.post('/google', async (req, res) => {
 // @desc    Clear Auth Cookie / Logout
 // @access  Private
 router.post('/logout', protect, (req, res) => {
-  res.clearCookie('token');
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+  });
   res.json({ message: 'Successfully logged out' });
 });
 
