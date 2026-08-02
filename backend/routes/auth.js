@@ -125,7 +125,7 @@ router.post('/google', async (req, res) => {
     const sessionToken = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
 
     // 4. Set HttpOnly cookie
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
     res.cookie('token', sessionToken, {
       httpOnly: true,
       secure: isProduction,
@@ -152,7 +152,7 @@ router.post('/google', async (req, res) => {
 // @desc    Clear Auth Cookie / Logout
 // @access  Private
 router.post('/logout', protect, (req, res) => {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
   res.clearCookie('token', {
     httpOnly: true,
     secure: isProduction,
