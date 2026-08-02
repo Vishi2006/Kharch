@@ -36,11 +36,14 @@ export default function LoginPage() {
       if (typeof window !== 'undefined' && window.google) {
         const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'dummy_client_id';
         
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleCredentialResponse,
-          auto_select: false,
-        });
+        if (!window.googleInitialized) {
+          window.googleInitialized = true;
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleCredentialResponse,
+            auto_select: false,
+          });
+        }
 
         const btnContainer = document.getElementById('google-signin-btn');
         if (btnContainer) {
