@@ -16,31 +16,7 @@ export default function LoginPage() {
 
   const maxSlide = 228; // 280px (track) - 44px (handle) - 8px (padding)
 
-  // Patch SVGElement className descriptor to prevent Google GSI client library from crashing
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !window.svgClassNamePatched) {
-      window.svgClassNamePatched = true;
-      try {
-        const desc = Object.getOwnPropertyDescriptor(SVGElement.prototype, 'className');
-        if (desc && desc.get) {
-          Object.defineProperty(SVGElement.prototype, 'className', {
-            get() {
-              const val = desc.get.call(this);
-              if (val && typeof val === 'object') {
-                val.match = val.match || ((regex) => (val.baseVal || '').match(regex));
-                val.indexOf = val.indexOf || ((str) => (val.baseVal || '').indexOf(str));
-                val.includes = val.includes || ((str) => (val.baseVal || '').includes(str));
-              }
-              return val;
-            },
-            configurable: true
-          });
-        }
-      } catch (err) {
-        console.error("SVGElement class mismatch patch failed:", err);
-      }
-    }
-  }, []);
+
 
   // Handle Google ID Token response
   const handleCredentialResponse = async (response) => {
