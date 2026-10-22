@@ -13,7 +13,8 @@ import {
   CheckCircle,
   HelpCircle,
   AlertTriangle,
-  Settings
+  Settings,
+  Inbox
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDateDMY, formatDateMY } from '../utils/date';
@@ -160,6 +161,13 @@ export default function DashboardPage() {
           </span>
         </div>
         <div className="flex items-center gap-2.5">
+          <Link 
+            href="/inbox"
+            className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 active:scale-95 text-slate-400 hover:text-indigo-400 rounded-xl transition-all shadow cursor-pointer"
+            title="Inbox"
+          >
+            <Inbox className="w-4.5 h-4.5" />
+          </Link>
           <Link 
             href="/settings"
             className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 active:scale-95 text-slate-400 hover:text-indigo-400 rounded-xl transition-all shadow cursor-pointer"

@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const NotificationEvent = require('../models/NotificationEvent');
 const DeviceToken = require('../models/DeviceToken');
 const User = require('../models/User');
+const { processNotificationEvent } = require('../utils/matchingEngine');
 
 // Auth middleware: accepts user JWT cookie, user Bearer JWT, or companion DeviceToken
 const authenticateSync = async (req, res, next) => {
@@ -92,11 +93,31 @@ router.post('/sync', authenticateSync, async (req, res) => {
 
     const result = await NotificationEvent.bulkWrite(operations, { ordered: false });
 
+    // Run Matching Engine on the ingested events (Phase 4 requirement)
+    const idempotencyKeys = events.map((e) => e.idempotencyKey);
+    const savedEvents = await NotificationEvent.find({
+      idempotencyKey: { $in: idempotencyKeys },
+      status: 'UNMATCHED',
+    });
+
+    let autoMergedCount = 0;
+    for (const savedEvent of savedEvents) {
+      try {
+        const matchRes = await processNotificationEvent(savedEvent);
+        if (matchRes.matched && matchRes.confidence === 'HIGH') {
+          autoMergedCount++;
+        }
+      } catch (err) {
+        console.error('Matching engine error on event:', err);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       processed: events.length,
       upsertedCount: result.upsertedCount,
       matchedCount: result.matchedCount,
+      autoMergedCount,
     });
   } catch (error) {
     console.error('Error syncing notification events:', error);

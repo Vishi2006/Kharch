@@ -64,6 +64,14 @@ const NotificationEventSchema = new mongoose.Schema(
       default: 'UNMATCHED',
       index: true,
     },
+    matchConfidence: {
+      type: String,
+      enum: ['HIGH', 'MEDIUM', 'LOW'],
+      default: 'LOW',
+    },
+    matchedPaymentAttemptId: {
+      type: String,
+    },
     linkedTransactionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Transaction',

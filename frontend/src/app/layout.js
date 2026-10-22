@@ -25,10 +25,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;700;800&display=swap" rel="stylesheet" />
-        <script dangerouslySetInnerHTML={{ __html: `
+        <link key="font-pre-1" rel="preconnect" href="https://fonts.googleapis.com" />
+        <link key="font-pre-2" rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
+        <link key="font-css" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;700;800&display=swap" rel="stylesheet" />
+        <script key="svg-fix" dangerouslySetInnerHTML={{ __html: `
           (function() {
             try {
               if (typeof SVGElement !== 'undefined') {
