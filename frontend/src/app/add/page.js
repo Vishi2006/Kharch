@@ -199,7 +199,13 @@ export default function AddTransactionPage() {
           <ChevronLeft className="w-5 h-5 text-slate-300" />
         </button>
         <h1 className="text-lg font-bold text-white font-display">Add Money Movement</h1>
-        <div className="w-9 h-9"></div> {/* spacer */}
+        <button
+          onClick={() => router.push('/pay')}
+          className="p-2 bg-indigo-600 border border-indigo-500 rounded-full hover:bg-indigo-500 transition-colors cursor-pointer flex items-center justify-center shadow shadow-indigo-500/20"
+          title="Scan & Pay via UPI"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><rect x="7" y="7" width="10" height="10" rx="1"></rect></svg>
+        </button>
       </div>
 
       {/* Error banner */}

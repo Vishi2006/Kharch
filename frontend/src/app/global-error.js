@@ -32,7 +32,7 @@ export default function GlobalError({ error, reset }) {
 
           <button
             onClick={() => reset()}
-            className="w-full mt-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 rounded-xl active:scale-95 shadow transition-all cursor-pointer"
+            className="w-full mt-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 rounded-xl shadow transition-all cursor-pointer"
           >
             Try Reloading Session
           </button>
