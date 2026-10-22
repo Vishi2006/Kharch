@@ -104,6 +104,9 @@ class KharchNotificationListener : NotificationListenerService() {
                     retryCount = 0
                 )
                 dao.insertSyncQueueItem(queueItem)
+
+                // Phase 3: Trigger immediate sync on event capture
+                com.kharch.companion.sync.SyncManager.triggerImmediateSync(applicationContext)
             }
         }
     }

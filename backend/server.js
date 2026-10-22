@@ -92,6 +92,8 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/summaries', require('./routes/summaries'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/payment-attempts', require('./routes/paymentAttempts'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/companion', require('./routes/companion'));
 app.use('/api/consent', require('./routes/consent'));
 app.use('/consent', require('./routes/consent'));
 app.use('/my-data', (req, res, next) => {

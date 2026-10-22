@@ -8,5 +8,9 @@ class KharchApplication : Application() {
         super.onCreate()
         // Pre-initialize Room Database
         KharchDatabase.getDatabase(this)
+
+        // Phase 3: Setup background sync triggers
+        com.kharch.companion.sync.SyncManager.schedulePeriodicSync(this)
+        com.kharch.companion.sync.SyncManager.registerNetworkCallback(this)
     }
 }

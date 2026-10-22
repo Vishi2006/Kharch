@@ -53,6 +53,12 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
 
+    // WorkManager for background sync
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
+    // QR Code scanner for pairing with PWA
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
     // Minimal HTTP client for backend sync
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

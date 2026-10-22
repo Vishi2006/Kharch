@@ -1,5 +1,6 @@
 package com.kharch.companion.network
 
+import com.kharch.companion.data.NotificationEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -89,6 +90,52 @@ object ApiClient {
             val requestBuilder = Request.Builder()
                 .url("${serverUrl.trimEnd('/')}/api/consent/my-data")
                 .delete(bodyJson.toString().toRequestBody(JSON))
+
+            if (!token.isNullOrEmpty()) {
+                requestBuilder.header("Authorization", "Bearer $token")
+            }
+
+            client.newCall(requestBuilder.build()).execute().use { response ->
+                response.isSuccessful
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun syncNotificationEvents(
+        serverUrl: String,
+        deviceId: String,
+        token: String?,
+        events: List<NotificationEvent>
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (events.isEmpty()) return@withContext true
+        try {
+            val eventsArray = JSONArray()
+            events.forEach { event ->
+                val obj = JSONObject().apply {
+                    put("idempotencyKey", event.idempotencyKey)
+                    put("type", event.type)
+                    put("amount", event.amount)
+                    put("counterparty", event.counterparty)
+                    if (event.referenceId != null) put("referenceId", event.referenceId)
+                    put("timestamp", event.timestamp)
+                    put("timestampRoundedToMinute", event.timestampRoundedToMinute)
+                    put("sourceApp", event.sourceApp)
+                    put("rawText", event.rawText)
+                    put("parseStatus", event.parseStatus)
+                }
+                eventsArray.put(obj)
+            }
+
+            val bodyJson = JSONObject().apply {
+                put("deviceId", deviceId)
+                put("events", eventsArray)
+            }
+
+            val requestBuilder = Request.Builder()
+                .url("${serverUrl.trimEnd('/')}/api/notifications/sync")
+                .post(bodyJson.toString().toRequestBody(JSON))
 
             if (!token.isNullOrEmpty()) {
                 requestBuilder.header("Authorization", "Bearer $token")

@@ -10,12 +10,58 @@ import {
   Calendar, 
   Info,
   UserCheck,
-  AlertOctagon
+  AlertOctagon,
+  Smartphone,
+  QrCode,
+  Download,
+  X,
+  Copy,
+  Check
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { formatDateDMY } from '../../utils/date';
 
 export default function SettingsPage() {
-  const { user, activeSpace, logout, apiFetch, isOffline } = useApp();
+  const { user, activeSpace, logout, apiFetch, isOffline, API_BASE } = useApp();
+
+  // Companion Pairing States
+  const [pairingModalOpen, setPairingModalOpen] = useState(false);
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const [pairingQrUrl, setPairingQrUrl] = useState('');
+  const [pairingToken, setPairingToken] = useState('');
+  const [copiedToken, setCopiedToken] = useState(false);
+
+  const handleOpenPairing = async () => {
+    setPairingModalOpen(true);
+    setPairingLoading(true);
+    try {
+      const res = await apiFetch('/api/companion/token', { method: 'POST' });
+      if (res && res.success) {
+        setPairingToken(res.token);
+        const qrDataUrl = await QRCode.toDataURL(JSON.stringify(res.pairingPayload), {
+          margin: 1,
+          width: 240,
+          color: {
+            dark: '#0B1120',
+            light: '#FFFFFF',
+          },
+        });
+        setPairingQrUrl(qrDataUrl);
+      }
+    } catch (err) {
+      console.error('Failed to generate pairing token:', err);
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  const handleCopyToken = () => {
+    if (pairingToken) {
+      navigator.clipboard.writeText(pairingToken);
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 2000);
+    }
+  };
 
   // Selective cleanup states
   const [cleanupRange, setCleanupRange] = useState('6months'); // '6months' | '1year' | 'custom'
@@ -223,6 +269,89 @@ export default function SettingsPage() {
           </button>
         </form>
       </div>
+
+      {/* Android Companion App & Auto-Sync Card */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg border-indigo-500/20 mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Smartphone className="w-4 h-4 text-indigo-400 shrink-0" /> Android Auto-Sync Companion
+          </h3>
+          <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-full">
+            Android only
+          </span>
+        </div>
+        <p className="text-[10px] text-slate-500 leading-normal mb-4">
+          Automate expense capture from PhonePe, Google Pay, and Paytm transaction notifications. Download the lightweight native APK on your Android device and pair it with this account.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            href={`${API_BASE || ''}/api/companion/download`}
+            download="KharchCompanion.apk"
+            className="py-3 px-3 bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors text-center"
+          >
+            <Download className="w-4 h-4 text-indigo-400" /> Download APK
+          </a>
+
+          <button
+            type="button"
+            onClick={handleOpenPairing}
+            className="py-3 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-indigo-600/20 cursor-pointer"
+          >
+            <QrCode className="w-4 h-4" /> Pair Device
+          </button>
+        </div>
+      </div>
+
+      {/* Pairing Modal */}
+      {pairingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full relative shadow-2xl flex flex-col items-center text-center">
+            <button
+              onClick={() => setPairingModalOpen(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800/50 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
+              <QrCode className="w-5 h-5 text-indigo-400" />
+            </div>
+
+            <h3 className="text-base font-bold text-white mb-1">Pair Android Companion</h3>
+            <p className="text-xs text-slate-400 mb-4">
+              Open Kharch Companion on your phone, go to Settings, and tap <strong className="text-indigo-300">Scan PWA Pairing QR</strong>.
+            </p>
+
+            {pairingLoading ? (
+              <div className="w-60 h-60 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-center">
+                <span className="text-xs text-slate-400 animate-pulse">Generating pairing code...</span>
+              </div>
+            ) : pairingQrUrl ? (
+              <div className="p-3 bg-white rounded-2xl shadow-inner mb-4">
+                <img src={pairingQrUrl} alt="Pairing QR Code" className="w-52 h-52 object-contain" />
+              </div>
+            ) : (
+              <div className="text-xs text-rose-400 py-6">Failed to generate pairing QR.</div>
+            )}
+
+            {pairingToken && (
+              <div className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between mt-1">
+                <span className="text-[10px] text-slate-400 font-mono truncate mr-2">
+                  {pairingToken}
+                </span>
+                <button
+                  onClick={handleCopyToken}
+                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded-lg flex items-center gap-1 shrink-0 cursor-pointer"
+                >
+                  {copiedToken ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  {copiedToken ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Danger Zone */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg border-rose-500/20 mb-4">

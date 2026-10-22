@@ -24,6 +24,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var tvLastCaptured: TextView
     private lateinit var tvTotalEvents: TextView
+    private lateinit var tvPendingSync: TextView
+    private lateinit var btnSyncNow: Button
     private lateinit var tvNotifStatus: TextView
     private lateinit var tvBatteryStatus: TextView
     private lateinit var tvServiceStatus: TextView
@@ -40,6 +42,8 @@ class MainActivity : AppCompatActivity() {
 
         tvLastCaptured = findViewById(R.id.tvLastCapturedTime)
         tvTotalEvents = findViewById(R.id.tvTotalEventsCaptured)
+        tvPendingSync = findViewById(R.id.tvPendingSyncCount)
+        btnSyncNow = findViewById(R.id.btnSyncNow)
         tvNotifStatus = findViewById(R.id.tvNotificationAccessStatus)
         tvBatteryStatus = findViewById(R.id.tvBatteryOptimizationStatus)
         tvServiceStatus = findViewById(R.id.tvForegroundServiceStatus)
@@ -88,10 +92,17 @@ class MainActivity : AppCompatActivity() {
             }
             refreshHealthStatus()
         }
+
+        btnSyncNow.setOnClickListener {
+            com.kharch.companion.sync.SyncManager.triggerImmediateSync(this)
+            android.widget.Toast.makeText(this, "Sync triggered", android.widget.Toast.LENGTH_SHORT).show()
+            refreshHealthStatus()
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        com.kharch.companion.sync.SyncManager.triggerImmediateSync(this)
         refreshHealthStatus()
     }
 
@@ -143,8 +154,12 @@ class MainActivity : AppCompatActivity() {
             val totalCount = withContext(Dispatchers.IO) {
                 db.kharchDao().getTotalNotificationCount()
             }
+            val pendingCount = withContext(Dispatchers.IO) {
+                db.kharchDao().getPendingSyncCount()
+            }
 
             tvTotalEvents.text = "Total events logged: $totalCount"
+            tvPendingSync.text = "Pending sync: $pendingCount items"
 
             var hoursSinceLast: Long = -1
             if (lastEvent != null) {

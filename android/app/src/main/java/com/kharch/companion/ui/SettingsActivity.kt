@@ -11,21 +11,34 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textfield.TextInputEditText
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import com.kharch.companion.R
 import com.kharch.companion.data.KharchDatabase
 import com.kharch.companion.network.ApiClient
 import com.kharch.companion.service.KharchForegroundService
+import com.kharch.companion.sync.SyncManager
 import com.kharch.companion.util.PreferenceManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var tvAllowlist: TextView
+    private lateinit var tvPairingStatus: TextView
     private lateinit var etServerUrl: TextInputEditText
+    private lateinit var etDeviceToken: TextInputEditText
     private lateinit var prefs: PreferenceManager
     private lateinit var db: KharchDatabase
+
+    // QR scanner launcher using ScanContract
+    private val qrScannerLauncher = registerForActivityResult(ScanContract()) { result ->
+        if (result.contents != null) {
+            handleScannedPayload(result.contents)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,12 +48,36 @@ class SettingsActivity : AppCompatActivity() {
         db = KharchDatabase.getDatabase(this)
 
         tvAllowlist = findViewById(R.id.tvAllowedPackagesSummary)
+        tvPairingStatus = findViewById(R.id.tvPairingStatus)
         etServerUrl = findViewById(R.id.etServerUrl)
+        etDeviceToken = findViewById(R.id.etDeviceToken)
 
         etServerUrl.setText(prefs.serverUrl)
+        if (!prefs.authToken.isNullOrEmpty()) {
+            etDeviceToken.setText(prefs.authToken)
+        }
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener {
             finish()
+        }
+
+        findViewById<Button>(R.id.btnScanPairingQr).setOnClickListener {
+            val options = ScanOptions().apply {
+                setPrompt("Scan the Pairing QR code from Kharch PWA Settings")
+                setBeepEnabled(true)
+                setOrientationLocked(false)
+            }
+            qrScannerLauncher.launch(options)
+        }
+
+        findViewById<Button>(R.id.btnSaveToken).setOnClickListener {
+            val token = etDeviceToken.text?.toString()?.trim() ?: ""
+            if (token.isNotEmpty()) {
+                prefs.authToken = token
+                Toast.makeText(this, "Device token saved", Toast.LENGTH_SHORT).show()
+                refreshPairingStatus()
+                SyncManager.triggerImmediateSync(this)
+            }
         }
 
         findViewById<Button>(R.id.btnSaveServerUrl).setOnClickListener {
@@ -66,6 +103,39 @@ class SettingsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadAllowlistSummary()
+        refreshPairingStatus()
+    }
+
+    private fun handleScannedPayload(payload: String) {
+        try {
+            val json = JSONObject(payload)
+            if (json.has("serverUrl")) {
+                prefs.serverUrl = json.getString("serverUrl")
+                etServerUrl.setText(prefs.serverUrl)
+            }
+            if (json.has("token")) {
+                prefs.authToken = json.getString("token")
+                etDeviceToken.setText(prefs.authToken)
+            }
+            Toast.makeText(this, "Paired successfully with PWA!", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            // If raw token string
+            prefs.authToken = payload.trim()
+            etDeviceToken.setText(prefs.authToken)
+            Toast.makeText(this, "Token recorded", Toast.LENGTH_SHORT).show()
+        }
+        refreshPairingStatus()
+        SyncManager.triggerImmediateSync(this)
+    }
+
+    private fun refreshPairingStatus() {
+        if (!prefs.authToken.isNullOrEmpty()) {
+            tvPairingStatus.text = "Status: ✓ Paired with Account"
+            tvPairingStatus.setTextColor(getColor(R.color.success))
+        } else {
+            tvPairingStatus.text = "Status: ⚠️ Not Paired"
+            tvPairingStatus.setTextColor(getColor(R.color.warning))
+        }
     }
 
     private fun loadAllowlistSummary() {
@@ -111,12 +181,13 @@ class SettingsActivity : AppCompatActivity() {
                     token = prefs.authToken
                 )
 
-                // 3. Clear local Room tables
+                // 3. Clear local Room tables and preferences
                 db.kharchDao().clearConsent()
                 db.kharchDao().clearAllNotificationEvents()
                 db.kharchDao().clearSyncQueue()
             }
 
+            prefs.authToken = null
             Toast.makeText(this@SettingsActivity, "Access revoked and local data cleared", Toast.LENGTH_LONG).show()
 
             // 4. Deep-link to Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS for OS-level revoke

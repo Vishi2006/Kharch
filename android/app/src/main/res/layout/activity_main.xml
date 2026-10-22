@@ -154,6 +154,34 @@
                         android:text="Total events logged: 0"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvPendingSyncCount"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Pending sync: 0 items"
+                            android:textColor="@color/accent"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btnSyncNow"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:backgroundTint="@color/primary"
+                            android:text="Sync Now"
+                            android:textAllCaps="false"
+                            android:textSize="11sp"
+                            app:cornerRadius="6dp" />
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
