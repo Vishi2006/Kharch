@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Title & subtitle -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Kharch Companion"
+                android:textColor="@color/accent"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textAllCaps="true"
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Select Monitored Apps"
+                android:textColor="@color/text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Choose which payment and banking applications Kharch is permitted to listen to for transaction receipts."
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <!-- Static Privacy Guarantee Box -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                app:cardBackgroundColor="#172554"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#1E40AF"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Privacy Guarantee"
+                        android:textColor="#93C5FD"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="true" />
+
+                    <TextView
+                        android:id="@+id/tvStaticDisclosure"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Android grants access to all notifications at the OS level. This app immediately discards anything outside your selected list above — nothing outside it is stored or transmitted."
+                        android:textColor="#DBEAFE"
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="3dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Apps Checklist Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="@color/border_color"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Payment Applications"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="true" />
+
+                    <CheckBox
+                        android:id="@+id/cbPhonePe"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="PhonePe (com.phonepe.app)"
+                        android:textColor="@color/text_primary"
+                        android:checked="true" />
+
+                    <CheckBox
+                        android:id="@+id/cbGPay"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Google Pay (com.google.android.apps.nbu.paisa.user)"
+                        android:textColor="@color/text_primary"
+                        android:checked="true" />
+
+                    <CheckBox
+                        android:id="@+id/cbPaytm"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Paytm (net.one97.paytm)"
+                        android:textColor="@color/text_primary"
+                        android:checked="true" />
+
+                    <CheckBox
+                        android:id="@+id/cbBhim"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="BHIM UPI (in.org.npci.upiapp)"
+                        android:textColor="@color/text_primary"
+                        android:checked="true" />
+
+                    <!-- Custom package addition -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="@color/border_color" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Add Custom Bank / App Package"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:boxBackgroundColor="@color/bg_card_secondary"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/accent"
+                            android:hint="e.g. com.sbi.upi">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etCustomPackage"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <Button
+                            android:id="@+id/btnAddPackage"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="8dp"
+                            android:text="Add"
+                            android:textAllCaps="false"
+                            android:backgroundTint="@color/primary" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/containerCustomPackages"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="vertical" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Confirm Button -->
+            <Button
+                android:id="@+id/btnConfirmConsent"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="32dp"
+                android:backgroundTint="@color/primary"
+                android:text="Confirm Consent &amp; Setup"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:cornerRadius="14dp" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

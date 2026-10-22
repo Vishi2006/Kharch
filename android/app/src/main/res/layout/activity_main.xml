@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Top bar -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Kharch Companion"
+                        android:textColor="@color/accent"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="true"
+                        android:letterSpacing="0.08" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Health Check"
+                        android:textColor="@color/text_primary"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btnOpenSettings"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:background="@color/bg_card"
+                    android:src="@android:drawable/ic_menu_manage"
+                    android:tint="@color/text_primary"
+                    android:contentDescription="Settings" />
+            </RelativeLayout>
+
+            <!-- Warning Banner for stale notification / permission loss -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardWarningBanner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="#450A0A"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#991B1B"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tvWarningTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚠️ Activity Alert"
+                        android:textColor="#FCA5A5"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvWarningMessage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="No notifications have been captured recently despite expected activity. System permissions or battery settings may have been revoked by the OS."
+                        android:textColor="#FEE2E2"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp" />
+
+                    <Button
+                        android:id="@+id/btnRecheckPermissions"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="#B91C1C"
+                        android:text="Re-check Permissions"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="8dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Last Captured Notification Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="@color/border_color"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Activity Status"
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="true" />
+
+                    <TextView
+                        android:id="@+id/tvLastCapturedTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Last notification captured: Never"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvTotalEventsCaptured"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Total events logged: 0"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Health Status Indicators -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="Subsystem Status"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textAllCaps="true" />
+
+            <!-- 1. Notification Access -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="14dp"
+                app:strokeColor="@color/border_color"
+                app:strokeWidth="1dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Notification Listener"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvNotificationAccessStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Checking..."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnFixNotificationAccess"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:backgroundTint="@color/primary"
+                        android:text="Grant"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="8dp" />
+                </RelativeLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 2. Battery Optimization -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="14dp"
+                app:strokeColor="@color/border_color"
+                app:strokeWidth="1dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Battery Optimization"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvBatteryOptimizationStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Checking..."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnFixBatteryOptimization"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:backgroundTint="@color/primary"
+                        android:text="Exempt"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="8dp" />
+                </RelativeLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 3. Foreground Service -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="14dp"
+                app:strokeColor="@color/border_color"
+                app:strokeWidth="1dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Foreground Service"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvForegroundServiceStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Checking..."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnToggleForegroundService"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:backgroundTint="@color/primary"
+                        android:text="Start"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="8dp" />
+                </RelativeLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Navigation Links -->
+            <Button
+                android:id="@+id/btnRerunOemWizard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:backgroundTint="#1E293B"
+                android:text="Run OEM Setup Wizard Again"
+                android:textColor="@color/accent"
+                android:textAllCaps="false"
+                app:cornerRadius="12dp" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

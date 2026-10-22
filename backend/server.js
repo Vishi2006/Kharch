@@ -92,6 +92,12 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/summaries', require('./routes/summaries'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/payment-attempts', require('./routes/paymentAttempts'));
+app.use('/api/consent', require('./routes/consent'));
+app.use('/consent', require('./routes/consent'));
+app.use('/my-data', (req, res, next) => {
+  req.url = '/my-data';
+  require('./routes/consent')(req, res, next);
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

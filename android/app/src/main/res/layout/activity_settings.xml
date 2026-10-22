@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Title & Back -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/btnBack"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_revert"
+                    android:tint="@color/text_primary"
+                    android:contentDescription="Back" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Companion Settings"
+                    android:textColor="@color/text_primary"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Backend Configuration Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="@color/border_color"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Server Connection"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="true" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:boxBackgroundColor="@color/bg_card_secondary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/accent"
+                        android:hint="Backend API URL">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etServerUrl"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textUri"
+                            android:text="http://10.0.2.2:5000"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <Button
+                        android:id="@+id/btnSaveServerUrl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_gravity="end"
+                        android:backgroundTint="@color/primary"
+                        android:text="Save"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        app:cornerRadius="8dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Allowed Apps Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="@color/border_color"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Allowed App Allowlist"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="true" />
+
+                    <TextView
+                        android:id="@+id/tvAllowedPackagesSummary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Loading allowlist..."
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="3dp" />
+
+                    <Button
+                        android:id="@+id/btnEditAllowlist"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="#334155"
+                        android:text="Edit Allowlist"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        app:cornerRadius="8dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Revoke Access & Delete Data Card (2a requirement) -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="32dp"
+                app:cardBackgroundColor="#450A0A"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#991B1B"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Danger Zone"
+                        android:textColor="#FCA5A5"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="true" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Revoke Access &amp; Clear Data"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="This will stop the background listener, redirect you to system settings to revoke Android notification access, delete your consent on the server, and clear all local companion databases."
+                        android:textColor="#FEE2E2"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="3dp" />
+
+                    <Button
+                        android:id="@+id/btnRevokeAccess"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="16dp"
+                        android:backgroundTint="#DC2626"
+                        android:text="Revoke All Access &amp; Reset App"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textStyle="bold"
+                        app:cornerRadius="10dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

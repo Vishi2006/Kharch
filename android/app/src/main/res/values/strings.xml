@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Kharch Companion</string>
+    <string name="consent_title">Notification Privacy Consent</string>
+    <string name="consent_description">Select the payment and banking apps you want Kharch to monitor for transaction alerts:</string>
+    <string name="consent_static_disclosure">Android grants access to all notifications at the OS level. This app immediately discards anything outside your selected list above — nothing outside it is stored or transmitted.</string>
+    <string name="consent_button_confirm">Confirm &amp; Proceed</string>
+    
+    <string name="oem_wizard_title">OEM Battery Optimization</string>
+    <string name="oem_wizard_desc">Android device manufacturers frequently terminate background notification listeners. To ensure continuous operation, exempt Kharch from aggressive battery management.</string>
+    
+    <string name="service_notification_title">Kharch Companion</string>
+    <string name="service_notification_content">Kharch is listening for transactions</string>
+    
+    <string name="health_check_title">System Health Check</string>
+    <string name="status_notification_access">Notification Access</string>
+    <string name="status_battery_optimization">Battery Optimization</string>
+    <string name="status_foreground_service">Foreground Service</string>
+    
+    <string name="settings_title">Companion Settings</string>
+    <string name="revoke_access_title">Revoke Access &amp; Clear Data</string>
+    <string name="revoke_access_desc">Disables notification listener, opens OS settings to revoke access, and deletes companion data from the backend.</string>
+</resources>
