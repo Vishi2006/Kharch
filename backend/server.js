@@ -83,6 +83,9 @@ app.use('/api/auth/google', authLimiter);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date() });
 });
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date() });
+});
 
 // Register Routes
 app.use('/api/auth', require('./routes/auth'));
