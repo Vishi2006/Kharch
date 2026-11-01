@@ -156,9 +156,13 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-extrabold font-display tracking-tight text-white mt-0.5">
             Hey, {user?.name.split(' ')[0]} 👋
           </h1>
-          <span className="text-xs text-indigo-400 font-semibold flex items-center gap-1 mt-0.5">
-            Space: <span className="underline">{activeSpace?.name || 'Personal Life'}</span>
-          </span>
+          <Link 
+            href="/spaces"
+            className="text-xs text-indigo-400 font-semibold flex items-center gap-1 mt-0.5 hover:text-indigo-300 transition-colors cursor-pointer"
+            title="Manage and switch spaces"
+          >
+            Space: <span className="underline">{activeSpace?.name || 'Personal Life'}</span> →
+          </Link>
         </div>
         <div className="flex items-center gap-2.5">
           <Link 
