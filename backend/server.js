@@ -31,6 +31,11 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean).map(url => url.trim().replace(/\/$/, ''));
 
+// Regex to allow local network / LAN IPs (e.g. 192.168.x.x, 10.x.x.x, 172.16-31.x.x) for mobile testing
+const isLocalOrLanOrigin = (origin) => {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin);
+};
+
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like curl or postman)
@@ -38,7 +43,7 @@ app.use(cors({
     
     // Normalize request origin to strip trailing slash (for safety)
     const normalizedOrigin = origin.trim().replace(/\/$/, '');
-    const isAllowed = allowedOrigins.includes(normalizedOrigin);
+    const isAllowed = allowedOrigins.includes(normalizedOrigin) || isLocalOrLanOrigin(normalizedOrigin);
     
     if (!isAllowed) {
       console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);

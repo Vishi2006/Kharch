@@ -27,8 +27,12 @@ export const AppProvider = ({ children }) => {
   const [isBackendSyncing, setIsBackendSyncing] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
-  // Define backend URL. In dev, points to localhost:5000. In production, empty string (relative) or Render URL
-  const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  // Define backend URL. In dev, points to localhost:5000 or current LAN IP. In production, empty string (relative) or Render URL
+  let resolvedApiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  if (typeof window !== 'undefined' && resolvedApiBase.includes('localhost') && window.location.hostname !== 'localhost') {
+    resolvedApiBase = `http://${window.location.hostname}:5000`;
+  }
+  const API_BASE = resolvedApiBase;
 
   // Helper fetch with credentials
   const apiFetch = useCallback(async (endpoint, options = {}) => {
