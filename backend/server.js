@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
@@ -60,6 +61,9 @@ app.use(express.urlencoded({ extended: false }));
 
 // Cookie parser
 app.use(cookieParser());
+
+// Static file serving (for KharchCompanion.apk, etc.)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Request Logging
 if (process.env.NODE_ENV !== 'production') {

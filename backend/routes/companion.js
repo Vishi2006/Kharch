@@ -49,17 +49,26 @@ router.post('/token', protect, async (req, res) => {
  * @desc    Direct APK download for sideloading on Android devices
  */
 router.get('/download', (req, res) => {
-  const apkPath = path.resolve(__dirname, '../../android/app/build/outputs/apk/debug/app-debug.apk');
+  // 1. If explicit remote URL is set (e.g. GitHub Releases)
+  const remoteApkUrl = process.env.COMPANION_APK_URL || 'https://github.com/Vishi2006/Kharch/releases/latest/download/KharchCompanion.apk';
 
-  if (!fs.existsSync(apkPath)) {
-    return res.status(404).json({
-      message: 'Companion APK not found. Please run `gradlew assembleDebug` in the android/ directory first.',
-    });
+  // 2. Check local file paths
+  const candidatePaths = [
+    path.resolve(__dirname, '../public/KharchCompanion.apk'),
+    path.resolve(__dirname, '../../android/app/build/outputs/apk/debug/app-debug.apk'),
+    path.resolve(__dirname, '../../frontend/public/KharchCompanion.apk'),
+  ];
+
+  for (const localPath of candidatePaths) {
+    if (fs.existsSync(localPath)) {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', 'attachment; filename="KharchCompanion.apk"');
+      return res.sendFile(localPath);
+    }
   }
 
-  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-  res.setHeader('Content-Disposition', 'attachment; filename="KharchCompanion.apk"');
-  return res.sendFile(apkPath);
+  // 3. If running on cloud environment (Render) without local build artifacts, redirect to GitHub release
+  return res.redirect(remoteApkUrl);
 });
 
 module.exports = router;

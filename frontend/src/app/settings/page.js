@@ -288,7 +288,7 @@ export default function SettingsPage() {
           <a
             href={`${API_BASE || ''}/api/companion/download`}
             download="KharchCompanion.apk"
-            className="py-3 px-3 bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors text-center"
+            className="py-3 px-3 bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors text-center cursor-pointer"
           >
             <Download className="w-4 h-4 text-indigo-400" /> Download APK
           </a>
@@ -300,6 +300,17 @@ export default function SettingsPage() {
           >
             <QrCode className="w-4 h-4" /> Pair Device
           </button>
+        </div>
+
+        <div className="mt-3 text-center">
+          <a
+            href="https://github.com/Vishi2006/Kharch/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-indigo-400/80 hover:text-indigo-300 hover:underline"
+          >
+            View APK Releases on GitHub ↗
+          </a>
         </div>
       </div>
 
