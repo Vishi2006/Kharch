@@ -19,8 +19,6 @@ import {
   Layers, 
   ChevronDown, 
   ChevronUp, 
-  Smartphone,
-  ExternalLink,
   HelpCircle,
   RotateCcw
 } from 'lucide-react';
@@ -141,16 +139,6 @@ function parseUPIPayload(rawText) {
   };
 }
 
-// Available UPI Payment App definitions
-const UPI_APPS = [
-  { id: 'any', name: 'All Apps / Chooser', color: 'from-indigo-600 to-violet-600', badge: 'System' },
-  { id: 'gpay', name: 'Google Pay', color: 'from-blue-600 to-indigo-600', badge: 'GPay' },
-  { id: 'phonepe', name: 'PhonePe', color: 'from-purple-600 to-indigo-600', badge: 'PhonePe' },
-  { id: 'paytm', name: 'Paytm', color: 'from-sky-600 to-blue-600', badge: 'Paytm' },
-  { id: 'bhim', name: 'BHIM UPI', color: 'from-emerald-600 to-teal-600', badge: 'BHIM' },
-  { id: 'cred', name: 'CRED', color: 'from-slate-700 to-slate-900', badge: 'CRED' },
-];
-
 export default function PayPage() {
   const router = useRouter();
   const { spaces, activeSpaceId, apiFetch, refreshDashboard } = useApp();
@@ -159,7 +147,6 @@ export default function PayPage() {
   const [selectedSpaceId, setSelectedSpaceId] = useState('');
   const [importance, setImportance] = useState('moderate');
   const [note, setNote] = useState('');
-  const [selectedUpiApp, setSelectedUpiApp] = useState('any');
   const [showRawPayload, setShowRawPayload] = useState(false);
   const [showDefaultAppHelp, setShowDefaultAppHelp] = useState(false);
   const [paymentState, setPaymentState] = useState('SCANNING'); // SCANNING, FORM, RETURNED, SUCCESS, UNKNOWN
@@ -262,28 +249,26 @@ export default function PayPage() {
       note: note.trim(),
     };
 
-    // 1. Persist to IndexedDB before deep-linking
+    // 1. Persist to IndexedDB before leaving the app
     await db.paymentAttempts.add(attempt);
 
-    // 2. Notify backend of attempt
-    try {
-      await apiFetch('/api/payment-attempts', {
-        method: 'POST',
-        body: JSON.stringify({
-          paymentAttemptId,
-          type: 'expense',
-          amount: amountVal,
-          payeeVpa: formData.pa.trim(),
-          payeeName: formData.pn.trim(),
-          initiatedAt: new Date(attempt.initiatedAt),
-          status: 'PENDING',
-        }),
-      });
-    } catch (err) {
+    // 2. Dispatch pending attempt to backend in the background (do not await to preserve user gesture context)
+    apiFetch('/api/payment-attempts', {
+      method: 'POST',
+      body: JSON.stringify({
+        paymentAttemptId,
+        type: 'expense',
+        amount: amountVal,
+        payeeVpa: formData.pa.trim(),
+        payeeName: formData.pn.trim(),
+        initiatedAt: new Date(attempt.initiatedAt),
+        status: 'PENDING',
+      }),
+    }).catch((err) => {
       console.warn('Could not sync pending attempt to server immediately:', err);
-    }
+    });
 
-    // 3. Construct URL tailored to selected app or system chooser
+    // 3. Construct standard UPI parameters
     const queryParams = new URLSearchParams({
       pa: formData.pa.trim(),
       pn: formData.pn.trim() || formData.pa.trim(),
@@ -292,29 +277,15 @@ export default function PayPage() {
       tr: paymentAttemptId,
     }).toString();
 
-    let finalIntentUrl = `upi://pay?${queryParams}`;
+    // Standard Android Chrome Intent without target package instructs Android OS to
+    // inspect all installed UPI apps and show the native Android system chooser drawer.
+    // For iOS and desktop, the standard upi:// scheme is used.
+    const isAndroid = /Android/i.test(navigator.userAgent || '');
+    const finalIntentUrl = isAndroid
+      ? `intent://pay?${queryParams}#Intent;scheme=upi;end`
+      : `upi://pay?${queryParams}`;
 
-    if (selectedUpiApp === 'gpay') {
-      finalIntentUrl = `tez://upi/pay?${queryParams}`;
-    } else if (selectedUpiApp === 'phonepe') {
-      finalIntentUrl = `phonepe://pay?${queryParams}`;
-    } else if (selectedUpiApp === 'paytm') {
-      finalIntentUrl = `paytmmp://pay?${queryParams}`;
-    } else if (selectedUpiApp === 'bhim') {
-      finalIntentUrl = `bhim://pay?${queryParams}`;
-    } else if (selectedUpiApp === 'cred') {
-      finalIntentUrl = `credpay://upi/pay?${queryParams}`;
-    } else {
-      // "any" - Android Intent URL targeting UPI scheme to trigger system chooser
-      const isAndroid = /Android/i.test(navigator.userAgent || '');
-      if (isAndroid) {
-        finalIntentUrl = `intent://pay?${queryParams}#Intent;scheme=upi;action=android.intent.action.VIEW;end`;
-      } else {
-        finalIntentUrl = `upi://pay?${queryParams}`;
-      }
-    }
-
-    // Trigger navigation
+    // Trigger OS intent
     window.location.href = finalIntentUrl;
   };
 
@@ -470,54 +441,6 @@ export default function PayPage() {
             />
           </div>
 
-          {/* UPI App Selection (Fix for Android defaulting to Paytm) */}
-          <div className="flex flex-col gap-1.5 pt-1">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                <Smartphone className="w-3.5 h-3.5 text-indigo-400" /> Pay Using App
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowDefaultAppHelp(!showDefaultAppHelp)}
-                className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5 cursor-pointer"
-              >
-                <HelpCircle className="w-3 h-3" />
-                <span>Why Paytm opens?</span>
-              </button>
-            </div>
-
-            {/* Help callout explaining Android default app settings */}
-            {showDefaultAppHelp && (
-              <div className="p-3 bg-indigo-950/40 border border-indigo-900/50 rounded-2xl text-[11px] text-indigo-200/90 leading-relaxed animate-fade-in">
-                If your phone always opens Paytm directly, Android has set Paytm as your default UPI app.
-                <br /><br />
-                <strong>How to choose other apps:</strong>
-                <ol className="list-decimal pl-4 mt-1 space-y-0.5">
-                  <li>Select <strong>Google Pay</strong> or <strong>PhonePe</strong> below to launch them directly.</li>
-                  <li>Or go to phone Settings → Apps → Paytm → <em>Open by default</em> → tap <em>Clear default preferences</em>.</li>
-                </ol>
-              </div>
-            )}
-
-            {/* Grid of Apps to Pay With */}
-            <div className="grid grid-cols-3 gap-2 mt-1">
-              {UPI_APPS.map((app) => (
-                <button
-                  key={app.id}
-                  type="button"
-                  onClick={() => setSelectedUpiApp(app.id)}
-                  className={`py-2 px-2 text-xs font-bold rounded-xl border transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-                    selectedUpiApp === app.id
-                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30 scale-[1.02]'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span className="text-[11px]">{app.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Space & Category Selection */}
           <div className="grid grid-cols-2 gap-3 mt-1">
             <div className="flex flex-col gap-1.5">
@@ -587,13 +510,41 @@ export default function PayPage() {
           {/* Launch Button */}
           <button
             type="submit"
-            className="w-full py-4 mt-2 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg shadow-indigo-500/20 active:scale-98 hover:from-indigo-600 hover:to-violet-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-4 mt-3 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg shadow-indigo-500/20 active:scale-98 hover:from-indigo-600 hover:to-violet-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>
-              {selectedUpiApp === 'any' ? 'Open in UPI App' : `Pay via ${UPI_APPS.find((a) => a.id === selectedUpiApp)?.name}`}
-            </span>
+            <span>Proceed to Pay</span>
             <ArrowRight className="w-4 h-4 stroke-[2.5]" />
           </button>
+
+          {/* Android Chooser Tip */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setShowDefaultAppHelp(!showDefaultAppHelp)}
+              className="mx-auto text-[11px] text-slate-500 hover:text-indigo-400 flex items-center justify-center gap-1 cursor-pointer transition-colors"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>Phone opens Paytm directly without asking?</span>
+            </button>
+
+            {showDefaultAppHelp && (
+              <div className="mt-2 p-3.5 bg-slate-900 border border-slate-800 rounded-2xl text-[11px] text-slate-300 leading-relaxed animate-fade-in space-y-1.5 text-left">
+                <p className="font-semibold text-white">How to enable your phone's app chooser:</p>
+                <p className="text-slate-400">
+                  Android skips the app picker if Paytm was previously set as the default app on your device.
+                </p>
+                <ol className="list-decimal pl-4 space-y-1 text-slate-400">
+                  <li>Open Android <strong>Settings → Apps</strong> (or App Management).</li>
+                  <li>Select <strong>Paytm</strong>.</li>
+                  <li>Tap <strong>Open by default</strong>.</li>
+                  <li>Tap <strong>Clear default preferences</strong> (or toggle off <em>Open supported links</em>).</li>
+                </ol>
+                <p className="text-indigo-300 pt-1">
+                  Once cleared, Android will show your native app bottom sheet with all installed UPI apps (GPay, PhonePe, Paytm, BHIM, CRED) every time!
+                </p>
+              </div>
+            )}
+          </div>
         </form>
       )}
 
