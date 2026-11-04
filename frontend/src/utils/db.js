@@ -12,6 +12,17 @@ db.version(2).stores({
   pendingSync: '++id, endpoint, method, timestamp, retryCount',
 });
 
+// Upgrade to v3: Add merchantMappings store for VPA auto-memory
+db.version(3).stores({
+  paymentAttempts: 'paymentAttemptId, status, initiatedAt',
+  transactions: '_id, spaceId, type, date, createdAt',
+  spaces: '_id, name, isDefault',
+  dashboardCache: 'spaceId, updatedAt',
+  notificationEvents: '_id, idempotencyKey, status, timestamp',
+  pendingSync: '++id, endpoint, method, timestamp, retryCount',
+  merchantMappings: '++id, identifierKey, canonicalTitle, spaceId, lastUsedAt',
+});
+
 // Helper: Cache spaces
 export async function cacheSpaces(spaces) {
   try {

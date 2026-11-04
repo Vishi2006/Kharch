@@ -161,6 +161,32 @@ export default function InboxPage() {
     }
   };
 
+  // 1-Tap Confirm for events with merchant memory suggestion
+  const handleOneTapConfirm = async (event) => {
+    try {
+      const res = await apiFetch('/api/inbox/convert', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: event._id,
+          source: 'notification',
+          spaceId: event.suggestedSpaceId || formSpaceId || (activeSpace?._id || spaces?.[0]?._id),
+          title: event.suggestedTitle,
+          importance: event.suggestedImportance || 'moderate',
+          type: event.type === 'CREDIT' ? 'income' : 'expense',
+          date: event.timestamp,
+        }),
+      });
+
+      if (res && res.success) {
+        setSuccessMsg(`Logged ₹${event.amount} as "${event.suggestedTitle}"!`);
+        setTimeout(() => setSuccessMsg(''), 3000);
+        fetchInbox();
+      }
+    } catch (err) {
+      console.error('Error confirming suggested event:', err);
+    }
+  };
+
   // Dismiss / Reject
   const handleDismiss = async (id, source) => {
     if (!confirm('Dismiss this item without adding it to your ledger?')) return;
@@ -382,13 +408,24 @@ export default function InboxPage() {
                         {event.counterparty || event.rawText}
                       </div>
 
-                      <div className="flex justify-end items-center gap-2 mt-1">
+                      <div className="flex justify-end items-center gap-2 mt-1 flex-wrap">
                         <button
                           onClick={() => handleDismiss(event._id, 'notification')}
                           className="px-3 py-1.5 text-xs text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                         >
                           Dismiss
                         </button>
+
+                        {/* Phase 3: 1-Tap Confirm button for events with auto-memory suggestions */}
+                        {event.suggestedTitle && (
+                          <button
+                            onClick={() => handleOneTapConfirm(event)}
+                            className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl flex items-center gap-1 transition-all cursor-pointer shadow-md shadow-emerald-600/20"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" /> Confirm &ldquo;{event.suggestedTitle}&rdquo;
+                          </button>
+                        )}
+
                         <button
                           onClick={() => openConvertModal(event, 'notification')}
                           className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl flex items-center gap-1 transition-colors cursor-pointer shadow-sm"

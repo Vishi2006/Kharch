@@ -27,12 +27,8 @@ export const AppProvider = ({ children }) => {
   const [isBackendSyncing, setIsBackendSyncing] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
-  // Define backend URL. In dev, points to localhost:5000 or current LAN IP. In production, empty string (relative) or Render URL
-  let resolvedApiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-  if (typeof window !== 'undefined' && resolvedApiBase.includes('localhost') && window.location.hostname !== 'localhost') {
-    resolvedApiBase = `http://${window.location.hostname}:5000`;
-  }
-  const API_BASE = resolvedApiBase;
+  // Next.js serverless route handlers: same-origin relative URLs by default
+  const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
   // Helper fetch with credentials
   const apiFetch = useCallback(async (endpoint, options = {}) => {
@@ -42,7 +38,7 @@ export const AppProvider = ({ children }) => {
       ...options.headers,
     };
 
-    // Resolve absolute path if necessary
+    // Resolve path: if endpoint already starts with http, keep it; otherwise prepend API_BASE
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
 
     try {
@@ -104,11 +100,11 @@ export const AppProvider = ({ children }) => {
     }
   }, [apiFetch, activeSpaceId]);
 
-  // Phase 5a: Waking sleeping Render backend on app open (non-blocking with exponential backoff)
+  // Fast serverless health check & sync flusher on app open
   const wakeUpBackend = useCallback(async () => {
     setIsBackendSyncing(true);
-    let delay = 2000;
-    const maxWaitMs = 60000;
+    let delay = 500;
+    const maxWaitMs = 10000;
     const startTime = Date.now();
 
     const ping = async () => {
@@ -127,12 +123,12 @@ export const AppProvider = ({ children }) => {
           return;
         }
       } catch (_) {
-        // Backend cold sleeping
+        // Cold sleeping
       }
 
       if (Date.now() - startTime < maxWaitMs) {
         setTimeout(ping, delay);
-        delay = Math.min(delay * 2, 16000); // 2s, 4s, 8s, 16s...
+        delay = Math.min(delay * 2, 4000);
       } else {
         setIsBackendSyncing(false);
       }

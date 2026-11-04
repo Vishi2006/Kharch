@@ -1,7 +1,10 @@
 package com.kharch.companion.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.View
 import android.widget.Button
@@ -127,13 +130,35 @@ class ConsentActivity : AppCompatActivity() {
                     .contains(packageName)
 
                 if (!isListenerEnabled) {
-                    // Direct user to enable notification listener
-                    Toast.makeText(
-                        this@ConsentActivity,
-                        "Enable Kharch Companion in Notification Access",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        // Android 13+ requires the user to first unlock Restricted Settings
+                        Toast.makeText(
+                            this@ConsentActivity,
+                            "Step 1: Open App Info → tap ⋮ menu → Allow restricted settings. Then return here.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        // Open App Info page so user can find the 3-dot menu
+                        val appInfoIntent = android.content.Intent(
+                            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            android.net.Uri.fromParts("package", packageName, null)
+                        )
+                        startActivity(appInfoIntent)
+                        // Show a second toast after a brief delay to remind them of step 2
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            Toast.makeText(
+                                this@ConsentActivity,
+                                "Step 2: Come back and tap 'Open App Info' again, then enable Notification Access.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }, 3000)
+                    } else {
+                        Toast.makeText(
+                            this@ConsentActivity,
+                            "Enable Kharch Companion in Notification Access",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    }
                 }
 
                 if (isEditMode) {

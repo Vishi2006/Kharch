@@ -24,12 +24,17 @@ import { formatDateDMY } from '../../utils/date';
 export default function SettingsPage() {
   const { user, activeSpace, logout, apiFetch, isOffline, API_BASE } = useApp();
 
-  // Companion Pairing States
+  // Companion Pairing States (Android)
   const [pairingModalOpen, setPairingModalOpen] = useState(false);
   const [pairingLoading, setPairingLoading] = useState(false);
   const [pairingQrUrl, setPairingQrUrl] = useState('');
   const [pairingToken, setPairingToken] = useState('');
   const [copiedToken, setCopiedToken] = useState(false);
+
+  // iOS Shortcuts Automation States
+  const [iosToken, setIosToken] = useState('');
+  const [iosTokenLoading, setIosTokenLoading] = useState(false);
+  const [copiedIosToken, setCopiedIosToken] = useState(false);
 
   const handleOpenPairing = async () => {
     setPairingModalOpen(true);
@@ -60,6 +65,23 @@ export default function SettingsPage() {
       navigator.clipboard.writeText(pairingToken);
       setCopiedToken(true);
       setTimeout(() => setCopiedToken(false), 2000);
+    }
+  };
+
+  const handleGenerateIosToken = async () => {
+    setIosTokenLoading(true);
+    try {
+      const res = await apiFetch('/api/companion/token', {
+        method: 'POST',
+        body: JSON.stringify({ deviceName: 'iPhone Shortcuts' }),
+      });
+      if (res?.success) {
+        setIosToken(res.token);
+      }
+    } catch (err) {
+      console.error('Failed to generate iOS token:', err);
+    } finally {
+      setIosTokenLoading(false);
     }
   };
 
@@ -148,50 +170,45 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 mt-1 pb-10">
+    <div className="flex flex-col gap-6 mt-2 max-w-lg mx-auto pb-10 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-extrabold tracking-tight font-display text-white">
-          Settings & Retention
-        </h1>
-        <span className="text-xs text-slate-400 font-semibold mt-0.5 block">
-          Manage your login session, data storage, and cleanup rules.
-        </span>
+        <h1 className="text-xl font-extrabold text-white font-display tracking-tight">Settings</h1>
+        <p className="text-xs text-slate-400">Account management, auto-sync companion, and data controls</p>
       </div>
 
-      {/* User profile card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg relative overflow-hidden flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl border border-slate-700/60 overflow-hidden shadow">
-            {user?.picture ? (
-              <img src={user.picture} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-indigo-600 flex items-center justify-center font-bold text-lg text-white">
-                {user?.name.charAt(0)}
-              </div>
-            )}
-          </div>
+      {/* User Profile Card */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          {user?.picture ? (
+            <img src={user.picture} alt={user.name} className="w-12 h-12 rounded-2xl border border-slate-700 object-cover" />
+          ) : (
+            <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-lg">
+              {user?.name?.[0] || 'U'}
+            </div>
+          )}
           <div>
-            <h3 className="text-sm font-bold text-slate-200">{user?.name}</h3>
-            <span className="text-xs text-slate-500 font-semibold block mt-0.5">{user?.email}</span>
-            <span className="text-[10px] text-indigo-400 font-extrabold flex items-center gap-1 mt-1 uppercase tracking-wider">
-              <UserCheck className="w-3.5 h-3.5" /> Authenticated via Google
-            </span>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-sm font-bold text-white">{user?.name || 'Account Holder'}</h2>
+              <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
+            </div>
+            <p className="text-xs text-slate-400">{user?.email}</p>
           </div>
         </div>
 
         <button
           onClick={logout}
-          className="w-full py-3 bg-slate-950 border border-slate-800 hover:bg-slate-850 active:scale-98 rounded-xl font-bold text-xs text-slate-300 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+          className="p-2.5 bg-slate-950 hover:bg-slate-850 text-slate-300 hover:text-white rounded-xl border border-slate-800 transition-colors cursor-pointer"
+          title="Sign Out"
         >
-          <LogOut className="w-4 h-4 text-rose-500" /> Google Logout
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Selective Cleanup Card */}
+      {/* Data Maintenance / Selective Cleanup */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-          <Database className="w-4 h-4 text-indigo-400" /> Database Storage Cleanup
+        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+          <Database className="w-4 h-4 text-indigo-400 shrink-0" /> Space Storage Maintenance
         </h3>
         <p className="text-[10px] text-slate-500 leading-normal mb-4">
           To fit comfortably within the MongoDB Atlas Free 512MB tier, clear raw log lists periodically.
@@ -271,7 +288,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Android Companion App & Auto-Sync Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg border-indigo-500/20 mb-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg border-indigo-500/20">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
             <Smartphone className="w-4 h-4 text-indigo-400 shrink-0" /> Android Auto-Sync Companion
@@ -312,6 +329,68 @@ export default function SettingsPage() {
             View APK Releases on GitHub ↗
           </a>
         </div>
+      </div>
+
+      {/* iOS Shortcuts Automation Card */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg border-indigo-500/20">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Smartphone className="w-4 h-4 text-indigo-400 shrink-0" /> iPhone Auto-Sync (iOS Shortcuts)
+          </h3>
+          <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-full">
+            iOS only
+          </span>
+        </div>
+        <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
+          iPhone cannot read notifications from other apps directly. Use Apple Shortcuts to silently forward bank &amp; UPI payment SMS to Kharch in the background with zero manual entry.
+        </p>
+
+        {!iosToken ? (
+          <button
+            type="button"
+            onClick={handleGenerateIosToken}
+            disabled={iosTokenLoading || isOffline}
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
+          >
+            {iosTokenLoading ? 'Generating...' : 'Generate iOS Automation Key'}
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2">
+              <code className="text-[10px] text-indigo-300 font-mono truncate">{iosToken}</code>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(iosToken);
+                  setCopiedIosToken(true);
+                  setTimeout(() => setCopiedIosToken(false), 2000);
+                }}
+                className="shrink-0 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] text-slate-200 font-bold flex items-center gap-1 cursor-pointer"
+              >
+                {copiedIosToken ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                {copiedIosToken ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+
+            <div className="bg-slate-950/60 border border-slate-800/60 rounded-2xl p-4 space-y-3">
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">3-Step Setup in iPhone Shortcuts</p>
+              <div className="space-y-2.5 text-[11px] text-slate-400 leading-relaxed">
+                <div className="flex gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+                  <p>Open <strong className="text-slate-200">Shortcuts</strong> app → tap <strong className="text-slate-200">Automation</strong> tab → <strong className="text-slate-200">New Automation</strong> → choose <strong className="text-slate-200">Message</strong> → Message Contains: <code className="text-indigo-300 bg-slate-900 px-1 rounded">UPI</code> or <code className="text-indigo-300 bg-slate-900 px-1 rounded">debited</code> → select <strong className="text-slate-200">Run Immediately</strong>.</p>
+                </div>
+                <div className="flex gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+                  <p>Add Action: <strong className="text-slate-200">Get Contents of URL</strong> → URL: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/api/notifications/ios-shortcut</code> → Method: <strong className="text-slate-200">POST</strong> → Headers: Add <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">Authorization: Bearer {iosToken}</code></p>
+                </div>
+                <div className="flex gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
+                  <p>Set Request Body: <strong className="text-slate-200">JSON</strong> with Key: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">rawText</code> = <strong className="text-slate-200">Shortcut Input</strong> → Tap <strong className="text-slate-200">Done</strong>. Kharch will now auto-import every payment SMS silently in the background!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pairing Modal */}

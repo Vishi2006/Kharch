@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "dexie": "^4.4.6",
+    "google-auth-library": "^11.3.3",
     "html5-qrcode": "^2.3.8",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.28.0",
+    "mongoose": "^9.11.4",
     "next": "^16.2.12",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
