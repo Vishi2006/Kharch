@@ -20,19 +20,38 @@ android {
 
     signingConfigs {
         create("release") {
-            // Signing credentials injected via environment variables at build time.
-            // Set KHARCH_KEYSTORE_PATH, KHARCH_KEYSTORE_PASS, KHARCH_KEY_ALIAS, KHARCH_KEY_PASS
-            // in CI/CD environment or local gradle.properties.
-            val keystorePath = System.getenv("KHARCH_KEYSTORE_PATH") ?: ""
-            val keystorePass = System.getenv("KHARCH_KEYSTORE_PASS") ?: ""
-            val keyAlias = System.getenv("KHARCH_KEY_ALIAS") ?: "kharch"
-            val keyPass = System.getenv("KHARCH_KEY_PASS") ?: ""
-            if (keystorePath.isNotEmpty()) {
-                storeFile = file(keystorePath)
+            // Signing credentials can be provided via Gradle properties, environment variables,
+            // or default to local kharch-release.jks if present.
+            val propPath = project.findProperty("KHARCH_KEYSTORE_PATH") as? String
+            val envPath = System.getenv("KHARCH_KEYSTORE_PATH")
+            val defaultJks = rootProject.file("kharch-release.jks")
+
+            val keystoreFile = when {
+                !propPath.isNullOrEmpty() -> file(propPath)
+                !envPath.isNullOrEmpty() -> file(envPath)
+                defaultJks.exists() -> defaultJks
+                else -> null
+            }
+
+            val keystorePass = (project.findProperty("KHARCH_KEYSTORE_PASS") as? String)
+                ?: System.getenv("KHARCH_KEYSTORE_PASS")
+                ?: "kharch_store_pass"
+
+            val keyAlias = (project.findProperty("KHARCH_KEY_ALIAS") as? String)
+                ?: System.getenv("KHARCH_KEY_ALIAS")
+                ?: "kharch"
+
+            val keyPass = (project.findProperty("KHARCH_KEY_PASS") as? String)
+                ?: System.getenv("KHARCH_KEY_PASS")
+                ?: "kharch_store_pass"
+
+            if (keystoreFile != null && keystoreFile.exists()) {
+                storeFile = keystoreFile
                 storePassword = keystorePass
                 this.keyAlias = keyAlias
                 keyPassword = keyPass
             }
+
             // Enable all signing schemes so Play Protect v3/v4 device signature checks pass.
             enableV1Signing = true
             enableV2Signing = true
