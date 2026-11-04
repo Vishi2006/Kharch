@@ -12,15 +12,41 @@ android {
         applicationId = "com.kharch.companion"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            // Signing credentials injected via environment variables at build time.
+            // Set KHARCH_KEYSTORE_PATH, KHARCH_KEYSTORE_PASS, KHARCH_KEY_ALIAS, KHARCH_KEY_PASS
+            // in CI/CD environment or local gradle.properties.
+            val keystorePath = System.getenv("KHARCH_KEYSTORE_PATH") ?: ""
+            val keystorePass = System.getenv("KHARCH_KEYSTORE_PASS") ?: ""
+            val keyAlias = System.getenv("KHARCH_KEY_ALIAS") ?: "kharch"
+            val keyPass = System.getenv("KHARCH_KEY_PASS") ?: ""
+            if (keystorePath.isNotEmpty()) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePass
+                this.keyAlias = keyAlias
+                keyPassword = keyPass
+            }
+            // Enable all signing schemes so Play Protect v3/v4 device signature checks pass.
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+        }
+    }
+
     buildTypes {
         release {
+            // Keep code un-obfuscated — Play Protect heuristics flag heavily
+            // shrunk/obfuscated sideloaded APKs as suspected trojans.
             isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

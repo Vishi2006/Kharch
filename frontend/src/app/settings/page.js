@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -319,6 +319,13 @@ export default function SettingsPage() {
           </button>
         </div>
 
+        {/* Play Protect & Restricted Settings install guide */}
+        <div className="mt-4 p-3 bg-amber-950/40 border border-amber-700/40 rounded-2xl text-[11px] text-amber-200/90 leading-relaxed space-y-1.5">
+          <p className="font-bold text-amber-300 text-xs">⚠ Install Troubleshooting</p>
+          <p><span className="font-semibold text-amber-300">Play Protect warning during install?</span> Tap <span className="font-mono bg-slate-800 px-1 rounded">More details</span> → <span className="font-mono bg-slate-800 px-1 rounded">Install anyway</span>. You do <em>not</em> need to disable Play Protect in the Play Store.</p>
+          <p><span className="font-semibold text-amber-300">Android says "App was denied access"?</span> Follow the 3-step unlock inside the Companion app to tap <span className="font-mono bg-slate-800 px-1 rounded">Allow restricted settings</span> in App Info.</p>
+        </div>
+
         <div className="mt-3 text-center">
           <a
             href="https://github.com/Vishi2006/Kharch/releases"
@@ -326,7 +333,7 @@ export default function SettingsPage() {
             rel="noopener noreferrer"
             className="text-[10px] text-indigo-400/80 hover:text-indigo-300 hover:underline"
           >
-            View APK Releases on GitHub ↗
+            View APK Releases on GitHub â†—
           </a>
         </div>
       </div>
@@ -377,15 +384,15 @@ export default function SettingsPage() {
               <div className="space-y-2.5 text-[11px] text-slate-400 leading-relaxed">
                 <div className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
-                  <p>Open <strong className="text-slate-200">Shortcuts</strong> app → tap <strong className="text-slate-200">Automation</strong> tab → <strong className="text-slate-200">New Automation</strong> → choose <strong className="text-slate-200">Message</strong> → Message Contains: <code className="text-indigo-300 bg-slate-900 px-1 rounded">UPI</code> or <code className="text-indigo-300 bg-slate-900 px-1 rounded">debited</code> → select <strong className="text-slate-200">Run Immediately</strong>.</p>
+                  <p>Open <strong className="text-slate-200">Shortcuts</strong> app â†’ tap <strong className="text-slate-200">Automation</strong> tab â†’ <strong className="text-slate-200">New Automation</strong> â†’ choose <strong className="text-slate-200">Message</strong> â†’ Message Contains: <code className="text-indigo-300 bg-slate-900 px-1 rounded">UPI</code> or <code className="text-indigo-300 bg-slate-900 px-1 rounded">debited</code> â†’ select <strong className="text-slate-200">Run Immediately</strong>.</p>
                 </div>
                 <div className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
-                  <p>Add Action: <strong className="text-slate-200">Get Contents of URL</strong> → URL: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/api/notifications/ios-shortcut</code> → Method: <strong className="text-slate-200">POST</strong> → Headers: Add <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">Authorization: Bearer {iosToken}</code></p>
+                  <p>Add Action: <strong className="text-slate-200">Get Contents of URL</strong> â†’ URL: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/api/notifications/ios-shortcut</code> â†’ Method: <strong className="text-slate-200">POST</strong> â†’ Headers: Add <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">Authorization: Bearer {iosToken}</code></p>
                 </div>
                 <div className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
-                  <p>Set Request Body: <strong className="text-slate-200">JSON</strong> with Key: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">rawText</code> = <strong className="text-slate-200">Shortcut Input</strong> → Tap <strong className="text-slate-200">Done</strong>. Kharch will now auto-import every payment SMS silently in the background!</p>
+                  <p>Set Request Body: <strong className="text-slate-200">JSON</strong> with Key: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">rawText</code> = <strong className="text-slate-200">Shortcut Input</strong> â†’ Tap <strong className="text-slate-200">Done</strong>. Kharch will now auto-import every payment SMS silently in the background!</p>
                 </div>
               </div>
             </div>

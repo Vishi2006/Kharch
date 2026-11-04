@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- === SAFE PERMISSION SET ===
+         No READ_SMS, RECEIVE_SMS, READ_CALL_LOG, or BIND_ACCESSIBILITY_SERVICE —
+         these trigger Google Play Protect hard-blocks on sideloaded APKs in India. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:name=".KharchApplication"
@@ -40,7 +45,8 @@
             android:name=".ui.SettingsActivity"
             android:exported="false" />
 
-        <!-- Notification Listener Service -->
+        <!-- Notification Listener Service — only uses BIND_NOTIFICATION_LISTENER_SERVICE,
+             which is required and cannot trigger a Play Protect block. -->
         <service
             android:name=".service.KharchNotificationListener"
             android:label="Kharch Notification Listener"
