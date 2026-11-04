@@ -5,12 +5,14 @@ import fs from 'fs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const publicDir = path.join(process.cwd(), 'public');
+
   // Prefer the signed release build; fall back to legacy name for compatibility.
   const candidates = [
-    path.join(process.cwd(), 'public', 'companion', 'app-release.apk'),
-    path.join(process.cwd(), 'public', 'companion', 'KharchCompanion.apk'),
-    path.join(process.cwd(), 'public', 'app-release.apk'),
-    path.join(process.cwd(), 'public', 'KharchCompanion.apk'),
+    path.join(publicDir, 'companion', 'app-release.apk'),
+    path.join(publicDir, 'companion', 'KharchCompanion.apk'),
+    path.join(publicDir, 'app-release.apk'),
+    path.join(publicDir, 'KharchCompanion.apk'),
   ];
 
   const finalPath = candidates.find((p) => fs.existsSync(p)) ?? null;

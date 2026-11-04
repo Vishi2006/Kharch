@@ -1,38 +1,19 @@
-# 🪙 Kharch — Personal Finance & Cashflow Tracker
+# 🪙 Kharch v2.0 — Local-First Personal Finance PWA & Android Companion
 
-Kharch is a sleek, modern, and privacy-oriented PWA (Progressive Web Application) designed to help you track your cashflows, reconcile closing balances, manage multiple independent spaces, and optimize your spending with detailed comparative analytics.
+Kharch is a fast, offline-first Progressive Web Application (Next.js 16 App Router, React 19, Dexie.js v3, Tailwind CSS, MongoDB/Mongoose) with a native Kotlin Android Companion APK (`NotificationListenerService`, Room, WorkManager) and native iOS Shortcuts transaction logging automation.
 
-Built with a fast **Express/MongoDB** REST API backend and a responsive **Next.js** frontend styled with TailwindCSS, Kharch focuses on maximum space optimization, clean ledger tables, and interactive micro-animations.
-
----
-
-## ✨ Features
-
-### 🛡️ Authentication & Gestures
-*   **Slide to Sign In**: A custom, premium gesture-based login. Sliding the Google logo handle unlocks a clean **`Tap to Sign In`** button.
-*   **Invisible Google Popup Trigger**: Integrates Google Identity Services (GSI) securely in popup mode. It runs locally and in production using only **Authorized JavaScript Origins** (no complex redirect URI mismatch issues).
-
-### 💼 Multiple Workspaces
-*   **Spaces Dashboard**: Switch between different budget pools (e.g., *Personal*, *Business*, *Savings*) with a single tap.
-*   **Stop Propagation Actioning**: Easily delete or configure workspaces without accidental clicks triggering space switches.
-
-### 📊 Comparative Analytics
-*   **Day Tabular ledger**: A mobile-optimized ledger row list displaying Category (with click-to-expand text clipping), Time, Earned amount, Spent amount, and shortened importance tags (`Ess` / `Mod` / `Low`).
-*   **Weekly Ledger**: Tracks cashflows across a 7-day period.
-*   **Monthly Grid Matrix**: Replaces generic category charts with a highly readable 4-week comparison table (Weekly Cashflows).
-*   **Yearly Matrix**: Compares cashflows month-by-month across 12 months.
-
-### 🔐 Balance Reconciliation
-*   **Reconcile Dashboard**: Swapped out the old transaction history pages for a monthly closing balance logging dashboard. Allows users to freeze their monthly opening/closing balances to ensure ledger accuracy.
+Kharch combines offline-first local speed with seamless background expense capture from Indian payment apps (PhonePe, Google Pay, Paytm, BHIM, etc.), NPCI-safe QR scanning, and automated merchant memory.
 
 ---
 
 ## 🛠️ Technology Stack
 
-*   **Frontend**: Next.js (App Router, React 19, Lucide Icons, Recharts, TailwindCSS)
-*   **Backend**: Express.js REST API (Node.js, Mongoose, Helmet, Rate Limiter)
-*   **Database**: MongoDB (Mongoose Schema Modelling)
-*   **Security**: Cookie-based HttpOnly JWT tokens, CORS Origin Verification, Express Rate Limiter, Helmet protection.
+* **Web / PWA**: Next.js 16 (Turbopack, App Router, React 19, Tailwind CSS, Dexie.js IndexedDB v3)
+* **Backend API**: Next.js Serverless Route Handlers (`src/app/api/...`), zero Render cold-starts (~200ms)
+* **Database**: MongoDB Atlas with cached Mongoose singleton connection
+* **Authentication**: Same-origin `HttpOnly` JWT session cookies + Bearer device tokens
+* **Android Companion**: Native Kotlin app (`NotificationListenerService`, Room database, WorkManager background sync, Android 13–15 Restricted Settings onboarding flow, signed release build)
+* **iOS Automation**: Native iOS Shortcuts webhook integration (`POST /api/notifications/ios-shortcut`)
 
 ---
 
@@ -40,82 +21,80 @@ Built with a fast **Express/MongoDB** REST API backend and a responsive **Next.j
 
 ```
 Kharch/
-├── backend/                  # Express REST API
-│   ├── config/               # DB connection configurations
-│   ├── models/               # MongoDB Mongoose schemas
-│   ├── routes/               # API route modules (auth, transactions, spaces)
-│   ├── server.js             # API entrypoint
-│   └── package.json
+├── src/
+│   ├── app/                      # Next.js 16 App Router pages & serverless API routes
+│   │   ├── api/                  # 30+ Serverless API Route Handlers
+│   │   │   ├── auth/             # Google OAuth & session management
+│   │   │   ├── companion/        # Pairing tokens & APK download route
+│   │   │   ├── consent/          # Companion privacy consent & data sync
+│   │   │   ├── inbox/            # Receipt inbox matching & conversion
+│   │   │   ├── merchant-mappings/# VPA Auto-Memory learning
+│   │   │   ├── notifications/    # Android & iOS Shortcuts notification webhooks
+│   │   │   ├── payment-attempts/ # UPI intent state tracking
+│   │   │   ├── spaces/           # Multi-space isolation
+│   │   │   ├── summaries/        # Monthly cashflow reconciliation
+│   │   │   ├── titles/           # Categorization autocomplete
+│   │   │   └── transactions/     # Ledger entry mutations & analytics
+│   │   ├── add/                  # Manual expense creation
+│   │   ├── analytics/            # Comparative cashflow matrices
+│   │   ├── inbox/                # Receipt review & 1-tap confirmation
+│   │   ├── login/                # Google Identity Services login
+│   │   ├── pay/                  # NPCI-safe QR scanner & 3-second checkout
+│   │   ├── reconcile/            # Monthly balance freezing & reconciliation
+│   │   ├── settings/             # Account controls, APK download & pairing QR
+│   │   └── spaces/               # Workspace management
+│   ├── components/               # AppShell, bottom navigation, QRScanner
+│   ├── context/                  # AppContext offline-first state provider
+│   ├── lib/                      # MongoDB singleton, Auth helper, Matching engine, Parsers
+│   ├── models/                   # Mongoose schemas (10 models)
+│   └── utils/                    # Dexie.js v3 schema & FIFO sync queue
 │
-├── frontend/                 # Next.js App Router Frontend
-│   ├── src/
-│   │   ├── app/              # PWA routes (login, analytics, reconcile, settings)
-│   │   ├── components/       # Shared UI Shell & Layouts
-│   │   └── context/          # AppContext global React state provider
-│   ├── public/               # Static assets & logos
-│   └── package.json
+├── public/                       # Manifest, icons, service worker, signed release APK
+│   └── companion/                # KharchCompanion.apk & app-release.apk
 │
-├── package.json              # Workspace root scripts configuration
-└── README.md                 # Project manual
+├── android/                      # Native Kotlin Companion App (Android 8.0 - 15)
+│   ├── app/src/main/java/        # Notification listener, Room DB, WorkManager, UI
+│   └── build.gradle.kts          # Signed release configuration (v1, v2, v3)
+│
+├── next.config.mjs               # Turbopack & headers configuration
+├── tailwind.config.js            # Tailwind typography & styling
+├── package.json                  # Next.js dependencies & scripts
+└── .env.example                  # Environment template
 ```
 
 ---
 
-## 🚀 Setup & Installation
+## 🚀 Setup & Local Development
 
 ### 1. Prerequisites
-*   [Node.js](https://nodejs.org/) (v18+)
-*   [MongoDB](https://www.mongodb.com/) running locally or a MongoDB Atlas URI connection string.
-*   A [Google Cloud Project](https://console.cloud.google.com/) with an OAuth 2.0 Client ID configured for JavaScript Origins (`http://localhost:3000`).
+* [Node.js](https://nodejs.org/) (v18+)
+* MongoDB Atlas connection URI
+* Google Cloud OAuth Web Client ID
 
-### 2. Environment Configurations
-
-#### Backend (`backend/.env`)
-Create a `.env` file in the `backend/` directory:
-```env
-PORT=5000
-MONGODB_URI=mongodb://127.0.0.1:27017/kharch
-JWT_SECRET=your_super_secret_jwt_key
-FRONTEND_URL=http://localhost:3000
-GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
-NODE_ENV=production
-```
-
-#### Frontend (`frontend/.env.local`)
-Create a `.env.local` file in the `frontend/` directory:
-```env
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
-NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
-```
-
----
-
-### Running Locally
-
-Since the frontend PWA and backend API are independent, you can run them separately in their respective folders:
-
-#### 1. Running the Backend API
-Navigate to the `backend` folder and start the API:
+### 2. Configure Environment
+Copy `.env.example` to `.env.local`:
 ```bash
-cd backend
-npm install
+cp .env.example .env.local
+```
+Fill in your `MONGODB_URI`, `JWT_SECRET`, and `GOOGLE_CLIENT_ID`.
+
+### 3. Install & Run
+```bash
+# Run local development server
+npm run dev
+
+# Run production build (Turbopack)
+npm run build
+
+# Start production server
 npm start
 ```
-This runs the production backend quietly on `http://localhost:5000`.
-
-#### 2. Running the Frontend PWA
-Navigate to the `frontend` folder, perform an optimized build, and start the Next.js server:
-```bash
-cd frontend
-npm install
-npm run build
-npm run start
-```
-This starts your compiled production web app on `http://localhost:3000`.
 
 ---
 
-## 🔒 Security Best Practices
-*   **HttpOnly JWT Cookies**: The backend signs a JWT token and stores it in a secure, server-side cookie (`token`) to prevent XSS credential stealing.
-*   **Morgan Logging**: Switched off in production mode to avoid leaking user transactions/endpoints in the hosting terminal.
-*   **Express Rate Limiter**: Configured on the API and Google Login endpoints to block brute-force attempts.
+## ☁️ Deployment (Vercel)
+
+1. Connect this repository to **Vercel**.
+2. Set **Root Directory** to `.` (the repository root).
+3. Add the environment variables from `.env.example` in Vercel Project Settings.
+4. Deploy! Your entire application, frontend PWA, and serverless API endpoints will deploy in a single unified project.

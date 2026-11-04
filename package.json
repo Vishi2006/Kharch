@@ -1,9 +1,34 @@
 {
-  "name": "kharch-root",
-  "version": "1.0.0",
-  "description": "Root workspace configuration for Kharch PWA",
+  "name": "kharch",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Kharch — Local-First Personal Finance PWA with Next.js 16 Serverless API Routes and Native Android Companion",
   "scripts": {
-    "dev:backend": "npm start --prefix backend",
-    "dev:frontend": "npm run dev --prefix frontend"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "dexie": "^4.4.6",
+    "google-auth-library": "^11.3.3",
+    "html5-qrcode": "^2.3.8",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.28.0",
+    "mongoose": "^9.11.4",
+    "next": "^16.2.12",
+    "qrcode": "^1.5.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.10.1",
+    "uuid": "^14.0.2"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.7",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.1"
   }
 }
