@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -303,7 +303,7 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <a
-            href={`${API_BASE || ''}/api/companion/download`}
+            href="/KharchCompanion.apk"
             download="KharchCompanion.apk"
             className="py-3 px-3 bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors text-center cursor-pointer"
           >
@@ -321,9 +321,10 @@ export default function SettingsPage() {
 
         {/* Play Protect & Restricted Settings install guide */}
         <div className="mt-4 p-3 bg-amber-950/40 border border-amber-700/40 rounded-2xl text-[11px] text-amber-200/90 leading-relaxed space-y-1.5">
-          <p className="font-bold text-amber-300 text-xs">⚠ Install Troubleshooting</p>
-          <p><span className="font-semibold text-amber-300">Play Protect warning during install?</span> Tap <span className="font-mono bg-slate-800 px-1 rounded">More details</span> → <span className="font-mono bg-slate-800 px-1 rounded">Install anyway</span>. You do <em>not</em> need to disable Play Protect in the Play Store.</p>
-          <p><span className="font-semibold text-amber-300">Android says "App was denied access"?</span> Follow the 3-step unlock inside the Companion app to tap <span className="font-mono bg-slate-800 px-1 rounded">Allow restricted settings</span> in App Info.</p>
+          <p className="font-bold text-amber-300 text-xs">⚠ Install & Update Guide</p>
+          <p><span className="font-semibold text-amber-300">Updating from previous build?</span> Please <strong className="text-white">uninstall the old Kharch Companion app from your phone first</strong>. Android blocks updates between debug and release signed builds.</p>
+          <p><span className="font-semibold text-amber-300">Play Protect prompt?</span> Tap <span className="font-mono bg-slate-800 px-1 rounded">More details</span> → <span className="font-mono bg-slate-800 px-1 rounded">Install anyway</span>.</p>
+          <p><span className="font-semibold text-amber-300">Android 13–15 "App was denied access"?</span> Tap <strong className="text-white">Confirm Consent</strong> inside the app to reveal the 3-step unlock buttons and enable <span className="font-mono bg-slate-800 px-1 rounded">Allow restricted settings</span> in App Info.</p>
         </div>
 
         <div className="mt-3 text-center">
@@ -333,7 +334,7 @@ export default function SettingsPage() {
             rel="noopener noreferrer"
             className="text-[10px] text-indigo-400/80 hover:text-indigo-300 hover:underline"
           >
-            View APK Releases on GitHub â†—
+            View APK Releases on GitHub ↗
           </a>
         </div>
       </div>
