@@ -320,11 +320,22 @@ export default function SettingsPage() {
         </div>
 
         {/* Play Protect & Restricted Settings install guide */}
-        <div className="mt-4 p-3 bg-amber-950/40 border border-amber-700/40 rounded-2xl text-[11px] text-amber-200/90 leading-relaxed space-y-1.5">
-          <p className="font-bold text-amber-300 text-xs">⚠ Install & Update Guide</p>
-          <p><span className="font-semibold text-amber-300">Updating from previous build?</span> Please <strong className="text-white">uninstall the old Kharch Companion app from your phone first</strong>. Android blocks updates between debug and release signed builds.</p>
-          <p><span className="font-semibold text-amber-300">Play Protect prompt?</span> Tap <span className="font-mono bg-slate-800 px-1 rounded">More details</span> → <span className="font-mono bg-slate-800 px-1 rounded">Install anyway</span>.</p>
-          <p><span className="font-semibold text-amber-300">Android 13–15 "App was denied access"?</span> Tap <strong className="text-white">Confirm Consent</strong> inside the app to reveal the 3-step unlock buttons and enable <span className="font-mono bg-slate-800 px-1 rounded">Allow restricted settings</span> in App Info.</p>
+        <div className="mt-4 p-3.5 bg-amber-950/40 border border-amber-700/40 rounded-2xl text-[11px] text-amber-200/90 leading-relaxed space-y-2">
+          <p className="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+            <ShieldAlert className="w-4 h-4 text-amber-400" /> Sideloading &amp; Permission Guide
+          </p>
+          <p>
+            <span className="font-semibold text-amber-300">Play Protect hard-blocked install (India)?</span> Do <strong className="text-white">NOT tap &quot;Open&quot; directly inside Chrome</strong>. Open your phone&apos;s built-in <strong className="text-white">Files</strong> (or <strong className="text-white">Files by Google</strong>) app &rarr; go to <strong className="text-white">Downloads</strong> &rarr; tap <span className="font-mono bg-slate-800 px-1 py-0.5 rounded text-white">KharchCompanion.apk</span> to install without Chrome&apos;s fraud filter. (Or temporarily pause &quot;Scan apps with Play Protect&quot; in Google Play Store settings).
+          </p>
+          <p>
+            <span className="font-semibold text-amber-300">Play Protect warning?</span> Tap <span className="font-mono bg-slate-800 px-1 py-0.5 rounded text-white">More details</span> &rarr; <span className="font-mono bg-slate-800 px-1 py-0.5 rounded text-white">Install anyway</span>.
+          </p>
+          <p>
+            <span className="font-semibold text-amber-300">Updating existing app?</span> Please <strong className="text-white">uninstall the old Kharch app first</strong> before installing this new signed release.
+          </p>
+          <p>
+            <span className="font-semibold text-amber-300">Android 13–15 &quot;App was denied access&quot;?</span> Tap <strong className="text-white">Confirm Consent</strong> inside the Companion app to use the <strong className="text-white">3-Step Unlock Assistant</strong>. It automatically opens the exact App Info screen where you tap <span className="font-mono bg-slate-800 px-1 py-0.5 rounded text-white">Allow restricted settings</span>.
+          </p>
         </div>
 
         <div className="mt-3 text-center">
@@ -339,18 +350,18 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* iOS Shortcuts Automation Card */}
+      {/* iPhone & Android Webhook Automation (iOS Shortcuts / MacroDroid) */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg border-indigo-500/20">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Smartphone className="w-4 h-4 text-indigo-400 shrink-0" /> iPhone Auto-Sync (iOS Shortcuts)
+            <Smartphone className="w-4 h-4 text-indigo-400 shrink-0" /> Webhook Auto-Sync (iOS &amp; MacroDroid)
           </h3>
           <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-full">
-            iOS only
+            No Sideload Required
           </span>
         </div>
         <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
-          iPhone cannot read notifications from other apps directly. Use Apple Shortcuts to silently forward bank &amp; UPI payment SMS to Kharch in the background with zero manual entry.
+          For iPhone users (via Apple Shortcuts) or Android users who prefer not to sideload an APK (via MacroDroid from Google Play Store). Silently forward payment SMS or notifications to Kharch in the background with zero manual entry.
         </p>
 
         {!iosToken ? (
@@ -360,7 +371,7 @@ export default function SettingsPage() {
             disabled={iosTokenLoading || isOffline}
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
           >
-            {iosTokenLoading ? 'Generating...' : 'Generate iOS Automation Key'}
+            {iosTokenLoading ? 'Generating...' : 'Generate Automation Webhook Key'}
           </button>
         ) : (
           <div className="space-y-3">
@@ -381,19 +392,19 @@ export default function SettingsPage() {
             </div>
 
             <div className="bg-slate-950/60 border border-slate-800/60 rounded-2xl p-4 space-y-3">
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">3-Step Setup in iPhone Shortcuts</p>
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">3-Step Setup in iPhone Shortcuts (or Android MacroDroid)</p>
               <div className="space-y-2.5 text-[11px] text-slate-400 leading-relaxed">
                 <div className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
-                  <p>Open <strong className="text-slate-200">Shortcuts</strong> app â†’ tap <strong className="text-slate-200">Automation</strong> tab â†’ <strong className="text-slate-200">New Automation</strong> â†’ choose <strong className="text-slate-200">Message</strong> â†’ Message Contains: <code className="text-indigo-300 bg-slate-900 px-1 rounded">UPI</code> or <code className="text-indigo-300 bg-slate-900 px-1 rounded">debited</code> â†’ select <strong className="text-slate-200">Run Immediately</strong>.</p>
+                  <p>Open <strong className="text-slate-200">Shortcuts</strong> app &rarr; tap <strong className="text-slate-200">Automation</strong> tab &rarr; <strong className="text-slate-200">New Automation</strong> &rarr; choose <strong className="text-slate-200">Message</strong> &rarr; Message Contains: <code className="text-indigo-300 bg-slate-900 px-1 rounded">UPI</code> or <code className="text-indigo-300 bg-slate-900 px-1 rounded">debited</code> &rarr; select <strong className="text-slate-200">Run Immediately</strong>.</p>
                 </div>
                 <div className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
-                  <p>Add Action: <strong className="text-slate-200">Get Contents of URL</strong> â†’ URL: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/api/notifications/ios-shortcut</code> â†’ Method: <strong className="text-slate-200">POST</strong> â†’ Headers: Add <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">Authorization: Bearer {iosToken}</code></p>
+                  <p>Add Action: <strong className="text-slate-200">Get Contents of URL</strong> &rarr; URL: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/api/notifications/ios-shortcut</code> &rarr; Method: <strong className="text-slate-200">POST</strong> &rarr; Headers: Add <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">Authorization: Bearer {iosToken}</code></p>
                 </div>
                 <div className="flex gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
-                  <p>Set Request Body: <strong className="text-slate-200">JSON</strong> with Key: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">rawText</code> = <strong className="text-slate-200">Shortcut Input</strong> â†’ Tap <strong className="text-slate-200">Done</strong>. Kharch will now auto-import every payment SMS silently in the background!</p>
+                  <p>Set Request Body: <strong className="text-slate-200">JSON</strong> with Key: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">rawText</code> = <strong className="text-slate-200">Shortcut Input</strong> &rarr; Tap <strong className="text-slate-200">Done</strong>. Kharch will now auto-import every payment SMS silently in the background!</p>
                 </div>
               </div>
             </div>
