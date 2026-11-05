@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   Zap,
   Smartphone,
+  ExternalLink,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -34,28 +35,86 @@ const isIOS = () =>
 const isAndroid = () =>
   typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
-// iOS preferred app stored in localStorage
+// Supported UPI applications for direct app launching & iOS scheme rewrites
 const IOS_APP_KEY = 'kharch_preferred_upi_app';
-const IOS_APPS = [
-  { id: 'gpay', label: 'GPay', scheme: 'tez://upi/pay?' },
-  { id: 'phonepe', label: 'PhonePe', scheme: 'phonepe://pay?' },
-  { id: 'paytm', label: 'Paytm', scheme: 'paytmmp://pay?' },
-  { id: 'bhim', label: 'BHIM', scheme: 'bhim://upi/pay?' },
+const UPI_APPS = [
+  { id: 'gpay', name: 'Google Pay', short: 'GPay', scheme: 'tez://', iosDeepLinkPrefix: 'tez://upi/pay?', color: 'border-blue-500/30 bg-blue-500/10 text-blue-300' },
+  { id: 'phonepe', name: 'PhonePe', short: 'PhonePe', scheme: 'phonepe://', iosDeepLinkPrefix: 'phonepe://pay?', color: 'border-purple-500/30 bg-purple-500/10 text-purple-300' },
+  { id: 'paytm', name: 'Paytm', short: 'Paytm', scheme: 'paytmmp://', iosDeepLinkPrefix: 'paytmmp://pay?', color: 'border-sky-500/30 bg-sky-500/10 text-sky-300' },
+  { id: 'bhim', name: 'BHIM', short: 'BHIM', scheme: 'bhim://', iosDeepLinkPrefix: 'bhim://upi/pay?', color: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' },
 ];
 
-// ─── UPI QR Payload Parser ────────────────────────────────────────────────────
+// ─── Exact UPI QR Parser & Verification Checker ──────────────────────────────
 /**
- * Parse UPI QR payloads preserving ALL original parameters including
- * mc, sign, orgid, tid — only extract displayable fields for the UI.
+ * Rule 1: Never Rebuild the upi://pay URI from Scratch
+ * Parse pa, pn, am, mc, and sign using new URL(rawPayload) ONLY to display
+ * the merchant name and check verification status in the UI.
+ * NEVER overwrite or add &tr=<paymentAttemptId> to the upi://pay URL.
+ * NEVER strip mc, orgid, sign, tid, or mode from rawPayload.
+ *
+ * Rule 2: Detect Verified Merchant (P2M) vs Unverified Personal (P2P) QR
+ * const urlObj = new URL(rawPayload);
+ * const mc = urlObj.searchParams.get('mc');
+ * const sign = urlObj.searchParams.get('sign');
+ * const isVerifiedMerchant = Boolean(mc && mc !== '0000' && sign);
  */
 function parseUPIPayload(rawText) {
   if (!rawText || typeof rawText !== 'string') {
-    return { pa: '', pn: '', am: '', cu: 'INR', mc: '', sign: '', rawPayload: '' };
+    return {
+      pa: '',
+      pn: '',
+      am: '',
+      cu: 'INR',
+      mc: '',
+      sign: '',
+      rawPayload: '',
+      isVerifiedMerchant: false,
+    };
   }
 
   const trimmed = rawText.trim();
 
-  // 1. EMVCo / BharatQR TLV Format (starts with "000201")
+  // 1. Standard UPI URI parsing via new URL
+  try {
+    let urlToParse = trimmed;
+    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(urlToParse)) {
+      urlToParse = trimmed.includes('?')
+        ? `upi://pay${trimmed.substring(trimmed.indexOf('?'))}`
+        : `upi://pay?pa=${trimmed}`;
+    }
+
+    const urlObj = new URL(urlToParse);
+    const pa = urlObj.searchParams.get('pa') || urlObj.searchParams.get('PA') || '';
+    let pn = urlObj.searchParams.get('pn') || urlObj.searchParams.get('PN') || '';
+    const tn = urlObj.searchParams.get('tn') || urlObj.searchParams.get('TN') || '';
+    const am = urlObj.searchParams.get('am') || urlObj.searchParams.get('AM') || '';
+    const cu = urlObj.searchParams.get('cu') || urlObj.searchParams.get('CU') || 'INR';
+    const mc = urlObj.searchParams.get('mc') || urlObj.searchParams.get('MC') || '';
+    const sign = urlObj.searchParams.get('sign') || urlObj.searchParams.get('SIGN') || '';
+
+    // If pn is generic processor name but trade name (tn) is present, use tn
+    if ((!pn || ['paytm', 'paytm merchant', 'upi', 'google pay', 'phonepe'].includes(pn.toLowerCase())) && tn) {
+      pn = tn;
+    }
+
+    // Exact Rule 2:
+    const isVerifiedMerchant = Boolean(mc && mc !== '0000' && sign);
+
+    return {
+      pa: pa.trim(),
+      pn: (pn || pa).trim(),
+      am: am.trim(),
+      cu: (cu || 'INR').trim(),
+      mc: mc.trim(),
+      sign: sign.trim(),
+      rawPayload: trimmed,
+      isVerifiedMerchant,
+    };
+  } catch (err) {
+    console.warn('URL parsing failed, checking fallback formats:', err);
+  }
+
+  // 2. BharatQR / EMVCo TLV Format fallback (starts with "000201")
   if (trimmed.startsWith('000201')) {
     try {
       let i = 0;
@@ -76,102 +135,95 @@ function parseUPIPayload(rawText) {
         const vpaMatch = merchantInfo.match(/[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}/);
         if (vpaMatch) pa = vpaMatch[0];
       }
-      if (pa || pn) {
-        return { pa: pa || '', pn: pn || '', am: am || '', cu: 'INR', mc: '', sign: '', rawPayload: trimmed };
-      }
+      const mc = tags['52'] || '';
+      return {
+        pa: pa.trim(),
+        pn: (pn || pa).trim(),
+        am: am.trim(),
+        cu: 'INR',
+        mc: mc.trim(),
+        sign: '',
+        rawPayload: trimmed,
+        isVerifiedMerchant: false,
+      };
     } catch (e) {
       console.warn('EMVCo decode issue:', e);
-    }
-  }
-
-  // 2. Query string parsing — extract display fields but KEEP rawPayload untouched
-  let queryString = '';
-  if (trimmed.includes('?')) {
-    queryString = trimmed.substring(trimmed.indexOf('?') + 1);
-  } else if (trimmed.toLowerCase().startsWith('upi://')) {
-    queryString = trimmed.substring(6);
-  }
-
-  if (queryString) {
-    try {
-      const params = new URLSearchParams(queryString);
-      const getDecoded = (key) => {
-        const val = params.get(key) || params.get(key.toLowerCase()) || params.get(key.toUpperCase());
-        if (!val) return '';
-        try { return decodeURIComponent(val.replace(/\+/g, ' ')).trim(); } catch { return val.trim(); }
-      };
-
-      const pa = getDecoded('pa');
-      let pn = getDecoded('pn');
-      const tn = getDecoded('tn');
-      const am = getDecoded('am');
-      const cu = getDecoded('cu') || 'INR';
-      const mc = getDecoded('mc');     // Merchant Category Code — keep for P2M detection
-      const sign = getDecoded('sign'); // Cryptographic signature — keep intact
-
-      // If pn is a generic processor name but trade name is available, use it
-      if ((!pn || ['paytm', 'paytm merchant', 'upi', 'google pay'].includes(pn.toLowerCase())) && tn) {
-        pn = tn;
-      }
-
-      return { pa: pa || '', pn: pn || '', am: am || '', cu: cu || 'INR', mc, sign, rawPayload: trimmed };
-    } catch (e) {
-      console.warn('Query string decode issue:', e);
     }
   }
 
   // 3. Raw VPA fallback
   const vpaMatch = trimmed.match(/[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}/);
   if (vpaMatch) {
-    return { pa: vpaMatch[0], pn: '', am: '', cu: 'INR', mc: '', sign: '', rawPayload: trimmed };
+    return {
+      pa: vpaMatch[0],
+      pn: vpaMatch[0],
+      am: '',
+      cu: 'INR',
+      mc: '',
+      sign: '',
+      rawPayload: `upi://pay?pa=${vpaMatch[0]}`,
+      isVerifiedMerchant: false,
+    };
   }
 
-  return { pa: '', pn: '', am: '', cu: 'INR', mc: '', sign: '', rawPayload: trimmed };
+  return {
+    pa: '',
+    pn: '',
+    am: '',
+    cu: 'INR',
+    mc: '',
+    sign: '',
+    rawPayload: trimmed,
+    isVerifiedMerchant: false,
+  };
 }
 
+// ─── Rule 3: Deep Link Launcher for Verified Merchants ───────────────────────
 /**
- * Build the UPI payment URL.
- * - Android: uses standard upi:// (Chrome intent chooser) or rawPayload with updated am= if modified
- * - iOS: rewrites scheme prefix to the preferred app, keeps all params
+ * If isVerifiedMerchant === true:
+ * - If original QR did not already include an am parameter and user typed an amount,
+ *   append &am=${Number(amount).toFixed(2)}&cu=INR to the end of rawPayload.
+ * - On iOS, rewrite only the scheme prefix (tez://upi/pay?, phonepe://pay?, paytmmp://pay?, bhim://upi/pay?)
+ *   while keeping all query parameters untouched.
+ * - On Android, launch the rawPayload URI directly with upi://pay scheme untouched.
+ * - NEVER add &tr=<paymentAttemptId>.
  */
-function buildPaymentUrl({ rawPayload, pa, pn, am, cu, paymentAttemptId, preferredIosApp }) {
-  const on_ios = isIOS();
+function buildVerifiedPaymentUrl({ rawPayload, amount, preferredIosApp }) {
+  let finalUri = rawPayload.trim();
 
-  // If we have a valid raw UPI payload, use it and only patch am= if changed
-  if (rawPayload && rawPayload.includes('?')) {
-    const qsStart = rawPayload.indexOf('?');
-    const prefix = rawPayload.substring(0, qsStart + 1);
-    const qs = rawPayload.substring(qsStart + 1);
-
-    try {
-      const params = new URLSearchParams(qs);
-      // Update amount if user changed it
-      if (am) params.set('am', am);
-      // DO NOT overwrite tr — it's merchant-signed. We track via our own paymentAttemptId separately.
-
-      const updatedQs = params.toString();
-
-      if (on_ios) {
-        const app = IOS_APPS.find((a) => a.id === preferredIosApp) || IOS_APPS[0];
-        // Keep all original params but change URL scheme
-        return `${app.scheme}${updatedQs}`;
-      }
-
-      // Android: use standard upi:// — OS will show chooser
-      return `upi://pay?${updatedQs}`;
-    } catch {}
+  // If the original QR did not already include an am parameter and user typed an amount:
+  const hasAmParam = /[?&]am=/i.test(finalUri);
+  if (!hasAmParam && amount && Number(amount) > 0) {
+    const separator = finalUri.includes('?') ? '&' : '?';
+    finalUri = `${finalUri}${separator}am=${Number(amount).toFixed(2)}&cu=INR`;
   }
 
-  // Fallback: build fresh URL (P2P or manual entry)
-  const queryParams = new URLSearchParams({ pa, pn: pn || pa, am, cu: cu || 'INR', tr: paymentAttemptId }).toString();
+  // On iOS: rewrite only the scheme prefix while keeping all original parameters untouched
+  if (isIOS()) {
+    const selectedApp = UPI_APPS.find((a) => a.id === preferredIosApp) || UPI_APPS[0];
+    const targetPrefix = selectedApp.iosDeepLinkPrefix;
 
-  if (on_ios) {
-    const app = IOS_APPS.find((a) => a.id === preferredIosApp) || IOS_APPS[0];
-    return `${app.scheme}${queryParams}`;
+    if (/^upi:\/\/pay\?/i.test(finalUri)) {
+      return finalUri.replace(/^upi:\/\/pay\?/i, targetPrefix);
+    }
+    if (/^upi:\/\/pay/i.test(finalUri)) {
+      return finalUri.replace(/^upi:\/\/pay/i, targetPrefix.replace(/\?$/, ''));
+    }
+    if (finalUri.includes('?')) {
+      return `${targetPrefix}${finalUri.substring(finalUri.indexOf('?') + 1)}`;
+    }
   }
 
-  // Android: Chrome Intent without package — shows OS chooser
-  return `intent://pay?${queryParams}#Intent;scheme=upi;end`;
+  // On Android / Desktop:
+  // Fire the preserved raw URI with standard upi://pay scheme
+  if (/^upi:\/\/pay/i.test(finalUri)) {
+    return finalUri;
+  }
+  if (finalUri.includes('?')) {
+    return `upi://pay${finalUri.substring(finalUri.indexOf('?'))}`;
+  }
+
+  return finalUri;
 }
 
 // ─── Merchant Memory Helpers ──────────────────────────────────────────────────
@@ -200,22 +252,30 @@ export default function PayPage() {
   const router = useRouter();
   const { spaces, activeSpaceId, apiFetch, refreshDashboard } = useApp();
 
-  const [formData, setFormData] = useState({ pa: '', pn: '', am: '', cu: 'INR', mc: '', sign: '', rawPayload: '' });
+  const [formData, setFormData] = useState({
+    pa: '',
+    pn: '',
+    am: '',
+    cu: 'INR',
+    mc: '',
+    sign: '',
+    rawPayload: '',
+  });
+  const [isVerifiedMerchant, setIsVerifiedMerchant] = useState(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState('');
   const [importance, setImportance] = useState('moderate');
   const [note, setNote] = useState('');
-  const [isUnverifiedP2P, setIsUnverifiedP2P] = useState(false);
   const [showRawPayload, setShowRawPayload] = useState(false);
   const [showDefaultAppHelp, setShowDefaultAppHelp] = useState(false);
   const [copiedVpa, setCopiedVpa] = useState(false);
   const [paymentState, setPaymentState] = useState('SCANNING'); // SCANNING | FORM | RETURNED | SUCCESS | UNKNOWN
   const [activeAttempt, setActiveAttempt] = useState(null);
-  const [merchantSuggestion, setMerchantSuggestion] = useState(null); // { canonicalTitle, spaceId, importance }
+  const [merchantSuggestion, setMerchantSuggestion] = useState(null);
   const [preferredIosApp, setPreferredIosApp] = useState('gpay');
   const [toast, setToast] = useState('');
   const toastTimer = useRef(null);
 
-  const showToast = (msg, duration = 2500) => {
+  const showToast = (msg, duration = 3500) => {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(''), duration);
@@ -243,7 +303,7 @@ export default function PayPage() {
     }
   }, [activeSpaceId, spaces]);
 
-  // Clean stale pending attempts (> 90s) and detect active PENDING state
+  // Clean stale pending attempts (> 90s) and detect active PENDING state on return
   const checkPendingPayments = useCallback(async () => {
     try {
       const now = Date.now();
@@ -264,7 +324,6 @@ export default function PayPage() {
 
       if (activePending) {
         setActiveAttempt(activePending);
-        // Restore selected space and importance from attempt
         if (activePending.spaceId) setSelectedSpaceId(activePending.spaceId);
         if (activePending.importance) setImportance(activePending.importance);
         setPaymentState('RETURNED');
@@ -286,16 +345,12 @@ export default function PayPage() {
   const handleScanSuccess = useCallback(async (decodedText) => {
     const parsed = parseUPIPayload(decodedText);
 
-    // Detect P2M vs P2P: P2M has mc= and/or sign=
-    const hasP2MMarkers = !!(parsed.mc || parsed.sign);
-    setIsUnverifiedP2P(!hasP2MMarkers);
-
+    setIsVerifiedMerchant(parsed.isVerifiedMerchant);
     setFormData(parsed);
 
-    // Phase 3: Look up merchant memory in Dexie + server
+    // Look up merchant memory in Dexie + server
     if (parsed.pa) {
       try {
-        // Dexie local lookup first
         const localMapping = await db.merchantMappings
           .where('identifierKey')
           .equals(parsed.pa.toLowerCase().trim())
@@ -307,14 +362,12 @@ export default function PayPage() {
             spaceId: localMapping.spaceId,
             importance: localMapping.importance,
           });
-          // Auto-apply suggestion
           setImportance(localMapping.importance || 'moderate');
           if (localMapping.spaceId) setSelectedSpaceId(localMapping.spaceId);
           if (!parsed.pn && localMapping.canonicalTitle) {
             setFormData((prev) => ({ ...prev, pn: localMapping.canonicalTitle }));
           }
         } else {
-          // Try server if Dexie misses
           const serverMapping = await lookupMerchantMapping(apiFetch, parsed.pa);
           if (serverMapping) {
             setMerchantSuggestion({
@@ -326,7 +379,6 @@ export default function PayPage() {
             if (serverMapping.spaceId) setSelectedSpaceId(serverMapping.spaceId);
             if (!parsed.pn) setFormData((prev) => ({ ...prev, pn: serverMapping.canonicalTitle }));
 
-            // Cache in Dexie for next time
             await db.merchantMappings.put({
               identifierKey: parsed.pa.toLowerCase().trim(),
               canonicalTitle: serverMapping.canonicalTitle,
@@ -348,12 +400,12 @@ export default function PayPage() {
   const handleResetScan = () => {
     setFormData({ pa: '', pn: '', am: '', cu: 'INR', mc: '', sign: '', rawPayload: '' });
     setActiveAttempt(null);
-    setIsUnverifiedP2P(false);
+    setIsVerifiedMerchant(false);
     setMerchantSuggestion(null);
     setPaymentState('SCANNING');
   };
 
-  // ── Save merchant memory after a successful or attempted payment ──────────
+  // ── Save merchant memory after payment completion ────────────────────────────
   const persistMerchantMemory = useCallback(async () => {
     const vpa = formData.pa?.trim();
     const title = formData.pn?.trim() || note?.trim();
@@ -361,7 +413,6 @@ export default function PayPage() {
 
     const identifierKey = vpa.toLowerCase();
 
-    // Dexie upsert
     try {
       const existing = await db.merchantMappings.where('identifierKey').equals(identifierKey).first();
       if (existing) {
@@ -384,18 +435,24 @@ export default function PayPage() {
       }
     } catch {}
 
-    // Server upsert (non-blocking)
     saveMerchantMapping(apiFetch, { identifierKey, canonicalTitle: title, spaceId: selectedSpaceId, importance });
   }, [formData, note, selectedSpaceId, importance, apiFetch]);
 
-  // ── Primary Pay button handler ───────────────────────────────────────────
-  const handlePayClick = async (e) => {
-    e.preventDefault();
-    if (!formData.pa) return alert('Payee UPI ID (VPA) is required');
-    if (!formData.am || parseFloat(formData.am) <= 0) return alert('Please enter a valid amount');
+  // ── Rule 3: Proceed to Pay Handler ───────────────────────────────────────────
+  const handleProceedToPay = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
 
-    const paymentAttemptId = uuidv4();
+    if (!formData.pa) {
+      alert('Payee UPI ID (VPA) is required');
+      return;
+    }
+    if (!formData.am || parseFloat(formData.am) <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+
     const amountVal = parseFloat(formData.am);
+    const paymentAttemptId = uuidv4();
 
     const attempt = {
       paymentAttemptId,
@@ -408,12 +465,14 @@ export default function PayPage() {
       spaceId: selectedSpaceId,
       importance,
       note: note.trim(),
+      isVerifiedMerchant,
     };
 
-    // 1. Persist to IndexedDB immediately (before deep-link navigation)
+    // 1. Save PaymentAttempt to Dexie.js
     await db.paymentAttempts.add(attempt);
+    setActiveAttempt(attempt);
 
-    // 2. Fire-and-forget backend sync
+    // 2. Sync to backend (fire-and-forget)
     apiFetch('/api/payment-attempts', {
       method: 'POST',
       body: JSON.stringify({
@@ -421,35 +480,59 @@ export default function PayPage() {
         type: 'expense',
         amount: amountVal,
         payeeVpa: formData.pa.trim(),
-        payeeName: formData.pn.trim(),
+        payeeName: formData.pn.trim() || formData.pa.trim(),
         initiatedAt: new Date(attempt.initiatedAt),
         status: 'PENDING',
       }),
     }).catch(() => {});
 
-    // 3. Build platform-aware URL (preserving merchant signatures)
-    const finalUrl = buildPaymentUrl({
-      rawPayload: formData.rawPayload,
-      pa: formData.pa.trim(),
-      pn: formData.pn.trim() || formData.pa.trim(),
-      am: String(amountVal),
-      cu: 'INR',
-      paymentAttemptId,
-      preferredIosApp,
-    });
+    // ── CASE 1: Verified Merchant (P2M) ───────────────────────────────────────
+    if (isVerifiedMerchant) {
+      const finalUrl = buildVerifiedPaymentUrl({
+        rawPayload: formData.rawPayload,
+        amount: amountVal,
+        preferredIosApp,
+      });
 
-    window.location.href = finalUrl;
+      // Launch preserved raw URI
+      window.location.href = finalUrl;
+      return;
+    }
+
+    // ── CASE 2: Unverified Personal / Street Vendor QR (P2P) ──────────────────
+    // Because NPCI blocks upi://pay deep links to unverified personal UPI IDs across all apps,
+    // do NOT fire upi://pay?pa=... directly.
+    try {
+      await navigator.clipboard.writeText(formData.pa.trim());
+      setCopiedVpa(true);
+      setTimeout(() => setCopiedVpa(false), 3000);
+    } catch (err) {
+      console.warn('Clipboard write failed:', err);
+    }
+
+    showToast(`Unverified shop QR: Copied UPI ID (${formData.pa.trim()})! Paste it inside your UPI app to pay.`, 4500);
+
+    // Launch preferred app scheme without upi://pay parameters
+    const targetScheme = isIOS()
+      ? (UPI_APPS.find((a) => a.id === preferredIosApp)?.scheme || 'tez://')
+      : 'phonepe://';
+
+    setTimeout(() => {
+      window.location.href = targetScheme;
+    }, 500);
   };
 
-  // ── P2P Fallback: Copy VPA & open app ────────────────────────────────────
-  const handleCopyAndOpen = async () => {
+  // ── Quick App Button Handler for Unverified QRs ──────────────────────────────
+  const handleLaunchApp = async (appScheme, appName) => {
     if (!formData.pa) return;
-    if (!formData.am || parseFloat(formData.am) <= 0) return alert('Please enter the amount first');
+    if (!formData.am || parseFloat(formData.am) <= 0) {
+      alert('Please enter a valid amount first');
+      return;
+    }
 
-    const paymentAttemptId = uuidv4();
     const amountVal = parseFloat(formData.am);
+    const paymentAttemptId = uuidv4();
 
-    // Save attempt
     const attempt = {
       paymentAttemptId,
       payeeVpa: formData.pa.trim(),
@@ -461,29 +544,50 @@ export default function PayPage() {
       spaceId: selectedSpaceId,
       importance,
       note: note.trim(),
+      isVerifiedMerchant: false,
     };
+
     await db.paymentAttempts.add(attempt);
+    setActiveAttempt(attempt);
+
     apiFetch('/api/payment-attempts', {
       method: 'POST',
-      body: JSON.stringify({ ...attempt, type: 'expense', initiatedAt: new Date(attempt.initiatedAt) }),
+      body: JSON.stringify({
+        paymentAttemptId,
+        type: 'expense',
+        amount: amountVal,
+        payeeVpa: formData.pa.trim(),
+        payeeName: formData.pn.trim() || formData.pa.trim(),
+        initiatedAt: new Date(attempt.initiatedAt),
+        status: 'PENDING',
+      }),
     }).catch(() => {});
 
-    // Copy VPA to clipboard
     try {
       await navigator.clipboard.writeText(formData.pa.trim());
       setCopiedVpa(true);
-      setTimeout(() => setCopiedVpa(false), 2500);
-      showToast(`Copied ${formData.pa.trim()}! Paste in your UPI app.`);
+      setTimeout(() => setCopiedVpa(false), 3000);
     } catch {}
 
-    // Open preferred UPI app (no payment params — user pastes manually)
-    const appScheme = IOS_APPS.find((a) => a.id === preferredIosApp)?.scheme || 'upi://pay?';
+    showToast(`Unverified shop QR: Copied UPI ID (${formData.pa.trim()})! Opening ${appName}...`, 4000);
+
     setTimeout(() => {
-      window.location.href = appScheme.split('?')[0]; // Open app without params
+      window.location.href = appScheme;
     }, 400);
   };
 
-  // ── Confirm payment returned from UPI app ────────────────────────────────
+  // ── Copy VPA Only Helper ─────────────────────────────────────────────────────
+  const handleCopyVpaOnly = async () => {
+    if (!formData.pa) return;
+    try {
+      await navigator.clipboard.writeText(formData.pa.trim());
+      setCopiedVpa(true);
+      setTimeout(() => setCopiedVpa(false), 3000);
+      showToast(`Copied ${formData.pa.trim()} to clipboard!`);
+    } catch {}
+  };
+
+  // ── Confirm payment returned from UPI app ────────────────────────────────────
   const handleSaveTransaction = async (isSuccess) => {
     if (!activeAttempt) return;
 
@@ -526,9 +630,7 @@ export default function PayPage() {
           body: JSON.stringify({ status: 'SUCCESS', linkedTransactionId: txId }),
         }).catch(() => {});
 
-        // Phase 3: Persist merchant memory
         await persistMerchantMemory();
-
         await refreshDashboard(targetSpace);
         setPaymentState('SUCCESS');
       } else {
@@ -582,7 +684,7 @@ export default function PayPage() {
         )}
       </div>
 
-      {/* ── 1. SCANNING STATE ─────────────────────────────────────────────── */}
+      {/* ── 1. SCANNING STATE ───────────────────────────────────────────────── */}
       {paymentState === 'SCANNING' && (
         <div className="flex flex-col gap-4 items-center">
           <QRScanner onScanSuccess={handleScanSuccess} />
@@ -592,18 +694,28 @@ export default function PayPage() {
         </div>
       )}
 
-      {/* ── 2. FORM STATE ─────────────────────────────────────────────────── */}
+      {/* ── 2. FORM STATE ───────────────────────────────────────────────────── */}
       {paymentState === 'FORM' && (
-        <form onSubmit={handlePayClick} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-fade-in">
+        <form onSubmit={handleProceedToPay} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-fade-in">
 
-          {/* P2P Warning Banner */}
-          {isUnverifiedP2P && (
-            <div className="flex items-start gap-3 p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-2xl">
-              <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          {/* Verification Status Banner */}
+          {isVerifiedMerchant ? (
+            <div className="flex items-center gap-2.5 p-3.5 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
               <div>
-                <p className="text-[11px] font-bold text-amber-200">Unverified P2P QR Code</p>
-                <p className="text-[10px] text-amber-400/90 mt-0.5 leading-relaxed">
-                  This QR has no merchant signature. Some UPI apps may block payment. Use <strong>&ldquo;Copy &amp; Open App&rdquo;</strong> below if payment fails.
+                <p className="text-[11px] font-bold text-emerald-200">Verified Merchant QR (P2M)</p>
+                <p className="text-[10px] text-emerald-400/90 leading-tight">
+                  Cryptographically signed merchant QR ({formData.mc || 'Merchant'}). Direct 1-tap checkout enabled.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-3 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+              <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[11px] font-bold text-amber-200">Unverified Shop / Personal QR (P2P)</p>
+                <p className="text-[10px] text-amber-300/90 mt-0.5 leading-relaxed">
+                  NPCI blocks direct browser payment links to unverified personal UPI IDs across all apps. Tapping <strong>Proceed to Pay</strong> copies the UPI ID and opens your UPI app to paste and pay safely.
                 </p>
               </div>
             </div>
@@ -626,7 +738,7 @@ export default function PayPage() {
                 <Smartphone className="w-3 h-3 text-indigo-400" /> Open With (iPhone)
               </span>
               <div className="flex gap-2">
-                {IOS_APPS.map((app) => (
+                {UPI_APPS.map((app) => (
                   <button
                     key={app.id}
                     type="button"
@@ -637,7 +749,7 @@ export default function PayPage() {
                         : 'bg-slate-950 border-slate-800 text-slate-400'
                     }`}
                   >
-                    {app.label}
+                    {app.short}
                   </button>
                 ))}
               </div>
@@ -741,7 +853,7 @@ export default function PayPage() {
             />
           </div>
 
-          {/* Raw Payload */}
+          {/* Raw Payload Accordion */}
           {formData.rawPayload && (
             <div className="border border-slate-800 rounded-xl overflow-hidden mt-1">
               <button
@@ -760,31 +872,67 @@ export default function PayPage() {
             </div>
           )}
 
-          {/* Primary button */}
-          <button
-            type="submit"
-            className="w-full py-4 mt-2 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg shadow-indigo-500/20 active:scale-98 hover:from-indigo-600 hover:to-violet-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <span>
-              {formData.am && parseFloat(formData.am) > 0
-                ? `Pay ₹${parseFloat(formData.am).toFixed(2)}`
-                : 'Proceed to Pay'}
-            </span>
-            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-          </button>
+          {/* Quick App Buttons for Unverified Street Vendor QRs */}
+          {!isVerifiedMerchant && (
+            <div className="flex flex-col gap-2 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5 text-indigo-400" /> Quick Open App &amp; Pay
+                </span>
+                <span className="text-[9px] text-indigo-400/90 font-semibold">Auto-copies UPI ID</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {UPI_APPS.map((app) => (
+                  <button
+                    key={app.id}
+                    type="button"
+                    onClick={() => handleLaunchApp(app.scheme, app.name)}
+                    className={`py-2.5 px-1 bg-slate-950 hover:bg-slate-800 border rounded-xl text-center text-[11px] font-bold transition-all cursor-pointer active:scale-95 flex flex-col items-center justify-center gap-1 shadow-sm ${app.color}`}
+                  >
+                    <span>{app.short}</span>
+                    <span className="text-[9px] text-slate-400">Open ↗</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* P2P Fallback / Copy UPI ID button */}
+          {/* Primary Action Button */}
+          {isVerifiedMerchant ? (
+            <button
+              type="submit"
+              className="w-full py-4 mt-2 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg shadow-indigo-500/20 active:scale-98 hover:from-indigo-600 hover:to-violet-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>
+                {formData.am && parseFloat(formData.am) > 0
+                  ? `Pay ₹${parseFloat(formData.am).toFixed(2)} (Verified)`
+                  : 'Proceed to Pay'}
+              </span>
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className="w-full py-4 mt-2 bg-gradient-to-tr from-amber-600 to-indigo-600 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg shadow-indigo-500/20 active:scale-98 hover:from-amber-500 hover:to-indigo-500 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Copy className="w-4 h-4" />
+              <span>
+                {formData.am && parseFloat(formData.am) > 0
+                  ? `Copy UPI ID & Pay ₹${parseFloat(formData.am).toFixed(2)}`
+                  : 'Copy UPI ID & Open App'}
+              </span>
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          )}
+
+          {/* Standalone Copy UPI ID Button */}
           <button
             type="button"
-            onClick={handleCopyAndOpen}
-            className={`w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all border ${
-              isUnverifiedP2P
-                ? 'bg-amber-500/15 border-amber-500/30 text-amber-200 hover:bg-amber-500/25'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
+            onClick={handleCopyVpaOnly}
+            className="w-full py-2.5 bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl font-bold text-xs text-slate-300 hover:text-white flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
-            {copiedVpa ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            {copiedVpa ? 'Copied!' : 'Copy UPI ID & Open App'}
+            {copiedVpa ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
+            <span>{copiedVpa ? 'UPI ID Copied!' : `Copy ${formData.pa || 'UPI ID'}`}</span>
           </button>
 
           {/* Android chooser help */}
@@ -813,7 +961,7 @@ export default function PayPage() {
         </form>
       )}
 
-      {/* ── 3. RETURNED STATE — instant confirmation sheet ────────────────── */}
+      {/* ── 3. RETURNED STATE — instant confirmation sheet ──────────────────── */}
       {paymentState === 'RETURNED' && activeAttempt && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-5 animate-fade-in">
           {/* Amount summary */}
@@ -840,7 +988,7 @@ export default function PayPage() {
             </p>
           </div>
 
-          {/* Quick note / category before confirming */}
+          {/* Quick space / importance select before confirming */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-[10px] text-slate-400 font-bold uppercase">Space</span>
@@ -893,7 +1041,7 @@ export default function PayPage() {
         </div>
       )}
 
-      {/* ── 4. UNKNOWN STATE ─────────────────────────────────────────────── */}
+      {/* ── 4. UNKNOWN STATE ───────────────────────────────────────────────── */}
       {paymentState === 'UNKNOWN' && activeAttempt && (
         <div className="bg-slate-900 border border-amber-500/30 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-fade-in">
           <div className="flex items-center gap-3">
@@ -936,7 +1084,7 @@ export default function PayPage() {
         </div>
       )}
 
-      {/* ── 5. SUCCESS STATE ─────────────────────────────────────────────── */}
+      {/* ── 5. SUCCESS STATE ───────────────────────────────────────────────── */}
       {paymentState === 'SUCCESS' && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center flex flex-col items-center justify-center gap-3 animate-fade-in shadow-2xl">
           <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-1">
