@@ -23,6 +23,7 @@ import {
   Copy,
   Check,
   ShieldAlert,
+  ShieldCheck,
   Zap,
   Smartphone,
   ExternalLink,
@@ -36,7 +37,7 @@ const isAndroid = () =>
   typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
 // Supported UPI applications for direct app launching & iOS scheme rewrites
-const IOS_APP_KEY = 'kharch_preferred_upi_app';
+const UPI_APP_KEY = 'kharch_preferred_upi_app';
 const UPI_APPS = [
   { id: 'gpay', name: 'Google Pay', short: 'GPay', scheme: 'tez://', iosDeepLinkPrefix: 'tez://upi/pay?', color: 'border-blue-500/30 bg-blue-500/10 text-blue-300' },
   { id: 'phonepe', name: 'PhonePe', short: 'PhonePe', scheme: 'phonepe://', iosDeepLinkPrefix: 'phonepe://pay?', color: 'border-purple-500/30 bg-purple-500/10 text-purple-300' },
@@ -68,6 +69,7 @@ function parseUPIPayload(rawText) {
       mc: '',
       sign: '',
       rawPayload: '',
+      hasOriginalAm: false,
       isVerifiedMerchant: false,
     };
   }
@@ -108,6 +110,7 @@ function parseUPIPayload(rawText) {
       mc: mc.trim(),
       sign: sign.trim(),
       rawPayload: trimmed,
+      hasOriginalAm: Boolean(am && am.trim().length > 0),
       isVerifiedMerchant,
     };
   } catch (err) {
@@ -144,6 +147,7 @@ function parseUPIPayload(rawText) {
         mc: mc.trim(),
         sign: '',
         rawPayload: trimmed,
+        hasOriginalAm: Boolean(am && am.trim().length > 0),
         isVerifiedMerchant: false,
       };
     } catch (e) {
@@ -162,6 +166,7 @@ function parseUPIPayload(rawText) {
       mc: '',
       sign: '',
       rawPayload: `upi://pay?pa=${vpaMatch[0]}`,
+      hasOriginalAm: false,
       isVerifiedMerchant: false,
     };
   }
@@ -174,6 +179,7 @@ function parseUPIPayload(rawText) {
     mc: '',
     sign: '',
     rawPayload: trimmed,
+    hasOriginalAm: false,
     isVerifiedMerchant: false,
   };
 }
@@ -181,26 +187,33 @@ function parseUPIPayload(rawText) {
 // ─── Rule 3: Deep Link Launcher for Verified Merchants ───────────────────────
 /**
  * If isVerifiedMerchant === true:
- * - If original QR did not already include an am parameter and user typed an amount,
- *   append &am=${Number(amount).toFixed(2)}&cu=INR to the end of rawPayload.
+ * - If original QR did not already include an am parameter and user typed an amount:
+ *   If sign is present on a static QR, appending am invalidates the cryptographic signature,
+ *   causing GPay / PhonePe to reject the payment as "Not a verified merchant" or "Tampered QR".
+ *   Therefore, when sign is present, we preserve rawPayload untouched (user enters amount in GPay/PhonePe),
+ *   unless preserveSignedPayload is explicitly turned off.
  * - On iOS, rewrite only the scheme prefix (tez://upi/pay?, phonepe://pay?, paytmmp://pay?, bhim://upi/pay?)
  *   while keeping all query parameters untouched.
  * - On Android, launch the rawPayload URI directly with upi://pay scheme untouched.
  * - NEVER add &tr=<paymentAttemptId>.
  */
-function buildVerifiedPaymentUrl({ rawPayload, amount, preferredIosApp }) {
+function buildVerifiedPaymentUrl({ rawPayload, amount, preferredApp, preserveSignedPayload = true }) {
   let finalUri = rawPayload.trim();
 
   // If the original QR did not already include an am parameter and user typed an amount:
   const hasAmParam = /[?&]am=/i.test(finalUri);
+  const hasSign = /[?&]sign=/i.test(finalUri);
+
   if (!hasAmParam && amount && Number(amount) > 0) {
-    const separator = finalUri.includes('?') ? '&' : '?';
-    finalUri = `${finalUri}${separator}am=${Number(amount).toFixed(2)}&cu=INR`;
+    if (!hasSign || !preserveSignedPayload) {
+      const separator = finalUri.includes('?') ? '&' : '?';
+      finalUri = `${finalUri}${separator}am=${Number(amount).toFixed(2)}&cu=INR`;
+    }
   }
 
   // On iOS: rewrite only the scheme prefix while keeping all original parameters untouched
   if (isIOS()) {
-    const selectedApp = UPI_APPS.find((a) => a.id === preferredIosApp) || UPI_APPS[0];
+    const selectedApp = UPI_APPS.find((a) => a.id === preferredApp) || UPI_APPS[0];
     const targetPrefix = selectedApp.iosDeepLinkPrefix;
 
     if (/^upi:\/\/pay\?/i.test(finalUri)) {
@@ -260,8 +273,10 @@ export default function PayPage() {
     mc: '',
     sign: '',
     rawPayload: '',
+    hasOriginalAm: false,
   });
   const [isVerifiedMerchant, setIsVerifiedMerchant] = useState(false);
+  const [preserveSignedPayload, setPreserveSignedPayload] = useState(true);
   const [selectedSpaceId, setSelectedSpaceId] = useState('');
   const [importance, setImportance] = useState('moderate');
   const [note, setNote] = useState('');
@@ -271,7 +286,7 @@ export default function PayPage() {
   const [paymentState, setPaymentState] = useState('SCANNING'); // SCANNING | FORM | RETURNED | SUCCESS | UNKNOWN
   const [activeAttempt, setActiveAttempt] = useState(null);
   const [merchantSuggestion, setMerchantSuggestion] = useState(null);
-  const [preferredIosApp, setPreferredIosApp] = useState('gpay');
+  const [preferredApp, setPreferredApp] = useState('gpay');
   const [toast, setToast] = useState('');
   const toastTimer = useRef(null);
 
@@ -281,17 +296,17 @@ export default function PayPage() {
     toastTimer.current = setTimeout(() => setToast(''), duration);
   };
 
-  // Load iOS preferred app from localStorage
+  // Load preferred UPI app from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(IOS_APP_KEY);
-      if (saved) setPreferredIosApp(saved);
+      const saved = localStorage.getItem(UPI_APP_KEY);
+      if (saved) setPreferredApp(saved);
     }
   }, []);
 
-  const setAndSavePreferredIosApp = (appId) => {
-    setPreferredIosApp(appId);
-    if (typeof window !== 'undefined') localStorage.setItem(IOS_APP_KEY, appId);
+  const setAndSavePreferredApp = (appId) => {
+    setPreferredApp(appId);
+    if (typeof window !== 'undefined') localStorage.setItem(UPI_APP_KEY, appId);
   };
 
   // Sync default space
@@ -346,6 +361,7 @@ export default function PayPage() {
     const parsed = parseUPIPayload(decodedText);
 
     setIsVerifiedMerchant(parsed.isVerifiedMerchant);
+    setPreserveSignedPayload(true);
     setFormData(parsed);
 
     // Look up merchant memory in Dexie + server
@@ -398,9 +414,10 @@ export default function PayPage() {
   }, [apiFetch]);
 
   const handleResetScan = () => {
-    setFormData({ pa: '', pn: '', am: '', cu: 'INR', mc: '', sign: '', rawPayload: '' });
+    setFormData({ pa: '', pn: '', am: '', cu: 'INR', mc: '', sign: '', rawPayload: '', hasOriginalAm: false });
     setActiveAttempt(null);
     setIsVerifiedMerchant(false);
+    setPreserveSignedPayload(true);
     setMerchantSuggestion(null);
     setPaymentState('SCANNING');
   };
@@ -491,8 +508,18 @@ export default function PayPage() {
       const finalUrl = buildVerifiedPaymentUrl({
         rawPayload: formData.rawPayload,
         amount: amountVal,
-        preferredIosApp,
+        preferredApp,
+        preserveSignedPayload,
       });
+
+      // If static signed QR without original am and untouched payload was preserved:
+      // Copy amount to clipboard for convenience and inform the user
+      if (formData.sign && !formData.hasOriginalAm && preserveSignedPayload) {
+        try {
+          await navigator.clipboard.writeText(amountVal.toFixed(2));
+        } catch {}
+        showToast(`Merchant signature preserved! Confirm ₹${amountVal.toFixed(2)} in your UPI app.`, 4000);
+      }
 
       // Launch preserved raw URI
       window.location.href = finalUrl;
@@ -513,13 +540,12 @@ export default function PayPage() {
     showToast(`Unverified shop QR: Copied UPI ID (${formData.pa.trim()})! Paste it inside your UPI app to pay.`, 4500);
 
     // Launch preferred app scheme without upi://pay parameters
-    const targetScheme = isIOS()
-      ? (UPI_APPS.find((a) => a.id === preferredIosApp)?.scheme || 'tez://')
-      : 'phonepe://';
+    const selectedApp = UPI_APPS.find((a) => a.id === preferredApp) || UPI_APPS[0];
+    const targetScheme = selectedApp.scheme;
 
     setTimeout(() => {
       window.location.href = targetScheme;
-    }, 500);
+    }, 450);
   };
 
   // ── Quick App Button Handler for Unverified QRs ──────────────────────────────
@@ -700,14 +726,44 @@ export default function PayPage() {
 
           {/* Verification Status Banner */}
           {isVerifiedMerchant ? (
-            <div className="flex items-center gap-2.5 p-3.5 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-[11px] font-bold text-emerald-200">Verified Merchant QR (P2M)</p>
-                <p className="text-[10px] text-emerald-400/90 leading-tight">
-                  Cryptographically signed merchant QR ({formData.mc || 'Merchant'}). Direct 1-tap checkout enabled.
-                </p>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2.5 p-3.5 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <div>
+                  <p className="text-[11px] font-bold text-emerald-200">Verified Merchant QR (P2M)</p>
+                  <p className="text-[10px] text-emerald-400/90 leading-tight">
+                    Cryptographically signed merchant QR ({formData.mc || 'Merchant'}). Direct 1-tap checkout enabled.
+                  </p>
+                </div>
               </div>
+
+              {/* Standee signature notice if sign is present and original QR lacked am */}
+              {formData.sign && !formData.hasOriginalAm && (
+                <div className="flex items-start gap-2.5 p-3.5 bg-indigo-950/40 border border-indigo-800/40 rounded-2xl text-[11px] text-indigo-200">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 leading-relaxed">
+                    <span className="font-bold text-white block text-[10px] uppercase tracking-wider mb-0.5">
+                      Signed Store Standee QR
+                    </span>
+                    {preserveSignedPayload ? (
+                      <p className="text-[10px] text-indigo-200">
+                        Original signature preserved so Google Pay &amp; PhonePe accept the shop without &ldquo;Not a verified merchant&rdquo; errors. Please confirm <strong>₹{parseFloat(formData.am || 0).toFixed(2)}</strong> inside your UPI app.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-amber-300">
+                        Auto-filling amount in URI (may cause signature mismatch on strict UPI apps).
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPreserveSignedPayload(!preserveSignedPayload)}
+                      className="text-[10px] text-indigo-400 hover:text-indigo-300 underline font-semibold mt-1 block cursor-pointer"
+                    >
+                      {preserveSignedPayload ? 'Switch to auto-fill amount in URL instead' : 'Keep signature preserved (recommended)'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-start gap-3 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
@@ -731,30 +787,31 @@ export default function PayPage() {
             </div>
           )}
 
-          {/* iOS App Selector (shown only on iOS) */}
-          {ios && (
-            <div className="flex flex-col gap-1.5">
+          {/* Preferred UPI App Selector */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-center">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                <Smartphone className="w-3 h-3 text-indigo-400" /> Open With (iPhone)
+                <Smartphone className="w-3 h-3 text-indigo-400" /> Preferred UPI App
               </span>
-              <div className="flex gap-2">
-                {UPI_APPS.map((app) => (
-                  <button
-                    key={app.id}
-                    type="button"
-                    onClick={() => setAndSavePreferredIosApp(app.id)}
-                    className={`flex-1 py-1.5 text-[11px] font-bold rounded-xl border transition-all cursor-pointer ${
-                      preferredIosApp === app.id
-                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30'
-                        : 'bg-slate-950 border-slate-800 text-slate-400'
-                    }`}
-                  >
-                    {app.short}
-                  </button>
-                ))}
-              </div>
+              <span className="text-[9px] text-slate-500 font-medium">1-Tap App Selector</span>
             </div>
-          )}
+            <div className="flex gap-2">
+              {UPI_APPS.map((app) => (
+                <button
+                  key={app.id}
+                  type="button"
+                  onClick={() => setAndSavePreferredApp(app.id)}
+                  className={`flex-1 py-1.5 text-[11px] font-bold rounded-xl border transition-all cursor-pointer ${
+                    preferredApp === app.id
+                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {app.short}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Amount */}
           <div className="flex flex-col gap-1.5">
