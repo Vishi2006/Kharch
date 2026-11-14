@@ -28,6 +28,59 @@ import kotlinx.coroutines.withContext
 
 class ConsentActivity : AppCompatActivity() {
 
+    companion object {
+        val UPI_PACKAGES = listOf(
+            "com.phonepe.app",
+            "com.google.android.apps.nbu.paisa.user",
+            "net.one97.paytm",
+            "in.org.npci.upiapp",
+            "in.amazon.mShop.android.shopping",
+            "com.dreamplug.androidapp", // CRED
+            "money.super.app",          // Super.money
+            "com.navi.app",             // Navi
+            "com.mobikwik_new",         // MobiKwik
+            "com.freecharge.android",   // Freecharge
+            "org.altruist.BajajExperia" // Bajaj Finserv
+        )
+
+        val BANK_PACKAGES = listOf(
+            "com.snapwork.hdfc",            // HDFC Bank MobileBanking
+            "com.enstage.wibmo.hdfc",        // HDFC PayZapp
+            "com.sbi.lotusintouch",         // State Bank of India (YONO SBI)
+            "com.ge.capital.konysbiapp",     // SBI Card
+            "com.csam.icici.bank.imobile",   // ICICI Bank (iMobile Pay)
+            "com.axis.mobile",              // Axis Bank Mobile
+            "com.msf.kbank.mobile",          // Kotak Mahindra Bank (Kotak811)
+            "com.bankofbaroda.mconnect",     // Bank of Baroda (bob World)
+            "com.pnb.pnbone",               // Punjab National Bank (PNB ONE)
+            "com.canarabank.mobility",       // Canara Bank (ai1)
+            "com.infrasofttech.uboi",        // Union Bank of India (Vyom)
+            "com.indusind.mobile",          // IndusInd Bank (IndusMobile)
+            "com.idfcfirstbank.optimus",     // IDFC FIRST Bank
+            "com.fedmobile",                // Federal Bank (FedMobile)
+            "com.rblbank.mobank",           // RBL Bank (MoBank)
+            "com.yesbank",                  // Yes Bank
+            "com.infrasoft.indianbank",     // Indian Bank (IndOASIS)
+            "com.infrasoft.cbi",            // Central Bank of India
+            "com.boi.mpay",                 // Bank of India (BOI Mobile)
+            "com.aubank.au0101",            // AU Small Finance Bank
+            "money.jupiter",                // Jupiter Neobank
+            "money.fi.banking"              // Fi Money Neobank
+        )
+
+        val SMS_PACKAGES = listOf(
+            "com.google.android.apps.messaging", // Google Messages
+            "com.samsung.android.messaging",    // Samsung Messages
+            "com.oneplus.mms",                  // OnePlus Messages
+            "com.coloros.mms",                  // Oppo / Realme Messages
+            "com.miui.sms",                     // Xiaomi MIUI SMS
+            "com.vivo.mms",                     // Vivo Messages
+            "com.android.mms"                   // Stock Android MMS
+        )
+
+        val DEFAULT_ALLOWED_PACKAGES = (UPI_PACKAGES + BANK_PACKAGES + SMS_PACKAGES).distinct()
+    }
+
     private val customPackages = mutableListOf<String>()
 
     // Restricted Settings unlock flow views (Android 13+)
@@ -49,14 +102,16 @@ class ConsentActivity : AppCompatActivity() {
 
         isEditMode = intent.getBooleanExtra("IS_EDIT_MODE", false)
 
-        val cbPhonePe       = findViewById<CheckBox>(R.id.cbPhonePe)
-        val cbGPay          = findViewById<CheckBox>(R.id.cbGPay)
-        val cbPaytm         = findViewById<CheckBox>(R.id.cbPaytm)
-        val cbBhim          = findViewById<CheckBox>(R.id.cbBhim)
-        val etCustomPackage = findViewById<TextInputEditText>(R.id.etCustomPackage)
-        val btnAddPackage   = findViewById<Button>(R.id.btnAddPackage)
-        val containerCustom = findViewById<LinearLayout>(R.id.containerCustomPackages)
-        val btnConfirm      = findViewById<Button>(R.id.btnConfirmConsent)
+        val cbPhonePe        = findViewById<CheckBox>(R.id.cbPhonePe)
+        val cbGPay           = findViewById<CheckBox>(R.id.cbGPay)
+        val cbPaytm          = findViewById<CheckBox>(R.id.cbPaytm)
+        val cbBhim           = findViewById<CheckBox>(R.id.cbBhim)
+        val cbAllIndianBanks = findViewById<CheckBox>(R.id.cbAllIndianBanks)
+        val cbBankSms        = findViewById<CheckBox>(R.id.cbBankSms)
+        val etCustomPackage  = findViewById<TextInputEditText>(R.id.etCustomPackage)
+        val btnAddPackage    = findViewById<Button>(R.id.btnAddPackage)
+        val containerCustom  = findViewById<LinearLayout>(R.id.containerCustomPackages)
+        val btnConfirm       = findViewById<Button>(R.id.btnConfirmConsent)
 
         // Restricted Settings card views
         cardRestrictedSteps = findViewById(R.id.cardRestrictedSteps)
@@ -137,13 +192,10 @@ class ConsentActivity : AppCompatActivity() {
                 cbGPay.isChecked    = list.contains("com.google.android.apps.nbu.paisa.user")
                 cbPaytm.isChecked   = list.contains("net.one97.paytm")
                 cbBhim.isChecked    = list.contains("in.org.npci.upiapp")
+                cbAllIndianBanks.isChecked = list.any { BANK_PACKAGES.contains(it) }
+                cbBankSms.isChecked = list.any { SMS_PACKAGES.contains(it) }
 
-                val defaultPkgs = setOf(
-                    "com.phonepe.app",
-                    "com.google.android.apps.nbu.paisa.user",
-                    "net.one97.paytm",
-                    "in.org.npci.upiapp"
-                )
+                val defaultPkgs = DEFAULT_ALLOWED_PACKAGES.toSet()
                 list.filter { !defaultPkgs.contains(it) }.forEach { customPkg ->
                     addCustomPackageView(customPkg, containerCustom)
                 }
@@ -161,14 +213,21 @@ class ConsentActivity : AppCompatActivity() {
         }
 
         btnConfirm.setOnClickListener {
-            val selected = mutableListOf<String>()
+            val selected = mutableSetOf<String>()
             if (cbPhonePe.isChecked) selected.add("com.phonepe.app")
             if (cbGPay.isChecked)    selected.add("com.google.android.apps.nbu.paisa.user")
             if (cbPaytm.isChecked)   selected.add("net.one97.paytm")
             if (cbBhim.isChecked)    selected.add("in.org.npci.upiapp")
+            if (cbAllIndianBanks.isChecked) selected.addAll(BANK_PACKAGES)
+            if (cbBankSms.isChecked)        selected.addAll(SMS_PACKAGES)
+            if (cbPhonePe.isChecked || cbGPay.isChecked || cbPaytm.isChecked || cbBhim.isChecked) {
+                selected.addAll(UPI_PACKAGES)
+            }
             selected.addAll(customPackages)
 
-            if (selected.isEmpty()) {
+            val finalList = selected.toList()
+
+            if (finalList.isEmpty()) {
                 Toast.makeText(this, "Please select at least one application to monitor", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -177,7 +236,7 @@ class ConsentActivity : AppCompatActivity() {
                 val record = ConsentRecord(
                     id = 1,
                     grantedAt = System.currentTimeMillis(),
-                    allowedPackages = selected,
+                    allowedPackages = finalList,
                     version = "1.0"
                 )
 
@@ -186,7 +245,7 @@ class ConsentActivity : AppCompatActivity() {
                     ApiClient.syncConsent(
                         serverUrl = prefs.serverUrl,
                         deviceId  = prefs.deviceId,
-                        allowedPackages = selected,
+                        allowedPackages = finalList,
                         version = "1.0",
                         token = prefs.authToken
                     )
@@ -236,12 +295,7 @@ class ConsentActivity : AppCompatActivity() {
         val db    = KharchDatabase.getDatabase(this)
         val prefs = PreferenceManager(this)
 
-        val defaultPkgs = listOf(
-            "com.phonepe.app",
-            "com.google.android.apps.nbu.paisa.user",
-            "net.one97.paytm",
-            "in.org.npci.upiapp"
-        )
+        val defaultPkgs = DEFAULT_ALLOWED_PACKAGES
 
         lifecycleScope.launch {
             val record = ConsentRecord(
@@ -285,7 +339,7 @@ class ConsentActivity : AppCompatActivity() {
             if (isEditMode) {
                 finish()
             } else {
-                startActivity(Intent(this, OemWizardActivity::class.java))
+                startActivity(Intent(this, MainActivity::class.java))
                 finish()
             }
         }
@@ -295,7 +349,7 @@ class ConsentActivity : AppCompatActivity() {
         if (isEditMode) {
             finish()
         } else {
-            startActivity(Intent(this, OemWizardActivity::class.java))
+            startActivity(Intent(this, MainActivity::class.java))
             finish()
         }
     }

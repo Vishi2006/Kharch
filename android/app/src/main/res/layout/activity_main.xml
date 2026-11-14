@@ -59,6 +59,74 @@
                     android:contentDescription="Settings" />
             </RelativeLayout>
 
+            <!-- Account Pairing Status & 1-Tap QR Scanner -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPairingStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="@color/border_color"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="PWA Account Connection"
+                            android:textColor="@color/text_muted"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textAllCaps="true" />
+
+                        <TextView
+                            android:id="@+id/tvMainPairingBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Checking..."
+                            android:textColor="@color/warning"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvMainPairingDetails"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Scan the Pairing QR code in Kharch PWA Settings to connect your account."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="2dp" />
+
+                    <Button
+                        android:id="@+id/btnMainScanPairingQr"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="@color/accent"
+                        android:text="📷 Scan Pairing QR from PWA"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="10dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Warning Banner for stale notification / permission loss -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardWarningBanner"
@@ -358,16 +426,18 @@
                 </RelativeLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Navigation Links -->
+            <!-- Optional Guides -->
             <Button
                 android:id="@+id/btnRerunOemWizard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
+                android:layout_marginBottom="24dp"
                 android:backgroundTint="#1E293B"
-                android:text="Run OEM Setup Wizard Again"
-                android:textColor="@color/accent"
+                android:text="OEM Battery Optimization Guide (Optional)"
+                android:textColor="@color/text_secondary"
                 android:textAllCaps="false"
+                android:textSize="12sp"
                 app:cornerRadius="12dp" />
 
         </LinearLayout>

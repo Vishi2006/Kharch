@@ -103,6 +103,7 @@ function parseBankSMS(body) {
     /(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)\s+(?:debited|spent|paid|sent)(?:\s+(?:from|for|to)\s+(?:a\/c|acc|account)?\s*[xX*]{0,10}(\d{4}))?.+?(?:upi|ref(?:\s*no)?\.?|utr)\s*[:.\s]*(\d{12})?/i,
     /(?:debited|paid|spent)\s+(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)(?:.+?(?:upi|ref)\s*[:.\s]*(\d{12})?)?/i,
     /(?:debited\s+by|sent)\s+(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i,
+    /(?:debited|spent|paid)\s+(?:for|to|with)?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i,
   ];
   for (const pattern of debitPatterns) {
     const m = body.match(pattern);
@@ -115,12 +116,26 @@ function parseBankSMS(body) {
       }
     }
   }
-  // Credit patterns
-  const creditMatch = body.match(/(?:credited|received)\s+(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)/i)
-    || body.match(/(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)\s+(?:credited|received)/i);
-  if (creditMatch) {
-    return { type: 'CREDIT', amount: parseFloat(creditMatch[1].replace(/,/g, '')), counterparty: '' };
+
+  // Credit patterns: Salary, stipend, payroll, deposits, transfers
+  // e.g. "Salary of Rs. 85,000 credited to A/c...", "credited with INR 75,000", "Rs 65000 deposited towards Salary"
+  const creditPatterns = [
+    /(?:salary|stipend|payroll)(?:\s+of)?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i,
+    /(?:credited|received|deposited)(?:\s+(?:with|by|for|to))?\s*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i,
+    /(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)\s+(?:credited|received|deposited)/i,
+  ];
+  for (const pattern of creditPatterns) {
+    const m = body.match(pattern);
+    if (m) {
+      const amount = parseFloat(m[1].replace(/,/g, ''));
+      if (amount > 0) {
+        const cpMatch = body.match(/(?:by|from|info:?|towards|at)\s+([a-zA-Z0-9.\-_@/ ]{2,30}?)(?:\.|\s+bal|\s+upi|\s+to|$)/i);
+        const counterparty = cpMatch ? cpMatch[1].trim() : 'Salary / Credit';
+        return { type: 'CREDIT', amount, counterparty };
+      }
+    }
   }
+
   return null;
 }
 
@@ -157,6 +172,11 @@ export function parseNotification(packageName, rawTitle = '', rawBody = '', even
   // Fallback: generic bank SMS parser (for messaging apps and iOS Shortcuts)
   const isMessagingApp = packageName === 'com.google.android.apps.messaging' 
     || packageName === 'com.samsung.android.messaging'
+    || packageName === 'com.oneplus.mms'
+    || packageName === 'com.coloros.mms'
+    || packageName === 'com.miui.sms'
+    || packageName === 'com.vivo.mms'
+    || packageName === 'com.android.mms'
     || packageName === 'com.apple.sms'
     || packageName === 'iOS_Shortcut';
 

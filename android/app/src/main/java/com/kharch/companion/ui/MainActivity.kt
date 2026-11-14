@@ -7,17 +7,23 @@ import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.card.MaterialCardView
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import com.kharch.companion.R
 import com.kharch.companion.data.KharchDatabase
 import com.kharch.companion.service.KharchForegroundService
+import com.kharch.companion.sync.SyncManager
 import com.kharch.companion.util.OemHelper
+import com.kharch.companion.util.PreferenceManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
@@ -36,9 +42,24 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvWarningMessage: TextView
     private lateinit var btnRecheck: Button
 
+    // Pairing Card views
+    private lateinit var cardPairing: MaterialCardView
+    private lateinit var tvMainPairingBadge: TextView
+    private lateinit var tvMainPairingDetails: TextView
+    private lateinit var btnMainScanPairingQr: Button
+    private lateinit var prefs: PreferenceManager
+
+    private val qrScannerLauncher = registerForActivityResult(ScanContract()) { result ->
+        if (result.contents != null) {
+            handleScannedPayload(result.contents)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        prefs = PreferenceManager(this)
 
         tvLastCaptured = findViewById(R.id.tvLastCapturedTime)
         tvTotalEvents = findViewById(R.id.tvTotalEventsCaptured)
@@ -53,6 +74,21 @@ class MainActivity : AppCompatActivity() {
         cardWarning = findViewById(R.id.cardWarningBanner)
         tvWarningMessage = findViewById(R.id.tvWarningMessage)
         btnRecheck = findViewById(R.id.btnRecheckPermissions)
+
+        // Account Pairing Card
+        cardPairing = findViewById(R.id.cardPairingStatus)
+        tvMainPairingBadge = findViewById(R.id.tvMainPairingBadge)
+        tvMainPairingDetails = findViewById(R.id.tvMainPairingDetails)
+        btnMainScanPairingQr = findViewById(R.id.btnMainScanPairingQr)
+
+        btnMainScanPairingQr.setOnClickListener {
+            val options = ScanOptions().apply {
+                setPrompt("Scan the Pairing QR code from Kharch PWA Settings")
+                setBeepEnabled(true)
+                setOrientationLocked(false)
+            }
+            qrScannerLauncher.launch(options)
+        }
 
         findViewById<ImageButton>(R.id.btnOpenSettings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -102,8 +138,45 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        com.kharch.companion.sync.SyncManager.triggerImmediateSync(this)
+        refreshPairingCard()
+        SyncManager.triggerImmediateSync(this)
         refreshHealthStatus()
+    }
+
+    private fun handleScannedPayload(payload: String) {
+        try {
+            val json = JSONObject(payload)
+            if (json.has("serverUrl")) {
+                prefs.serverUrl = json.getString("serverUrl")
+            }
+            if (json.has("token")) {
+                prefs.authToken = json.getString("token")
+            }
+            Toast.makeText(this, "Paired successfully with Kharch!", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            prefs.authToken = payload.trim()
+            Toast.makeText(this, "Token recorded", Toast.LENGTH_SHORT).show()
+        }
+        refreshPairingCard()
+        SyncManager.triggerImmediateSync(this)
+    }
+
+    private fun refreshPairingCard() {
+        if (prefs.isPaired) {
+            tvMainPairingBadge.text = "✓ Connected"
+            tvMainPairingBadge.setTextColor(getColor(R.color.success))
+            tvMainPairingDetails.text = "Syncing automatically to:\n${prefs.serverUrl}"
+            btnMainScanPairingQr.text = "Re-pair / Scan New QR"
+            btnMainScanPairingQr.backgroundTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.bg_card_secondary))
+            btnMainScanPairingQr.setTextColor(getColor(R.color.accent))
+        } else {
+            tvMainPairingBadge.text = "⚠️ Not Paired"
+            tvMainPairingBadge.setTextColor(getColor(R.color.warning))
+            tvMainPairingDetails.text = "Scan the Pairing QR code in your Kharch PWA Settings to connect your account."
+            btnMainScanPairingQr.text = "📷 Scan Pairing QR from PWA"
+            btnMainScanPairingQr.backgroundTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.accent))
+            btnMainScanPairingQr.setTextColor(getColor(R.color.white))
+        }
     }
 
     private fun refreshHealthStatus() {

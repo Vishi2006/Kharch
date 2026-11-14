@@ -310,6 +310,24 @@
                         android:textColor="@color/text_primary"
                         android:checked="true" />
 
+                    <CheckBox
+                        android:id="@+id/cbAllIndianBanks"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Indian Banks (HDFC, SBI, ICICI, Axis, Kotak, BoB, PNB, Jupiter, Fi, etc.)"
+                        android:textColor="@color/text_primary"
+                        android:checked="true" />
+
+                    <CheckBox
+                        android:id="@+id/cbBankSms"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Bank SMS &amp; Salary Alerts (Google, Samsung, Xiaomi, OnePlus, Vivo)"
+                        android:textColor="@color/text_primary"
+                        android:checked="true" />
+
                     <!-- Custom package addition -->
                     <View
                         android:layout_width="match_parent"

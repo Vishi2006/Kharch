@@ -27,6 +27,7 @@ object ApiClient {
         version: String,
         token: String? = null
     ): Boolean = withContext(Dispatchers.IO) {
+        if (serverUrl.isBlank()) return@withContext false
         try {
             val bodyJson = JSONObject().apply {
                 put("deviceId", deviceId)
@@ -109,7 +110,7 @@ object ApiClient {
         token: String?,
         events: List<NotificationEvent>
     ): Boolean = withContext(Dispatchers.IO) {
-        if (events.isEmpty()) return@withContext true
+        if (serverUrl.isBlank() || events.isEmpty()) return@withContext true
         try {
             val eventsArray = JSONArray()
             events.forEach { event ->

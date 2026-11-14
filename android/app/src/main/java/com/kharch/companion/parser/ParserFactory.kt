@@ -28,8 +28,8 @@ object ParserFactory {
                     0.0
                 }
 
-                val isDebit = lower.contains("debit") || lower.contains("paid") || lower.contains("sent")
-                val isCredit = lower.contains("credit") || lower.contains("received") || lower.contains("deposited")
+                val isDebit = lower.contains("debit") || lower.contains("paid") || lower.contains("sent") || lower.contains("spent")
+                val isCredit = lower.contains("credit") || lower.contains("received") || lower.contains("deposited") || lower.contains("salary") || lower.contains("sal/") || lower.contains("stipend") || lower.contains("payroll")
 
                 val type = when {
                     isDebit && !isCredit -> "DEBIT"

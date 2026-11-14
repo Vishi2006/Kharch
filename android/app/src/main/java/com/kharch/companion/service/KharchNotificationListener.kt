@@ -24,9 +24,20 @@ class KharchNotificationListener : NotificationListenerService() {
         // 12-digit UTR pattern used for stable idempotency keys
         private val UTR_REGEX = Regex("\\b(\\d{12})\\b")
 
-        // Bank SMS/UPI debit-credit signal pattern — must be present to process bank messages
+        // Messaging apps from all major Indian OEMs (Google, Samsung, OnePlus, Xiaomi, Vivo, Oppo)
+        private val MESSAGING_PACKAGES = setOf(
+            "com.google.android.apps.messaging",
+            "com.samsung.android.messaging",
+            "com.oneplus.mms",
+            "com.coloros.mms",
+            "com.android.mms",
+            "com.miui.sms",
+            "com.vivo.mms"
+        )
+
+        // Bank SMS/UPI debit-credit & salary signal pattern — captures all Indian bank alert formats
         private val DEBIT_CREDIT_REGEX = Regex(
-            "(?:debited|credited|spent|paid|sent)\\s+(?:by|for|rs\\.?|inr|₹)?\\s*[\\d,]+(?:\\.\\d{1,2})?.*(?:upi|vpa|ref|utr|a\\/c)",
+            "(?:debited|credited|spent|paid|sent|received|deposited|salary|sal|stipend|payroll).*?(?:rs\\.?|inr|₹|a\\/c|acc|vpa|upi|ref|utr)|(?:rs\\.?|inr|₹)\\s*[\\d,]+(?:\\.\\d{1,2})?.*?(?:debited|credited|spent|paid|sent|received|deposited|salary|a\\/c)",
             RegexOption.IGNORE_CASE
         )
     }
@@ -70,9 +81,8 @@ class KharchNotificationListener : NotificationListenerService() {
 
             if (title.isBlank() && text.isBlank()) return@launch
 
-            // === FILTER 3: For messaging apps (bank SMS), require payment signal keywords ===
-            val isMessagingApp = pkgName == "com.google.android.apps.messaging" ||
-                pkgName == "com.samsung.android.messaging"
+            // === FILTER 3: For messaging apps (bank SMS), require payment/salary signal keywords ===
+            val isMessagingApp = MESSAGING_PACKAGES.contains(pkgName)
             if (isMessagingApp) {
                 val combinedText = "$title $text"
                 if (!DEBIT_CREDIT_REGEX.containsMatchIn(combinedText)) {

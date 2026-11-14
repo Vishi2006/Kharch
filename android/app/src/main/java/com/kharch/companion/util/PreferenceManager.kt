@@ -12,7 +12,7 @@ class PreferenceManager(context: Context) {
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_DEVICE_ID = "device_id"
         private const val KEY_AUTH_TOKEN = "auth_token"
-        private const val DEFAULT_SERVER_URL = "http://10.0.2.2:5000"
+        private const val DEFAULT_SERVER_URL = ""
     }
 
     var serverUrl: String
@@ -22,6 +22,9 @@ class PreferenceManager(context: Context) {
     var authToken: String?
         get() = prefs.getString(KEY_AUTH_TOKEN, null)
         set(value) = prefs.edit().putString(KEY_AUTH_TOKEN, value).apply()
+
+    val isPaired: Boolean
+        get() = !authToken.isNullOrEmpty() && serverUrl.isNotEmpty()
 
     val deviceId: String
         get() {
