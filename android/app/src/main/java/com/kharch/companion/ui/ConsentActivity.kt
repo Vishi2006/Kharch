@@ -13,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
@@ -36,6 +37,7 @@ class ConsentActivity : AppCompatActivity() {
     private lateinit var btnStep1: Button
     private lateinit var btnStep2: Button
     private lateinit var btnStep3: Button
+    private lateinit var scrollViewConsent: NestedScrollView
 
     // Track whether consent was saved so onResume can check listener status
     private var consentSaved = false
@@ -63,24 +65,50 @@ class ConsentActivity : AppCompatActivity() {
         btnStep1            = findViewById(R.id.btnStep1)
         btnStep2            = findViewById(R.id.btnStep2)
         btnStep3            = findViewById(R.id.btnStep3)
+        scrollViewConsent   = findViewById(R.id.scrollViewConsent)
 
         // Set the manufacturer-aware hint for Step 2
         tvStep2Hint.text = buildStep2Hint()
 
-        // Wire Step buttons
+        // Wire the 3 numbered step buttons
         btnStep1.setOnClickListener {
+            // Button 1 (Open Notification Access):
+            // "Tap Kharch Companion. When it says 'App was denied access', tap Close and press Back."
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
+
         btnStep2.setOnClickListener {
-            // Open App Info so the user can find "Allow restricted settings"
+            // Button 2 (Open App Info to Unlock):
+            // Opens Settings.ACTION_APPLICATION_DETAILS_SETTINGS directly to Kharch Companion's page
             val intent = Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                 Uri.fromParts("package", packageName, null)
             )
             startActivity(intent)
         }
+
         btnStep3.setOnClickListener {
+            // Button 3 (Turn On Notification Access):
+            // Opens ACTION_NOTIFICATION_LISTENER_SETTINGS again
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        }
+
+        // Check if listener is already granted on launch
+        val listenerEnabled = NotificationManagerCompat
+            .getEnabledListenerPackages(this)
+            .contains(packageName)
+
+        if (listenerEnabled) {
+            tvStepsComplete.visibility = View.VISIBLE
+            btnStep1.isEnabled = false
+            btnStep2.isEnabled = false
+            btnStep3.isEnabled = false
+            btnStep3.text = "✓ Notification Access Granted"
+        } else {
+            // Make 3-step unlock buttons immediately visible on Android 13+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                cardRestrictedSteps.visibility = View.VISIBLE
+            }
         }
 
         val db    = KharchDatabase.getDatabase(this)
@@ -92,17 +120,11 @@ class ConsentActivity : AppCompatActivity() {
             }
 
             if (!isEditMode && existingConsent != null && existingConsent.allowedPackages.isNotEmpty()) {
-                // Already consented — check if listener is enabled before skipping
-                val listenerEnabled = NotificationManagerCompat
-                    .getEnabledListenerPackages(this@ConsentActivity)
-                    .contains(packageName)
-
                 if (listenerEnabled) {
                     startActivity(Intent(this@ConsentActivity, MainActivity::class.java))
                     finish()
                     return@launch
                 }
-                // Listener NOT enabled yet — show restricted steps immediately
                 consentSaved = true
                 showRestrictedStepsIfNeeded()
                 return@launch
@@ -171,54 +193,89 @@ class ConsentActivity : AppCompatActivity() {
                 }
 
                 consentSaved = true
-                Toast.makeText(this@ConsentActivity, "Consent saved", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@ConsentActivity, "Monitored apps saved", Toast.LENGTH_SHORT).show()
 
-                val listenerEnabled = NotificationManagerCompat
+                val isListenerEnabled = NotificationManagerCompat
                     .getEnabledListenerPackages(this@ConsentActivity)
                     .contains(packageName)
 
-                if (listenerEnabled) {
-                    // Notification access already granted — proceed directly
+                if (isListenerEnabled) {
                     navigateNext()
                 } else {
-                    // Show the step-by-step restricted settings card
                     showRestrictedStepsIfNeeded()
                 }
             }
         }
     }
 
-    // ─── onResume: Poll for listener being enabled after user returns from Settings ───
+    // ─── onResume: Automatically detect when Notification Access is switched ON ───
 
     override fun onResume() {
         super.onResume()
-        if (!consentSaved) return
 
         val listenerEnabled = NotificationManagerCompat
             .getEnabledListenerPackages(this)
             .contains(packageName)
 
         if (listenerEnabled) {
-            // All steps complete — show success and navigate
             tvStepsComplete.visibility = View.VISIBLE
             btnStep1.isEnabled = false
             btnStep2.isEnabled = false
             btnStep3.isEnabled = false
+            btnStep3.text = "✓ Notification Access Granted"
+
+            if (!consentSaved) {
+                saveDefaultConsentAndProceed()
+            } else {
+                navigateNext()
+            }
+        }
+    }
+
+    private fun saveDefaultConsentAndProceed() {
+        val db    = KharchDatabase.getDatabase(this)
+        val prefs = PreferenceManager(this)
+
+        val defaultPkgs = listOf(
+            "com.phonepe.app",
+            "com.google.android.apps.nbu.paisa.user",
+            "net.one97.paytm",
+            "in.org.npci.upiapp"
+        )
+
+        lifecycleScope.launch {
+            val record = ConsentRecord(
+                id = 1,
+                grantedAt = System.currentTimeMillis(),
+                allowedPackages = defaultPkgs,
+                version = "1.0"
+            )
+
+            withContext(Dispatchers.IO) {
+                db.kharchDao().saveConsent(record)
+                ApiClient.syncConsent(
+                    serverUrl = prefs.serverUrl,
+                    deviceId  = prefs.deviceId,
+                    allowedPackages = defaultPkgs,
+                    version = "1.0",
+                    token = prefs.authToken
+                )
+            }
+
+            consentSaved = true
             navigateNext()
         }
     }
 
     // ─── Helpers ───
 
-    /**
-     * Show the restricted settings card on Android 13+.
-     * On older versions, just open notification listener settings and proceed.
-     */
     private fun showRestrictedStepsIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             cardRestrictedSteps.visibility = View.VISIBLE
+            cardRestrictedSteps.post {
+                scrollViewConsent.smoothScrollTo(0, cardRestrictedSteps.top)
+            }
         } else {
-            // Android < 13 — no restricted settings needed; open listener settings directly
             Toast.makeText(
                 this,
                 "Enable Kharch Companion in Notification Access",
@@ -243,21 +300,13 @@ class ConsentActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Build a manufacturer-aware hint explaining where to find "Allow restricted settings".
-     * Xiaomi/MIUI/Vivo/Oppo/Realme hide it at the very bottom or in the About section;
-     * Samsung/Google/Motorola/OnePlus use the standard 3-dot top-right menu.
-     */
     private fun buildStep2Hint(): String {
         val manufacturer = Build.MANUFACTURER.lowercase()
         return when {
             manufacturer.containsAny("xiaomi", "redmi", "poco", "vivo", "oppo", "realme", "oneplus") ->
-                "Scroll to the VERY BOTTOM of the App Info screen (some devices also show it under " +
-                "\"Additional settings\" or the \u22ee top-right menu) and tap \"Allow restricted settings\". " +
-                "Verify with PIN/Fingerprint."
+                "\"Tap ⋮ in the top-right corner (or scroll to the bottom on Xiaomi/Vivo/Realme) and tap 'Allow restricted settings'. Verify with PIN/Fingerprint.\""
             else ->
-                "Tap the \u22ee (3-dot menu) in the top-right corner of the App Info screen and tap " +
-                "\"Allow restricted settings\". Verify with PIN/Fingerprint."
+                "\"Tap ⋮ in the top-right corner of this App Info screen and tap 'Allow restricted settings'. Verify with PIN/Fingerprint.\""
         }
     }
 

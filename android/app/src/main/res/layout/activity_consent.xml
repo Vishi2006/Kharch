@@ -7,6 +7,7 @@
     android:background="@color/bg_primary">
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollViewConsent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
@@ -32,7 +33,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Select Monitored Apps"
+                android:text="Companion Setup"
                 android:textColor="@color/text_primary"
                 android:textSize="24sp"
                 android:textStyle="bold" />
@@ -40,8 +41,8 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Choose which payment and banking applications Kharch is permitted to listen to for transaction receipts."
+                android:layout_marginTop="6dp"
+                android:text="Grant notification access to automatically capture UPI and banking transactions in the background."
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp" />
 
@@ -49,7 +50,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="16dp"
                 app:cardBackgroundColor="#172554"
                 app:cardCornerRadius="16dp"
                 app:strokeColor="#1E40AF"
@@ -59,14 +60,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="14dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Privacy Guarantee"
                         android:textColor="#93C5FD"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         android:textStyle="bold"
                         android:textAllCaps="true" />
 
@@ -74,11 +75,180 @@
                         android:id="@+id/tvStaticDisclosure"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="Android grants access to all notifications at the OS level. This app immediately discards anything outside your selected list above â€” nothing outside it is stored or transmitted."
+                        android:layout_marginTop="4dp"
+                        android:text="Android grants notification access at the OS level. This app discards non-payment notifications immediately — nothing outside banking/UPI is ever stored or uploaded."
                         android:textColor="#DBEAFE"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="2dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- =====================================================
+                 3-STEP RESTRICTED SETTINGS UNLOCK (Android 13–15)
+                 Fixes the "App was denied access" popup
+                 ===================================================== -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardRestrictedSteps"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="#1e1b4b"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="#6366f1"
+                app:strokeWidth="1.5dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Fix 'App was denied access' (Android 13+)"
+                        android:textColor="#a5b4fc"
                         android:textSize="13sp"
-                        android:lineSpacingExtra="3dp" />
+                        android:textStyle="bold"
+                        android:textAllCaps="true"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="14dp"
+                        android:text="Follow these 3 numbered buttons to unlock notification access in Android Settings:"
+                        android:textColor="#c7d2fe"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="2dp" />
+
+                    <!-- Button 1 -->
+                    <TextView
+                        android:id="@+id/tvStep1Label"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Button 1 (Open Notification Access)"
+                        android:textColor="#818cf8"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvStep1Hint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="&quot;Tap Kharch Companion. When it says 'App was denied access', tap Close and press Back.&quot; (This forces Android to unhide the Restricted Settings switch)."
+                        android:textColor="#e0e7ff"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="2dp" />
+
+                    <Button
+                        android:id="@+id/btnStep1"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="8dp"
+                        android:backgroundTint="#4338ca"
+                        android:text="1. Open Notification Access"
+                        android:textAllCaps="false"
+                        android:textColor="#ffffff"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="12dp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="14dp"
+                        android:layout_marginBottom="14dp"
+                        android:background="#312e81" />
+
+                    <!-- Button 2 -->
+                    <TextView
+                        android:id="@+id/tvStep2Label"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Button 2 (Open App Info to Unlock)"
+                        android:textColor="#818cf8"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvStep2Hint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="&quot;Tap ⋮ in the top-right corner (or scroll to the bottom on Xiaomi/Vivo) and tap 'Allow restricted settings'. Verify with PIN/Fingerprint.&quot;"
+                        android:textColor="#e0e7ff"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="2dp" />
+
+                    <Button
+                        android:id="@+id/btnStep2"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="8dp"
+                        android:backgroundTint="#4338ca"
+                        android:text="2. Open App Info to Unlock"
+                        android:textAllCaps="false"
+                        android:textColor="#ffffff"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="12dp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="14dp"
+                        android:layout_marginBottom="14dp"
+                        android:background="#312e81" />
+
+                    <!-- Button 3 -->
+                    <TextView
+                        android:id="@+id/tvStep3Label"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Button 3 (Turn On Notification Access)"
+                        android:textColor="#818cf8"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvStep3Hint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="&quot;Now switch Kharch Companion ON!&quot;"
+                        android:textColor="#e0e7ff"
+                        android:textSize="12sp"
+                        android:lineSpacingExtra="2dp" />
+
+                    <Button
+                        android:id="@+id/btnStep3"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="8dp"
+                        android:backgroundTint="#4338ca"
+                        android:text="3. Turn On Notification Access"
+                        android:textAllCaps="false"
+                        android:textColor="#ffffff"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="12dp" />
+
+                    <!-- Success indicator -->
+                    <TextView
+                        android:id="@+id/tvStepsComplete"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center"
+                        android:text="&#10003; Notification access granted! Continuing..."
+                        android:textColor="#34d399"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -86,7 +256,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="16dp"
                 app:cardBackgroundColor="@color/bg_card"
                 app:cardCornerRadius="16dp"
                 app:strokeColor="@color/border_color"
@@ -101,7 +271,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Payment Applications"
+                        android:text="Monitored Payment Applications"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
                         android:textStyle="bold"
@@ -204,184 +374,15 @@
                 android:id="@+id/btnConfirmConsent"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="20dp"
                 android:layout_marginBottom="32dp"
                 android:backgroundTint="@color/primary"
-                android:text="Confirm Consent &amp; Setup"
+                android:text="Save Apps &amp; Finish Setup"
                 android:textAllCaps="false"
                 android:textColor="@color/white"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 app:cornerRadius="14dp" />
-
-
-            <!-- =====================================================
-                 ANDROID 13+ RESTRICTED SETTINGS UNLOCK FLOW
-                 Shown AFTER Confirm Consent is tapped, only on API 33+
-                 ===================================================== -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardRestrictedSteps"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="32dp"
-                android:visibility="gone"
-                app:cardBackgroundColor="#1e1b4b"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="#4f46e5"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Enable Notification Access (Android 13+)"
-                        android:textColor="#a5b4fc"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:textAllCaps="true"
-                        android:letterSpacing="0.05" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginBottom="16dp"
-                        android:text="Android 13+ blocks notification access for sideloaded apps until you unlock Restricted Settings. Follow these 3 steps:"
-                        android:textColor="#c7d2fe"
-                        android:textSize="12sp"
-                        android:lineSpacingExtra="2dp" />
-
-                    <!-- Step 1 -->
-                    <TextView
-                        android:id="@+id/tvStep1Label"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Step 1 — Trigger Permission Prompt"
-                        android:textColor="#818cf8"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:textAllCaps="true" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Tap &quot;Kharch Companion&quot; in the list. When Android shows &quot;App was denied access&quot;, tap Close and come back here."
-                        android:textColor="#e0e7ff"
-                        android:textSize="12sp"
-                        android:lineSpacingExtra="2dp" />
-
-                    <Button
-                        android:id="@+id/btnStep1"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="10dp"
-                        android:backgroundTint="#4338ca"
-                        android:text="Open Notification Access Settings"
-                        android:textAllCaps="false"
-                        android:textColor="#ffffff"
-                        android:textSize="13sp"
-                        app:cornerRadius="12dp" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="#312e81" />
-
-                    <!-- Step 2 -->
-                    <TextView
-                        android:id="@+id/tvStep2Label"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Step 2 — Unlock Restricted Settings"
-                        android:textColor="#818cf8"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:textAllCaps="true" />
-
-                    <TextView
-                        android:id="@+id/tvStep2Hint"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textColor="#e0e7ff"
-                        android:textSize="12sp"
-                        android:lineSpacingExtra="2dp" />
-
-                    <Button
-                        android:id="@+id/btnStep2"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="10dp"
-                        android:backgroundTint="#4338ca"
-                        android:text="Open App Info (Allow Restricted Settings)"
-                        android:textAllCaps="false"
-                        android:textColor="#ffffff"
-                        android:textSize="13sp"
-                        app:cornerRadius="12dp" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="#312e81" />
-
-                    <!-- Step 3 -->
-                    <TextView
-                        android:id="@+id/tvStep3Label"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Step 3 — Turn On Notification Access"
-                        android:textColor="#818cf8"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:textAllCaps="true" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Now tap &quot;Kharch Companion&quot; again and switch Notification Access ON!"
-                        android:textColor="#e0e7ff"
-                        android:textSize="12sp"
-                        android:lineSpacingExtra="2dp" />
-
-                    <Button
-                        android:id="@+id/btnStep3"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="10dp"
-                        android:backgroundTint="#4338ca"
-                        android:text="Open Notification Access Settings"
-                        android:textAllCaps="false"
-                        android:textColor="#ffffff"
-                        android:textSize="13sp"
-                        app:cornerRadius="12dp" />
-
-                    <!-- Success indicator (shown once listener is detected enabled) -->
-                    <TextView
-                        android:id="@+id/tvStepsComplete"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:gravity="center"
-                        android:text="&#10003; Notification access granted! Continuing..."
-                        android:textColor="#34d399"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:visibility="gone" />
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
