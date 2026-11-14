@@ -29,12 +29,12 @@ jobs:
           distribution: 'temurin'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Generate Release Keystore
         run: |
           keytool -genkeypair -v \
-            -keystore android/kharch-release.jks \
+            -keystore ${{ github.workspace }}/android/kharch-release.jks \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -alias kharch \
             -dname "CN=Kharch, OU=Dev, O=Vishi, L=India, S=India, C=IN" \
@@ -45,7 +45,7 @@ jobs:
 
       - name: Build Signed Release APK
         env:
-          KHARCH_KEYSTORE_PATH: ../kharch-release.jks
+          KHARCH_KEYSTORE_PATH: ${{ github.workspace }}/android/kharch-release.jks
           KHARCH_KEYSTORE_PASS: kharch_store_pass
           KHARCH_KEY_ALIAS: kharch
           KHARCH_KEY_PASS: kharch_store_pass
@@ -63,7 +63,8 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           else
-            echo "tag=v1.1.0" >> $GITHUB_OUTPUT
+            VERSION=$(grep -o 'versionName = "[^"]*"' android/app/build.gradle.kts | cut -d'"' -f2)
+            echo "tag=v${VERSION:-1.2.0}" >> $GITHUB_OUTPUT
           fi
 
       - name: Create or Update GitHub Release and Upload APK
@@ -73,6 +74,7 @@ jobs:
           tag_name: ${{ steps.vars.outputs.tag }}
           draft: false
           prerelease: false
+          make_latest: true
           files: |
             KharchCompanion.apk
             android/app/build/outputs/apk/release/app-release.apk
@@ -80,6 +82,8 @@ jobs:
             ### Kharch Companion ${{ steps.vars.outputs.tag }} (Signed Release Build)
             - **Google Play Protect Safe**: Un-obfuscated release build, signed with v1, v2, and v3 schemes.
             - **Android 13–15 Ready**: 3-step sequential unlock flow for Restricted Settings on Android 13, 14, and 15 (Xiaomi/Vivo/Oppo/Realme & Samsung/Google).
+            - **1-Tap PWA QR Pairing**: Automatic pairing of server URL and device token directly from the main screen.
+            - **All Indian Banks & Salary Alerts**: Pre-whitelisted support for all Indian banks, UPI apps, and salary/stipend SMS alerts.
             - **12-Digit UTR Deduplication**: Stable UTR-based idempotency keys with background WorkManager sync.
 
             > **Note:** If you had an earlier debug build installed, **uninstall the old companion app first** before installing this release APK.
