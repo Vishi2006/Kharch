@@ -11,8 +11,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textfield.TextInputEditText
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
 import com.kharch.companion.R
 import com.kharch.companion.data.KharchDatabase
 import com.kharch.companion.network.ApiClient
@@ -22,7 +20,6 @@ import com.kharch.companion.util.PreferenceManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -32,13 +29,6 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var etDeviceToken: TextInputEditText
     private lateinit var prefs: PreferenceManager
     private lateinit var db: KharchDatabase
-
-    // QR scanner launcher using ScanContract
-    private val qrScannerLauncher = registerForActivityResult(ScanContract()) { result ->
-        if (result.contents != null) {
-            handleScannedPayload(result.contents)
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,15 +49,6 @@ class SettingsActivity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener {
             finish()
-        }
-
-        findViewById<Button>(R.id.btnScanPairingQr).setOnClickListener {
-            val options = ScanOptions().apply {
-                setPrompt("Scan the Pairing QR code from Kharch PWA Settings")
-                setBeepEnabled(true)
-                setOrientationLocked(false)
-            }
-            qrScannerLauncher.launch(options)
         }
 
         findViewById<Button>(R.id.btnSaveToken).setOnClickListener {
@@ -104,28 +85,6 @@ class SettingsActivity : AppCompatActivity() {
         super.onResume()
         loadAllowlistSummary()
         refreshPairingStatus()
-    }
-
-    private fun handleScannedPayload(payload: String) {
-        try {
-            val json = JSONObject(payload)
-            if (json.has("serverUrl")) {
-                prefs.serverUrl = json.getString("serverUrl")
-                etServerUrl.setText(prefs.serverUrl)
-            }
-            if (json.has("token")) {
-                prefs.authToken = json.getString("token")
-                etDeviceToken.setText(prefs.authToken)
-            }
-            Toast.makeText(this, "Paired successfully with PWA!", Toast.LENGTH_SHORT).show()
-        } catch (_: Exception) {
-            // If raw token string
-            prefs.authToken = payload.trim()
-            etDeviceToken.setText(prefs.authToken)
-            Toast.makeText(this, "Token recorded", Toast.LENGTH_SHORT).show()
-        }
-        refreshPairingStatus()
-        SyncManager.triggerImmediateSync(this)
     }
 
     private fun refreshPairingStatus() {

@@ -11,7 +11,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:name=".KharchApplication"
@@ -62,6 +61,16 @@
             android:name=".service.KharchForegroundService"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
+
+        <!-- Boot & App Update Receiver to keep Foreground Service alive -->
+        <receiver
+            android:name=".receiver.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

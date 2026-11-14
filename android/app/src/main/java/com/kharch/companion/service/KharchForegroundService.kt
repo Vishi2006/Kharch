@@ -23,18 +23,41 @@ class KharchForegroundService : Service() {
         var isRunning = false
             private set
 
+        fun isServiceActive(context: Context): Boolean {
+            if (isRunning) return true
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+            @Suppress("DEPRECATION")
+            val runningServices = am?.getRunningServices(Int.MAX_VALUE) ?: return false
+            for (service in runningServices) {
+                if (KharchForegroundService::class.java.name == service.service.className) {
+                    isRunning = true
+                    return true
+                }
+            }
+            return false
+        }
+
         fun startService(context: Context) {
+            val prefs = com.kharch.companion.util.PreferenceManager(context)
+            prefs.isForegroundServiceEnabled = true
             val intent = Intent(context, KharchForegroundService::class.java).apply {
                 action = ACTION_START
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+                isRunning = true
+            } catch (_: Exception) {
             }
         }
 
         fun stopService(context: Context) {
+            val prefs = com.kharch.companion.util.PreferenceManager(context)
+            prefs.isForegroundServiceEnabled = false
+            isRunning = false
             val intent = Intent(context, KharchForegroundService::class.java).apply {
                 action = ACTION_STOP
             }

@@ -59,7 +59,7 @@
                     android:contentDescription="Settings" />
             </RelativeLayout>
 
-            <!-- Account Pairing Status & 1-Tap QR Scanner -->
+            <!-- Device Token Account Connection Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardPairingStatus"
                 android:layout_width="match_parent"
@@ -86,7 +86,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="PWA Account Connection"
+                            android:text="Kharch Account Sync"
                             android:textColor="@color/text_muted"
                             android:textSize="11sp"
                             android:textStyle="bold"
@@ -96,34 +96,100 @@
                             android:id="@+id/tvMainPairingBadge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Checking..."
+                            android:text="Not Connected"
                             android:textColor="@color/warning"
                             android:textSize="12sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/tvMainPairingDetails"
+                    <!-- Paired state view -->
+                    <LinearLayout
+                        android:id="@+id/layoutPairedInfo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="Scan the Pairing QR code in Kharch PWA Settings to connect your account."
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp"
-                        android:lineSpacingExtra="2dp" />
+                        android:layout_marginTop="8dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
 
-                    <Button
-                        android:id="@+id/btnMainScanPairingQr"
+                        <TextView
+                            android:id="@+id/tvMainPairedServer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Server: https://kharch2026.vercel.app"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvMainPairedTokenMasked"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Token: ●●●●●●●●●●●●"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btnMainDisconnect"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginTop="10dp"
+                            android:backgroundTint="#334155"
+                            android:text="Disconnect / Change Token"
+                            android:textAllCaps="false"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp"
+                            app:cornerRadius="8dp" />
+                    </LinearLayout>
+
+                    <!-- Unpaired token input view -->
+                    <LinearLayout
+                        android:id="@+id/layoutTokenInput"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="12dp"
-                        android:backgroundTint="@color/accent"
-                        android:text="📷 Scan Pairing QR from PWA"
-                        android:textAllCaps="false"
-                        android:textColor="@color/white"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        app:cornerRadius="10dp" />
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Enter your Device Token from Kharch PWA Settings to link this phone."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp"
+                            android:lineSpacingExtra="2dp" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:hint="Paste Device Token"
+                            app:boxBackgroundColor="@color/bg_card_secondary"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/accent">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etMainDeviceToken"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="text"
+                                android:textColor="@color/text_primary"
+                                android:textSize="12sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <Button
+                            android:id="@+id/btnMainConnectToken"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="10dp"
+                            android:backgroundTint="@color/primary"
+                            android:text="🔗 Connect Device Token"
+                            android:textAllCaps="false"
+                            android:textColor="@color/white"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="10dp" />
+                    </LinearLayout>
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

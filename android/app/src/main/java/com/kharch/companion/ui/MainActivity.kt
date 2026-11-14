@@ -6,14 +6,14 @@ import android.provider.Settings
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.card.MaterialCardView
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
+import com.google.android.material.textfield.TextInputEditText
 import com.kharch.companion.R
 import com.kharch.companion.data.KharchDatabase
 import com.kharch.companion.service.KharchForegroundService
@@ -23,7 +23,6 @@ import com.kharch.companion.util.PreferenceManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
@@ -42,18 +41,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvWarningMessage: TextView
     private lateinit var btnRecheck: Button
 
-    // Pairing Card views
-    private lateinit var cardPairing: MaterialCardView
+    // Device Token Connection views
     private lateinit var tvMainPairingBadge: TextView
-    private lateinit var tvMainPairingDetails: TextView
-    private lateinit var btnMainScanPairingQr: Button
+    private lateinit var layoutPairedInfo: LinearLayout
+    private lateinit var tvMainPairedServer: TextView
+    private lateinit var tvMainPairedTokenMasked: TextView
+    private lateinit var btnMainDisconnect: Button
+    private lateinit var layoutTokenInput: LinearLayout
+    private lateinit var etMainDeviceToken: TextInputEditText
+    private lateinit var btnMainConnectToken: Button
     private lateinit var prefs: PreferenceManager
-
-    private val qrScannerLauncher = registerForActivityResult(ScanContract()) { result ->
-        if (result.contents != null) {
-            handleScannedPayload(result.contents)
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,19 +72,36 @@ class MainActivity : AppCompatActivity() {
         tvWarningMessage = findViewById(R.id.tvWarningMessage)
         btnRecheck = findViewById(R.id.btnRecheckPermissions)
 
-        // Account Pairing Card
-        cardPairing = findViewById(R.id.cardPairingStatus)
+        // Device Token Connection Card
+        layoutPairedInfo = findViewById(R.id.layoutPairedInfo)
+        layoutTokenInput = findViewById(R.id.layoutTokenInput)
         tvMainPairingBadge = findViewById(R.id.tvMainPairingBadge)
-        tvMainPairingDetails = findViewById(R.id.tvMainPairingDetails)
-        btnMainScanPairingQr = findViewById(R.id.btnMainScanPairingQr)
+        tvMainPairedServer = findViewById(R.id.tvMainPairedServer)
+        tvMainPairedTokenMasked = findViewById(R.id.tvMainPairedTokenMasked)
+        btnMainDisconnect = findViewById(R.id.btnMainDisconnect)
+        etMainDeviceToken = findViewById(R.id.etMainDeviceToken)
+        btnMainConnectToken = findViewById(R.id.btnMainConnectToken)
 
-        btnMainScanPairingQr.setOnClickListener {
-            val options = ScanOptions().apply {
-                setPrompt("Scan the Pairing QR code from Kharch PWA Settings")
-                setBeepEnabled(true)
-                setOrientationLocked(false)
+        btnMainConnectToken.setOnClickListener {
+            val token = etMainDeviceToken.text?.toString()?.trim() ?: ""
+            if (token.isEmpty()) {
+                Toast.makeText(this, "Please paste your Device Token", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
-            qrScannerLauncher.launch(options)
+            prefs.authToken = token
+            if (prefs.serverUrl.isEmpty()) {
+                prefs.serverUrl = "https://kharch2026.vercel.app"
+            }
+            etMainDeviceToken.text?.clear()
+            Toast.makeText(this, "✓ Connected to Kharch account!", Toast.LENGTH_SHORT).show()
+            refreshPairingCard()
+            SyncManager.triggerImmediateSync(this)
+        }
+
+        btnMainDisconnect.setOnClickListener {
+            prefs.authToken = null
+            Toast.makeText(this, "Device disconnected", Toast.LENGTH_SHORT).show()
+            refreshPairingCard()
         }
 
         findViewById<ImageButton>(R.id.btnOpenSettings).setOnClickListener {
@@ -107,7 +121,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnToggleService.setOnClickListener {
-            if (KharchForegroundService.isRunning) {
+            if (KharchForegroundService.isServiceActive(this)) {
                 KharchForegroundService.stopService(this)
             } else {
                 KharchForegroundService.startService(this)
@@ -123,59 +137,49 @@ class MainActivity : AppCompatActivity() {
                 startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             } else if (!isBatteryIgnored) {
                 OemHelper.requestIgnoreBatteryOptimization(this)
-            } else if (!KharchForegroundService.isRunning) {
+            } else if (!KharchForegroundService.isServiceActive(this)) {
                 KharchForegroundService.startService(this)
             }
             refreshHealthStatus()
         }
 
         btnSyncNow.setOnClickListener {
-            com.kharch.companion.sync.SyncManager.triggerImmediateSync(this)
-            android.widget.Toast.makeText(this, "Sync triggered", android.widget.Toast.LENGTH_SHORT).show()
+            SyncManager.triggerImmediateSync(this)
+            Toast.makeText(this, "Sync triggered", Toast.LENGTH_SHORT).show()
             refreshHealthStatus()
         }
     }
 
     override fun onResume() {
         super.onResume()
+
+        // Guarantee 24/7 background operation: auto-start foreground service if permission is active
+        val isNotifGranted = NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName)
+        if (isNotifGranted && prefs.isForegroundServiceEnabled && !KharchForegroundService.isServiceActive(this)) {
+            KharchForegroundService.startService(this)
+        }
+
         refreshPairingCard()
         SyncManager.triggerImmediateSync(this)
         refreshHealthStatus()
-    }
-
-    private fun handleScannedPayload(payload: String) {
-        try {
-            val json = JSONObject(payload)
-            if (json.has("serverUrl")) {
-                prefs.serverUrl = json.getString("serverUrl")
-            }
-            if (json.has("token")) {
-                prefs.authToken = json.getString("token")
-            }
-            Toast.makeText(this, "Paired successfully with Kharch!", Toast.LENGTH_SHORT).show()
-        } catch (_: Exception) {
-            prefs.authToken = payload.trim()
-            Toast.makeText(this, "Token recorded", Toast.LENGTH_SHORT).show()
-        }
-        refreshPairingCard()
-        SyncManager.triggerImmediateSync(this)
     }
 
     private fun refreshPairingCard() {
         if (prefs.isPaired) {
             tvMainPairingBadge.text = "✓ Connected"
             tvMainPairingBadge.setTextColor(getColor(R.color.success))
-            tvMainPairingDetails.text = "Syncing automatically to:\n${prefs.serverUrl}"
-            btnMainScanPairingQr.text = "Re-pair / Scan New QR"
-            btnMainScanPairingQr.backgroundTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.bg_card_secondary))
-            btnMainScanPairingQr.setTextColor(getColor(R.color.accent))
+            layoutPairedInfo.visibility = View.VISIBLE
+            layoutTokenInput.visibility = View.GONE
+
+            tvMainPairedServer.text = "Server: ${prefs.serverUrl}"
+            val token = prefs.authToken ?: ""
+            val masked = if (token.length > 8) "${token.take(4)}••••••••${token.takeLast(4)}" else "••••••••"
+            tvMainPairedTokenMasked.text = "Device Token: $masked"
         } else {
-            tvMainPairingBadge.text = "⚠️ Not Paired"
+            tvMainPairingBadge.text = "Not Connected"
             tvMainPairingBadge.setTextColor(getColor(R.color.warning))
-            tvMainPairingDetails.text = "Scan the Pairing QR code in your Kharch PWA Settings to connect your account."
-            btnMainScanPairingQr.text = "📷 Scan Pairing QR from PWA"
-            btnMainScanPairingQr.backgroundTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.accent))
-            btnMainScanPairingQr.setTextColor(getColor(R.color.white))
+            layoutPairedInfo.visibility = View.GONE
+            layoutTokenInput.visibility = View.VISIBLE
         }
     }
 
@@ -206,10 +210,10 @@ class MainActivity : AppCompatActivity() {
             btnFixBattery.text = "Exempt"
         }
 
-        // 3. Check Foreground Service
-        val isServiceRunning = KharchForegroundService.isRunning
+        // 3. Check Foreground Service (always verified live)
+        val isServiceRunning = KharchForegroundService.isServiceActive(this)
         if (isServiceRunning) {
-            tvServiceStatus.text = "✓ Running (Active)"
+            tvServiceStatus.text = "✓ Running (Active 24/7)"
             tvServiceStatus.setTextColor(getColor(R.color.success))
             btnToggleService.text = "Stop"
         } else {
@@ -251,7 +255,6 @@ class MainActivity : AppCompatActivity() {
                 tvLastCaptured.text = "Last notification captured: None recorded yet"
             }
 
-            // Warning Banner check (2f requirement)
             val hasPermissionRevoked = !isNotifGranted || !isBatteryIgnored || !isServiceRunning
             val isStaleCapture = (hoursSinceLast > 12) && totalCount > 0
 

@@ -45,6 +45,10 @@ class KharchNotificationListener : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         isConnected = true
+        val prefs = com.kharch.companion.util.PreferenceManager(applicationContext)
+        if (prefs.isForegroundServiceEnabled && !KharchForegroundService.isServiceActive(applicationContext)) {
+            KharchForegroundService.startService(applicationContext)
+        }
     }
 
     override fun onListenerDisconnected() {

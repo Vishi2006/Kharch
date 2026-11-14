@@ -12,7 +12,8 @@ class PreferenceManager(context: Context) {
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_DEVICE_ID = "device_id"
         private const val KEY_AUTH_TOKEN = "auth_token"
-        private const val DEFAULT_SERVER_URL = ""
+        private const val KEY_FG_ENABLED = "fg_service_enabled"
+        private const val DEFAULT_SERVER_URL = "https://kharch2026.vercel.app"
     }
 
     var serverUrl: String
@@ -22,6 +23,10 @@ class PreferenceManager(context: Context) {
     var authToken: String?
         get() = prefs.getString(KEY_AUTH_TOKEN, null)
         set(value) = prefs.edit().putString(KEY_AUTH_TOKEN, value).apply()
+
+    var isForegroundServiceEnabled: Boolean
+        get() = prefs.getBoolean(KEY_FG_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(KEY_FG_ENABLED, value).apply()
 
     val isPaired: Boolean
         get() = !authToken.isNullOrEmpty() && serverUrl.isNotEmpty()

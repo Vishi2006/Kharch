@@ -85,11 +85,10 @@ class ConsentActivity : AppCompatActivity() {
 
     // Restricted Settings unlock flow views (Android 13+)
     private lateinit var cardRestrictedSteps: MaterialCardView
-    private lateinit var tvStep2Hint: TextView
+    private lateinit var tvStep1Hint: TextView
     private lateinit var tvStepsComplete: TextView
     private lateinit var btnStep1: Button
     private lateinit var btnStep2: Button
-    private lateinit var btnStep3: Button
     private lateinit var scrollViewConsent: NestedScrollView
 
     // Track whether consent was saved so onResume can check listener status
@@ -115,26 +114,17 @@ class ConsentActivity : AppCompatActivity() {
 
         // Restricted Settings card views
         cardRestrictedSteps = findViewById(R.id.cardRestrictedSteps)
-        tvStep2Hint         = findViewById(R.id.tvStep2Hint)
+        tvStep1Hint         = findViewById(R.id.tvStep1Hint)
         tvStepsComplete     = findViewById(R.id.tvStepsComplete)
         btnStep1            = findViewById(R.id.btnStep1)
         btnStep2            = findViewById(R.id.btnStep2)
-        btnStep3            = findViewById(R.id.btnStep3)
         scrollViewConsent   = findViewById(R.id.scrollViewConsent)
 
-        // Set the manufacturer-aware hint for Step 2
-        tvStep2Hint.text = buildStep2Hint()
+        // Set manufacturer-aware hint for Step 1 (App Info unlock)
+        tvStep1Hint.text = buildStep1Hint()
 
-        // Wire the 3 numbered step buttons
+        // Step 1: Open App Info directly to allow restricted settings
         btnStep1.setOnClickListener {
-            // Button 1 (Open Notification Access):
-            // "Tap Kharch Companion. When it says 'App was denied access', tap Close and press Back."
-            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-        }
-
-        btnStep2.setOnClickListener {
-            // Button 2 (Open App Info to Unlock):
-            // Opens Settings.ACTION_APPLICATION_DETAILS_SETTINGS directly to Kharch Companion's page
             val intent = Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                 Uri.fromParts("package", packageName, null)
@@ -142,9 +132,8 @@ class ConsentActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        btnStep3.setOnClickListener {
-            // Button 3 (Turn On Notification Access):
-            // Opens ACTION_NOTIFICATION_LISTENER_SETTINGS again
+        // Step 2: Open Notification Access to toggle Kharch Companion ON
+        btnStep2.setOnClickListener {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
 
@@ -157,10 +146,9 @@ class ConsentActivity : AppCompatActivity() {
             tvStepsComplete.visibility = View.VISIBLE
             btnStep1.isEnabled = false
             btnStep2.isEnabled = false
-            btnStep3.isEnabled = false
-            btnStep3.text = "✓ Notification Access Granted"
+            btnStep2.text = "✓ Notification Access Granted"
         } else {
-            // Make 3-step unlock buttons immediately visible on Android 13+
+            // Make unlock buttons immediately visible on Android 13+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 cardRestrictedSteps.visibility = View.VISIBLE
             }
@@ -280,8 +268,7 @@ class ConsentActivity : AppCompatActivity() {
             tvStepsComplete.visibility = View.VISIBLE
             btnStep1.isEnabled = false
             btnStep2.isEnabled = false
-            btnStep3.isEnabled = false
-            btnStep3.text = "✓ Notification Access Granted"
+            btnStep2.text = "✓ Notification Access Granted"
 
             if (!consentSaved) {
                 saveDefaultConsentAndProceed()
@@ -354,7 +341,7 @@ class ConsentActivity : AppCompatActivity() {
         }
     }
 
-    private fun buildStep2Hint(): String {
+    private fun buildStep1Hint(): String {
         val manufacturer = Build.MANUFACTURER.lowercase()
         return when {
             manufacturer.containsAny("xiaomi", "redmi", "poco", "vivo", "oppo", "realme", "oneplus") ->

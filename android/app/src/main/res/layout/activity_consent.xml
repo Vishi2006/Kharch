@@ -118,17 +118,17 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:layout_marginBottom="14dp"
-                        android:text="Follow these 3 numbered buttons to unlock notification access in Android Settings:"
+                        android:text="Follow these 2 simple steps to unlock notification access in Android Settings:"
                         android:textColor="#c7d2fe"
                         android:textSize="12sp"
                         android:lineSpacingExtra="2dp" />
 
-                    <!-- Button 1 -->
+                    <!-- Step 1: Open App Info -->
                     <TextView
                         android:id="@+id/tvStep1Label"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Button 1 (Open Notification Access)"
+                        android:text="Step 1: Open App Info to Unlock"
                         android:textColor="#818cf8"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -138,7 +138,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
-                        android:text="&quot;Tap Kharch Companion. When it says 'App was denied access', tap Close and press Back.&quot; (This forces Android to unhide the Restricted Settings switch)."
+                        android:text="&quot;Tap ⋮ in the top-right corner (or scroll to the bottom on Xiaomi/Vivo/Realme) and tap 'Allow restricted settings'. Verify with PIN/Fingerprint.&quot;"
                         android:textColor="#e0e7ff"
                         android:textSize="12sp"
                         android:lineSpacingExtra="2dp" />
@@ -149,7 +149,7 @@
                         android:layout_height="48dp"
                         android:layout_marginTop="8dp"
                         android:backgroundTint="#4338ca"
-                        android:text="1. Open Notification Access"
+                        android:text="1. Open App Info to Unlock"
                         android:textAllCaps="false"
                         android:textColor="#ffffff"
                         android:textSize="13sp"
@@ -163,12 +163,12 @@
                         android:layout_marginBottom="14dp"
                         android:background="#312e81" />
 
-                    <!-- Button 2 -->
+                    <!-- Step 2: Turn ON Notification Access -->
                     <TextView
                         android:id="@+id/tvStep2Label"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Button 2 (Open App Info to Unlock)"
+                        android:text="Step 2: Turn On Notification Access"
                         android:textColor="#818cf8"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -178,7 +178,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
-                        android:text="&quot;Tap ⋮ in the top-right corner (or scroll to the bottom on Xiaomi/Vivo) and tap 'Allow restricted settings'. Verify with PIN/Fingerprint.&quot;"
+                        android:text="&quot;Now switch Kharch Companion ON &amp; tap Allow!&quot;"
                         android:textColor="#e0e7ff"
                         android:textSize="12sp"
                         android:lineSpacingExtra="2dp" />
@@ -189,47 +189,7 @@
                         android:layout_height="48dp"
                         android:layout_marginTop="8dp"
                         android:backgroundTint="#4338ca"
-                        android:text="2. Open App Info to Unlock"
-                        android:textAllCaps="false"
-                        android:textColor="#ffffff"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        app:cornerRadius="12dp" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="14dp"
-                        android:layout_marginBottom="14dp"
-                        android:background="#312e81" />
-
-                    <!-- Button 3 -->
-                    <TextView
-                        android:id="@+id/tvStep3Label"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Button 3 (Turn On Notification Access)"
-                        android:textColor="#818cf8"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvStep3Hint"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="3dp"
-                        android:text="&quot;Now switch Kharch Companion ON!&quot;"
-                        android:textColor="#e0e7ff"
-                        android:textSize="12sp"
-                        android:lineSpacingExtra="2dp" />
-
-                    <Button
-                        android:id="@+id/btnStep3"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="8dp"
-                        android:backgroundTint="#4338ca"
-                        android:text="3. Turn On Notification Access"
+                        android:text="2. Turn On Notification Access"
                         android:textAllCaps="false"
                         android:textColor="#ffffff"
                         android:textSize="13sp"
