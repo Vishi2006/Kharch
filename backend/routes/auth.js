@@ -66,9 +66,15 @@ router.post('/google', async (req, res) => {
   } else {
     // Standard Google Verification
     try {
+      const allowedAudiences = [
+        process.env.GOOGLE_CLIENT_ID,
+        '804504560516-0g5l1kbk9qr0lpgps8aq4t2ji7q3mkit.apps.googleusercontent.com',
+        '804504560516-4bggeumofelo18bbn7stct4lnama7otn.apps.googleusercontent.com',
+      ].filter(Boolean);
+
       const ticket = await client.verifyIdToken({
         idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID,
+        audience: allowedAudiences,
       });
       userPayload = ticket.getPayload();
     } catch (error) {
