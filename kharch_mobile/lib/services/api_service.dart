@@ -5,12 +5,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'native_bridge.dart';
 
 class ApiService {
-  static const String _defaultBaseUrl = 'https://kharch2026.vercel.app';
+  // Built-in environment URL loaded at compile-time / env via String.fromEnvironment
+  static const String envBackendUrl = String.fromEnvironment(
+    'BACKEND_URL',
+    defaultValue: 'https://kharch2026.vercel.app',
+  );
+
   static const String _keyBaseUrl = 'kharch_api_base_url';
   static const String _keyToken = 'kharch_auth_token';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  String _baseUrl = _defaultBaseUrl;
+  String _baseUrl = envBackendUrl;
   String? _token;
 
   static final ApiService instance = ApiService._internal();
@@ -21,10 +26,12 @@ class ApiService {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    _baseUrl = prefs.getString(_keyBaseUrl) ?? _defaultBaseUrl;
+    _baseUrl = prefs.getString(_keyBaseUrl) ?? envBackendUrl;
     _token = await _storage.read(key: _keyToken);
 
+    // Also sync to shared preferences for native Android notification service
     if (_token != null) {
+      await prefs.setString(_keyToken, _token!);
       await NativeBridge.saveServerConfig(_token!, _baseUrl);
     }
   }
@@ -40,11 +47,14 @@ class ApiService {
 
   Future<void> setToken(String? token) async {
     _token = token;
+    final prefs = await SharedPreferences.getInstance();
     if (token == null) {
       await _storage.delete(key: _keyToken);
+      await prefs.remove(_keyToken);
       await NativeBridge.saveServerConfig('', _baseUrl);
     } else {
       await _storage.write(key: _keyToken, value: token);
+      await prefs.setString(_keyToken, token);
       await NativeBridge.saveServerConfig(token, _baseUrl);
     }
   }
@@ -56,6 +66,8 @@ class ApiService {
     };
     if (_token != null && _token!.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_token';
+      // Also send cookie header for endpoints relying on cookie-parser
+      headers['Cookie'] = 'token=$_token';
     }
     return headers;
   }

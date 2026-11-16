@@ -71,7 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'ARCADE CONTROL ROOM',
+          'SETTINGS',
           style: TextStyle(
             color: ArcadeTheme.acidYellow,
             fontWeight: FontWeight.w900,
@@ -86,9 +86,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1-TIME PERMISSION STATION
+              // PERMISSIONS & AUTO-TRACKING
               const Text(
-                '1-TIME PERMISSION STATION',
+                'PERMISSIONS & AUTO-TRACKING',
                 style: TextStyle(
                   color: ArcadeTheme.acidYellow,
                   fontWeight: FontWeight.w900,
@@ -280,7 +280,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // USER ACCOUNT & LOGOUT
               if (user != null) ...[
                 const Text(
-                  'PILOT PROFILE',
+                  'USER ACCOUNT',
                   style: TextStyle(
                     color: ArcadeTheme.pureWhite,
                     fontWeight: FontWeight.w900,
@@ -300,9 +300,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           color: ArcadeTheme.acidYellow,
                           shape: BoxShape.circle,
                           border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
+                          image: user['picture'] != null && (user['picture'] as String).isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(user['picture']),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
                         ),
-                        child: const Icon(Icons.person_rounded,
-                            color: ArcadeTheme.pureBlack, size: 28),
+                        child: user['picture'] == null || (user['picture'] as String).isEmpty
+                            ? const Icon(Icons.person_rounded,
+                                color: ArcadeTheme.pureBlack, size: 28)
+                            : null,
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -332,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 ArcadeButton(
-                  text: 'LOG OUT OF VAULT',
+                  text: 'LOG OUT',
                   icon: Icons.logout_rounded,
                   backgroundColor: ArcadeTheme.punchPink,
                   textColor: ArcadeTheme.pureWhite,

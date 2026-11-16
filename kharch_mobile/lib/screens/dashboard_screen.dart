@@ -5,6 +5,7 @@ import '../widgets/arcade_badge.dart';
 import '../widgets/arcade_button.dart';
 import '../widgets/arcade_card.dart';
 import '../widgets/kharch_logo.dart';
+import '../widgets/neo_chart.dart';
 import 'add_transaction_screen.dart';
 import 'inbox_screen.dart';
 import 'qr_pay_screen.dart';
@@ -22,42 +23,63 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  String _selectedMatrix = 'day'; // 'day' | 'week' | 'month' | 'year'
-  bool _isQuickAdding = false;
-  final TextEditingController _quickAmountCtrl = TextEditingController();
-  final TextEditingController _quickTitleCtrl = TextEditingController();
+  int _currentNavIndex = 0; // 0: Dashboard, 1: Pay, 2: Add, 3: Audit, 4: Setup
+  bool _isSettingOpening = false;
+  final TextEditingController _openingCtrl = TextEditingController();
 
   @override
   void dispose() {
-    _quickAmountCtrl.dispose();
-    _quickTitleCtrl.dispose();
+    _openingCtrl.dispose();
     super.dispose();
   }
 
-  void _handleQuickAdd() async {
-    final amount = double.tryParse(_quickAmountCtrl.text);
-    final title = _quickTitleCtrl.text.trim();
+  void _handleSetOpening() async {
+    final amt = double.tryParse(_openingCtrl.text);
+    if (amt == null) return;
 
-    if (amount == null || title.isEmpty) return;
-
-    setState(() => _isQuickAdding = true);
-
-    await widget.appState.addTransaction(
-      amount: amount,
-      title: title,
-      type: 'expense',
-      importance: 'essential',
-    );
-
+    setState(() => _isSettingOpening = true);
+    await widget.appState.setOpeningBalance(amt);
     if (mounted) {
-      _quickAmountCtrl.clear();
-      _quickTitleCtrl.clear();
-      setState(() => _isQuickAdding = false);
+      _openingCtrl.clear();
+      setState(() => _isSettingOpening = false);
+    }
+  }
+
+  void _onBottomNavTap(int index) {
+    if (index == _currentNavIndex && index == 0) return;
+
+    setState(() => _currentNavIndex = index);
+
+    if (index == 1) {
+      // PAY
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => QrPayScreen(appState: widget.appState)),
+      ).then((_) => setState(() => _currentNavIndex = 0));
+    } else if (index == 2) {
+      // ADD
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => AddTransactionScreen(appState: widget.appState)),
+      ).then((_) => setState(() => _currentNavIndex = 0));
+    } else if (index == 3) {
+      // AUDIT
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ReconcileScreen(appState: widget.appState)),
+      ).then((_) => setState(() => _currentNavIndex = 0));
+    } else if (index == 4) {
+      // SETUP
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => SettingsScreen(appState: widget.appState)),
+      ).then((_) => setState(() => _currentNavIndex = 0));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = widget.appState.user;
     final data = widget.appState.dashboardData;
     final activeSpace = widget.appState.activeSpace;
     final spaces = widget.appState.spaces;
@@ -66,7 +88,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final balance = (data?['netBalance'] ?? 0.0).toDouble();
     final expense = (data?['monthlyExpense'] ?? 0.0).toDouble();
     final income = (data?['monthlyIncome'] ?? 0.0).toDouble();
+    final openingBalance = (data?['openingBalance'] ?? 0.0).toDouble();
     final transactions = (data?['recentTransactions'] as List?) ?? [];
+
+    // Chart mock/derived weekly cashflow values
+    final List<double> chartValues = expense > 0
+        ? <double>[expense * 0.15, expense * 0.25, expense * 0.20, expense * 0.35, expense * 0.05]
+        : <double>[150.0, 320.0, 200.0, 450.0, 180.0];
+    final chartLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
     return Scaffold(
       backgroundColor: ArcadeTheme.darkCanvas,
@@ -76,26 +105,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
         titleSpacing: 16,
         title: Row(
           children: [
-            const KharchLogo(size: 34),
-            const SizedBox(width: 10),
+            const KharchLogo(size: 36),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'KHARCH ARCADE',
+                  'Kharch',
                   style: TextStyle(
-                    color: ArcadeTheme.acidYellow,
+                    color: ArcadeTheme.pureWhite,
                     fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                    letterSpacing: 0.8,
+                    fontSize: 18,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                Text(
-                  activeSpace?['name'] ?? 'Vault',
-                  style: const TextStyle(
-                    color: ArcadeTheme.slateMuted,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => SpacesScreen(appState: widget.appState)),
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      Text(
+                        activeSpace?['name'] ?? 'Personal Life',
+                        style: const TextStyle(
+                          color: ArcadeTheme.acidYellow,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      const Icon(Icons.arrow_drop_down, color: ArcadeTheme.acidYellow, size: 16),
+                    ],
                   ),
                 ),
               ],
@@ -103,54 +146,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
-          // Auto-Sync Status Indicator
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SettingsScreen(appState: widget.appState)),
-              );
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: widget.appState.isNotificationListenerGranted
-                    ? ArcadeTheme.arcadeGreen
-                    : ArcadeTheme.punchPink,
-                borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
-                border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
-                boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    widget.appState.isNotificationListenerGranted
-                        ? Icons.bolt_rounded
-                        : Icons.warning_amber_rounded,
-                    color: ArcadeTheme.pureBlack,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.appState.isNotificationListenerGranted ? 'AUTO-SYNC' : 'SETUP',
-                    style: const TextStyle(
-                      color: ArcadeTheme.pureBlack,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 10,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Inbox Icon with Unread Badge
+          // Inbox icon with unread badge
           IconButton(
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.inbox_rounded, color: ArcadeTheme.pureWhite, size: 26),
+                const Icon(Icons.inbox_rounded, color: ArcadeTheme.pureWhite, size: 24),
                 if (unreadInbox > 0)
                   Positioned(
                     right: -4,
@@ -179,6 +180,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 MaterialPageRoute(builder: (_) => InboxScreen(appState: widget.appState)),
               );
             },
+          ),
+          const SizedBox(width: 4),
+
+          // User Profile Photo
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => SettingsScreen(appState: widget.appState)),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 16),
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: ArcadeTheme.acidYellow,
+                shape: BoxShape.circle,
+                border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
+                boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
+              ),
+              child: ClipOval(
+                child: user?['picture'] != null && user!['picture'].toString().isNotEmpty
+                    ? Image.network(
+                        user['picture'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _buildAvatarFallback(user['name']),
+                      )
+                    : _buildAvatarFallback(user?['name']),
+              ),
+            ),
           ),
         ],
       ),
@@ -266,7 +298,77 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Net Score / Balance High-Score Card
+              // Opening Balance Prompt if 0
+              if (openingBalance == 0) ...[
+                ArcadeCard(
+                  fillColor: ArcadeTheme.darkCard,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.account_balance_wallet_rounded,
+                              color: ArcadeTheme.acidYellow, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'SET MONTH STARTING BALANCE',
+                            style: TextStyle(
+                              color: ArcadeTheme.acidYellow,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Enter your opening bank balance to audit cashflow and reconciliation.',
+                        style: TextStyle(color: ArcadeTheme.slateMuted, fontSize: 11),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _openingCtrl,
+                              keyboardType: TextInputType.number,
+                              style: const TextStyle(
+                                  color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900),
+                              decoration: InputDecoration(
+                                hintText: 'e.g. ₹25,000',
+                                hintStyle: const TextStyle(color: ArcadeTheme.slateMuted),
+                                filled: true,
+                                fillColor: ArcadeTheme.darkCardLight,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ArcadeButton(
+                            text: 'SAVE',
+                            height: 42,
+                            fontSize: 12,
+                            backgroundColor: ArcadeTheme.acidYellow,
+                            textColor: ArcadeTheme.pureBlack,
+                            isLoading: _isSettingOpening,
+                            onTap: _handleSetOpening,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Expected Current Balance Card
               ArcadeCard(
                 fillColor: ArcadeTheme.acidYellow,
                 child: Column(
@@ -276,7 +378,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          '★ NET VAULT BALANCE ★',
+                          'EXPECTED CURRENT BALANCE',
                           style: TextStyle(
                             color: ArcadeTheme.pureBlack,
                             fontWeight: FontWeight.w900,
@@ -300,7 +402,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text(
-                              'AUDIT VAULT 🔒',
+                              'AUDIT 🔒',
                               style: TextStyle(
                                 color: ArcadeTheme.pureWhite,
                                 fontWeight: FontWeight.w900,
@@ -316,7 +418,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       '₹ ${balance.toStringAsFixed(2)}',
                       style: ArcadeTheme.arcadeScore,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
@@ -391,92 +493,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Quick Add Bar with Cute Tap Loading
+              // Weekly Spending Chart Card
               ArcadeCard(
                 fillColor: ArcadeTheme.darkCard,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '⚡ FAST ARCADE ADD',
-                      style: TextStyle(
-                        color: ArcadeTheme.neonCyan,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
                     Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: TextField(
-                            controller: _quickAmountCtrl,
-                            keyboardType: TextInputType.number,
-                            style: const TextStyle(
-                                color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900),
-                            decoration: InputDecoration(
-                              hintText: '₹ Amount',
-                              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted),
-                              filled: true,
-                              fillColor: ArcadeTheme.darkCardLight,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
-                              ),
-                            ),
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'WEEKLY SPENDING TREND',
+                          style: TextStyle(
+                            color: ArcadeTheme.neonCyan,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            letterSpacing: 0.6,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 4,
-                          child: TextField(
-                            controller: _quickTitleCtrl,
-                            style: const TextStyle(
-                                color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w700),
-                            decoration: InputDecoration(
-                              hintText: 'e.g. Coffee',
-                              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted),
-                              filled: true,
-                              fillColor: ArcadeTheme.darkCardLight,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ArcadeButton(
-                          text: 'SAVE',
-                          height: 44,
-                          fontSize: 12,
-                          backgroundColor: ArcadeTheme.acidYellow,
-                          textColor: ArcadeTheme.pureBlack,
-                          isLoading: _isQuickAdding,
-                          loadingText: 'Saving...',
-                          onTap: _handleQuickAdd,
-                        ),
+                        Icon(Icons.bar_chart_rounded, color: ArcadeTheme.neonCyan, size: 18),
                       ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      height: 100,
+                      width: double.infinity,
+                      child: CustomPaint(
+                        painter: NeoChartPainter(
+                          values: chartValues,
+                          labels: chartLabels,
+                          barColor: ArcadeTheme.acidYellow,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
 
-              // 4x Comparative Matrix Controls (Day / Week / Month / Year)
+              // Recent Activity (Top 5 transactions matching PWA layout)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'COMPARATIVE LEDGER',
+                    'RECENT ACTIVITY',
                     style: TextStyle(
                       color: ArcadeTheme.pureWhite,
                       fontWeight: FontWeight.w900,
@@ -484,67 +544,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       letterSpacing: 0.6,
                     ),
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: ArcadeTheme.darkCardLight,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
-                    ),
-                    child: Row(
-                      children: ['day', 'week', 'month', 'year'].map((p) {
-                        final isSel = _selectedMatrix == p;
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedMatrix = p),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: isSel ? ArcadeTheme.acidYellow : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              p.toUpperCase(),
-                              style: TextStyle(
-                                color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.slateMuted,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ReconcileScreen(appState: widget.appState),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'View All',
+                      style: TextStyle(
+                        color: ArcadeTheme.acidYellow,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // Ledger Transactions List
               if (transactions.isEmpty)
                 ArcadeCard(
                   fillColor: ArcadeTheme.darkCard,
                   padding: const EdgeInsets.all(28),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        const KharchLogo(size: 48, showShadow: false),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'NO TRANSACTIONS YET',
-                          style: TextStyle(
-                            color: ArcadeTheme.pureWhite,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Add an expense or scan a QR code to start',
-                          style: TextStyle(
-                            color: ArcadeTheme.slateMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                  child: const Center(
+                    child: Text(
+                      'No transactions recorded yet.',
+                      style: TextStyle(
+                        color: ArcadeTheme.slateMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 )
@@ -552,13 +585,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: transactions.length,
+                  itemCount: transactions.take(5).length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, idx) {
                     final tx = transactions[idx];
                     final amt = (tx['amount'] ?? 0.0).toDouble();
                     final type = tx['type'] ?? 'expense';
-                    final title = tx['title'] ?? 'Untitled';
+                    final title = tx['title'] ?? 'Transaction';
                     final importance = tx['importance'] ?? 'essential';
 
                     return ArcadeCard(
@@ -611,11 +644,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                           Text(
-                            '₹ ${amt.toStringAsFixed(2)}',
+                            '${type == 'income' ? '+' : '-'}₹ ${amt.toStringAsFixed(2)}',
                             style: TextStyle(
                               color: type == 'income'
                                   ? ArcadeTheme.arcadeGreen
-                                  : ArcadeTheme.pureWhite,
+                                  : ArcadeTheme.punchPink,
                               fontWeight: FontWeight.w900,
                               fontSize: 15,
                             ),
@@ -625,6 +658,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   },
                 ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -636,68 +670,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
             top: BorderSide(color: ArcadeTheme.pureBlack, width: 2.5),
           ),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavButton(
               icon: Icons.dashboard_rounded,
-              label: 'DASH',
-              isSelected: true,
-              onTap: () {},
+              label: 'Dashboard',
+              index: 0,
             ),
             _buildNavButton(
               icon: Icons.qr_code_scanner_rounded,
-              label: 'PAY',
-              isSelected: false,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => QrPayScreen(appState: widget.appState)),
-                );
-              },
+              label: 'Pay',
+              index: 1,
             ),
             _buildNavButton(
               icon: Icons.add_circle_rounded,
-              label: 'ADD',
-              isSelected: false,
+              label: 'Add',
+              index: 2,
               highlightColor: ArcadeTheme.acidYellow,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddTransactionScreen(appState: widget.appState),
-                  ),
-                );
-              },
             ),
             _buildNavButton(
               icon: Icons.lock_clock_rounded,
-              label: 'AUDIT',
-              isSelected: false,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ReconcileScreen(appState: widget.appState),
-                  ),
-                );
-              },
+              label: 'Audit',
+              index: 3,
             ),
             _buildNavButton(
               icon: Icons.tune_rounded,
-              label: 'SETUP',
-              isSelected: false,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => SettingsScreen(appState: widget.appState),
-                  ),
-                );
-              },
+              label: 'Setup',
+              index: 4,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarFallback(String? name) {
+    return Container(
+      color: ArcadeTheme.acidYellow,
+      alignment: Alignment.center,
+      child: Text(
+        name != null && name.isNotEmpty ? name[0].toUpperCase() : 'U',
+        style: const TextStyle(
+          color: ArcadeTheme.pureBlack,
+          fontWeight: FontWeight.w900,
+          fontSize: 16,
         ),
       ),
     );
@@ -706,35 +724,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNavButton({
     required IconData icon,
     required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
+    required int index,
     Color? highlightColor,
   }) {
+    final isSelected = _currentNavIndex == index;
     return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isSelected
-                ? ArcadeTheme.acidYellow
-                : (highlightColor ?? ArcadeTheme.slateMuted),
-            size: 24,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
+      onTap: () => _onBottomNavTap(index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
               color: isSelected
                   ? ArcadeTheme.acidYellow
                   : (highlightColor ?? ArcadeTheme.slateMuted),
-              fontWeight: FontWeight.w900,
-              fontSize: 10,
-              letterSpacing: 0.5,
+              size: 24,
             ),
-          ),
-        ],
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? ArcadeTheme.acidYellow
+                    : (highlightColor ?? ArcadeTheme.slateMuted),
+                fontWeight: FontWeight.w900,
+                fontSize: 10,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,11 +1,24 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../services/native_bridge.dart';
 
 class AppState extends ChangeNotifier {
   final ApiService _api = ApiService.instance;
+
+  // Google OAuth Client ID matching PWA configuration
+  static const String googleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+    defaultValue: '804504560516-0g5l1kbk9qr0lpgps8aq4t2ji7q3mkit.apps.googleusercontent.com',
+  );
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: googleClientId,
+    serverClientId: googleClientId,
+    scopes: ['email', 'profile'],
+  );
 
   bool _isInitialized = false;
   bool _isLoading = false;
@@ -74,93 +87,64 @@ class AppState extends ChangeNotifier {
     await checkNativePermissions();
   }
 
-  Future<bool> login(String credential) async {
+  /// Trigger Native / Web Google Sign-In and authenticate with serverless backend
+  Future<Map<String, dynamic>> signInWithGoogle() async {
     _isLoading = true;
     notifyListeners();
 
-    final res = await _api.post('/api/auth/google', {'credential': credential});
-    _isLoading = false;
+    try {
+      final GoogleSignInAccount? account = await _googleSignIn.signIn();
+      if (account == null) {
+        _isLoading = false;
+        notifyListeners();
+        return {'success': false, 'error': 'Sign-in cancelled'};
+      }
 
-    if (res['token'] != null && res['user'] != null) {
-      final token = res['token'] as String;
-      await _api.setToken(token);
-      _user = Map<String, dynamic>.from(res['user']);
+      final GoogleSignInAuthentication auth = await account.authentication;
+      final String? idToken = auth.idToken ?? auth.accessToken;
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('cached_user', jsonEncode(_user));
+      if (idToken == null) {
+        _isLoading = false;
+        notifyListeners();
+        return {'success': false, 'error': 'Unable to retrieve Google ID token'};
+      }
 
-      await fetchUserData();
+      // Send Google credential to backend API
+      final res = await _api.post('/api/auth/google', {'credential': idToken});
+      _isLoading = false;
+
+      if (res['token'] != null && res['user'] != null) {
+        final token = res['token'] as String;
+        await _api.setToken(token);
+        _user = Map<String, dynamic>.from(res['user']);
+
+        // Persist session to SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_user', jsonEncode(_user));
+
+        await fetchUserData();
+        notifyListeners();
+        return {'success': true};
+      }
+
+      // Fallback: if server accepts profile directly or is in cold-start
+      if (res['error'] != null) {
+        notifyListeners();
+        return {'success': false, 'error': res['error']};
+      }
+
       notifyListeners();
-      return true;
-    }
-
-    // Graceful offline fallback for Demo Mode or initial server setup
-    if (credential.startsWith('mock_token_')) {
-      final email = credential.replaceFirst('mock_token_', '');
-      final name = email.split('@').first.toUpperCase();
-      _user = {
-        'id': 'arcade_pilot_1',
-        'email': email,
-        'name': name,
-      };
-      _spaces = [
-        {'_id': 'vault_1', 'name': 'Personal Life', 'isDefault': true},
-        {'_id': 'vault_2', 'name': 'Business Vault', 'isDefault': false},
-      ];
-      _activeSpace = _spaces.first;
-      _dashboardData = {
-        'netBalance': 24500.0,
-        'monthlyExpense': 12350.0,
-        'monthlyIncome': 36850.0,
-        'recentTransactions': [
-          {
-            'amount': 250.0,
-            'title': 'Cold Brew & Croissant',
-            'type': 'expense',
-            'importance': 'moderate',
-            'date': DateTime.now().toIso8601String(),
-          },
-          {
-            'amount': 1200.0,
-            'title': 'Metro & Taxi Transit',
-            'type': 'expense',
-            'importance': 'essential',
-            'date': DateTime.now().subtract(const Duration(hours: 4)).toIso8601String(),
-          },
-          {
-            'amount': 35000.0,
-            'title': 'Consulting Payout',
-            'type': 'income',
-            'date': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
-          },
-        ],
-      };
-      _inboxData = {
-        'mediumMatches': [],
-        'unmatchedEvents': [],
-        'unknownAttempts': [],
-        'unreadCount': 0,
-      };
-      _summaryData = {
-        'openingBalance': 10000.0,
-        'calculatedClosingBalance': 24500.0,
-        'actualClosingBalance': null,
-        'isLocked': false,
-      };
-
-      await _api.setToken('offline_arcade_token');
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('cached_user', jsonEncode(_user));
+      return {'success': false, 'error': 'Server did not return session token'};
+    } catch (e) {
+      _isLoading = false;
       notifyListeners();
-      return true;
+      return {'success': false, 'error': 'Google Sign-in failed: ${e.toString()}'};
     }
-
-    notifyListeners();
-    return false;
   }
 
   Future<void> logout() async {
     try {
+      await _googleSignIn.signOut();
       await _api.post('/api/auth/logout', {});
     } catch (_) {}
 
@@ -177,16 +161,13 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> fetchUserData() async {
-    // 1. Fetch current user & default space
     final meRes = await _api.get('/api/auth/me');
     if (meRes['user'] != null) {
       _user = Map<String, dynamic>.from(meRes['user']);
     }
 
-    // 2. Fetch spaces
     await fetchSpaces();
 
-    // 3. Set active space if none selected
     if (_activeSpace == null && _spaces.isNotEmpty) {
       final defaultSpaceId = meRes['defaultSpaceId'];
       _activeSpace = _spaces.firstWhere(
@@ -195,7 +176,6 @@ class AppState extends ChangeNotifier {
       );
     }
 
-    // 4. Load dashboard & inbox
     if (_activeSpace != null) {
       await refreshDashboard();
       await refreshInbox();
@@ -233,11 +213,7 @@ class AppState extends ChangeNotifier {
       await fetchSpaces();
       return true;
     }
-    // Offline local creation
-    final newSp = {'_id': 'sp_${DateTime.now().millisecondsSinceEpoch}', 'name': name};
-    _spaces.add(newSp);
-    notifyListeners();
-    return true;
+    return false;
   }
 
   Future<bool> renameSpace(String spaceId, String newName) async {
@@ -246,12 +222,7 @@ class AppState extends ChangeNotifier {
       await fetchSpaces();
       return true;
     }
-    final idx = _spaces.indexWhere((s) => s['_id'] == spaceId);
-    if (idx != -1) {
-      _spaces[idx]['name'] = newName;
-      notifyListeners();
-    }
-    return true;
+    return false;
   }
 
   Future<bool> deleteSpace(String spaceId) async {
@@ -264,12 +235,7 @@ class AppState extends ChangeNotifier {
       }
       return true;
     }
-    _spaces.removeWhere((s) => s['_id'] == spaceId);
-    if (_activeSpace?['_id'] == spaceId && _spaces.isNotEmpty) {
-      _activeSpace = _spaces.first;
-    }
-    notifyListeners();
-    return true;
+    return false;
   }
 
   Future<void> refreshDashboard() async {
@@ -307,27 +273,7 @@ class AppState extends ChangeNotifier {
       await refreshDashboard();
       return true;
     }
-
-    // Local state append so UI updates immediately
-    if (_dashboardData != null) {
-      final currentTx = List<Map<String, dynamic>>.from(
-        _dashboardData!['recentTransactions'] ?? [],
-      );
-      currentTx.insert(0, {
-        'amount': amount,
-        'title': title,
-        'type': type,
-        'importance': importance ?? 'essential',
-        'date': date ?? DateTime.now().toIso8601String(),
-      });
-      final currentBal = (_dashboardData!['netBalance'] ?? 0.0) as double;
-      final newBal = type == 'income' ? currentBal + amount : currentBal - amount;
-
-      _dashboardData!['recentTransactions'] = currentTx;
-      _dashboardData!['netBalance'] = newBal;
-      notifyListeners();
-    }
-    return true;
+    return false;
   }
 
   Future<void> refreshInbox() async {

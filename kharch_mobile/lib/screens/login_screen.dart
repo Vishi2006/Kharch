@@ -23,24 +23,22 @@ class _LoginScreenState extends State<LoginScreen> {
   final double _sliderWidth = 280;
   final double _handleWidth = 56;
 
-  void _handleGoogleLogin({String? mockEmail}) async {
+  void _handleGoogleLogin() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
     });
 
-    final token = mockEmail != null
-        ? 'mock_token_$mockEmail'
-        : 'mock_token_arcade_hero@kharch.com';
-
-    final success = await widget.appState.login(token);
+    final result = await widget.appState.signInWithGoogle();
 
     if (!mounted) return;
 
-    if (!success) {
+    if (result['success'] == true) {
+      // Login successful, AppState automatically updates view
+    } else {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Authentication failed. Please try again.';
+        _errorMessage = result['error'] ?? 'Sign-in failed. Please try again.';
         _isUnlocked = false;
         _dragPosition = 0;
       });
@@ -58,79 +56,67 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Top Arcade Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: ArcadeTheme.punchPink,
-                    borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
-                    border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
-                    boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
-                  ),
-                  child: const Text(
-                    '★ INSERT COIN TO TRACK ★',
-                    style: TextStyle(
-                      color: ArcadeTheme.pureWhite,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                      letterSpacing: 1.0,
-                    ),
+                // Clean App Logo
+                const KharchLogo(size: 88),
+                const SizedBox(height: 20),
+
+                // App Title & Tagline matching PWA
+                const Text(
+                  'Kharch',
+                  style: TextStyle(
+                    color: ArcadeTheme.pureWhite,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // Large Animated Coin Logo
-                const KharchLogo(size: 96),
-                const SizedBox(height: 16),
-
-                // App Title & Tagline
+                const SizedBox(height: 4),
                 const Text(
-                  'KHARCH',
+                  'Where did your money go?',
                   style: TextStyle(
                     color: ArcadeTheme.acidYellow,
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2.0,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 4),
                 const Text(
-                  'NEO-BRUTAL CASHFLOW VAULT',
+                  'Personal finance, cashflow & smart auto-capture',
                   style: TextStyle(
                     color: ArcadeTheme.slateMuted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.5,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 36),
 
-                // Arcade Cabinet Card
+                // Clean Login Card in Wyb Neo-Brutal styling
                 ArcadeCard(
                   fillColor: ArcadeTheme.darkCard,
-                  padding: const EdgeInsets.all(22),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
                       const Text(
-                        'PLAYER 1: SIGN IN',
+                        'SIGN IN TO CONTINUE',
                         style: TextStyle(
-                          color: ArcadeTheme.neonCyan,
+                          color: ArcadeTheme.pureWhite,
                           fontWeight: FontWeight.w900,
-                          fontSize: 16,
+                          fontSize: 14,
                           letterSpacing: 0.8,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       const Text(
-                        'Slide the arcade coin to unlock login',
+                        'Slide the Google key to unlock',
                         style: TextStyle(
-                          color: ArcadeTheme.pureWhite,
-                          fontSize: 13,
+                          color: ArcadeTheme.slateMuted,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 24),
 
-                      // Slide-to-Unlock Slider
+                      // Slide-to-Unlock Slider (PWA gesture in Wyb style)
                       if (!_isUnlocked)
                         Container(
                           width: _sliderWidth,
@@ -144,11 +130,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               const Center(
                                 child: Text(
-                                  'SLIDE TO UNLOCK ▶▶',
+                                  'SLIDE TO SIGN IN ▶▶',
                                   style: TextStyle(
                                     color: ArcadeTheme.slateMuted,
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     letterSpacing: 1.0,
                                   ),
                                 ),
@@ -179,16 +165,28 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: Container(
                                     width: _handleWidth,
                                     decoration: BoxDecoration(
-                                      color: ArcadeTheme.acidYellow,
+                                      color: ArcadeTheme.pureWhite,
                                       shape: BoxShape.circle,
                                       border: Border.all(color: ArcadeTheme.pureBlack, width: 2.5),
                                       boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
                                     ),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.arrow_forward_rounded,
-                                        color: ArcadeTheme.pureBlack,
-                                        size: 26,
+                                    child: Center(
+                                      child: Container(
+                                        width: 22,
+                                        height: 22,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Center(
+                                          child: Text(
+                                            'G',
+                                            style: TextStyle(
+                                              color: Color(0xFF4285F4),
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -198,27 +196,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
 
-                      // Sign In Actions (Rendered when unlocked)
+                      // Sign In Action (Rendered when unlocked)
                       if (_isUnlocked) ...[
                         ArcadeButton(
                           text: 'SIGN IN WITH GOOGLE',
-                          icon: Icons.login_rounded,
+                          icon: Icons.g_mobiledata_rounded,
                           backgroundColor: ArcadeTheme.acidYellow,
                           textColor: ArcadeTheme.pureBlack,
                           isLoading: _isLoading,
-                          loadingText: 'Unlocking Vault...',
-                          onTap: () => _handleGoogleLogin(),
-                          width: double.infinity,
-                        ),
-                        const SizedBox(height: 12),
-                        ArcadeButton(
-                          text: 'QUICK DEMO ACCESS',
-                          icon: Icons.flash_on_rounded,
-                          backgroundColor: ArcadeTheme.arcadeGreen,
-                          textColor: ArcadeTheme.pureBlack,
-                          isLoading: _isLoading,
-                          loadingText: 'Loading Demo...',
-                          onTap: () => _handleGoogleLogin(mockEmail: 'arcade_demo@kharch.com'),
+                          loadingText: 'Signing in...',
+                          onTap: _handleGoogleLogin,
                           width: double.infinity,
                         ),
                       ],
@@ -232,6 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ],
@@ -242,14 +230,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.shield_rounded, color: ArcadeTheme.arcadeGreen, size: 16),
+                    Icon(Icons.lock_outline_rounded, color: ArcadeTheme.arcadeGreen, size: 16),
                     SizedBox(width: 6),
                     Text(
-                      '100% On-Device Notification Parsing',
+                      'Private & Secure On-Device Auto-Sync',
                       style: TextStyle(
                         color: ArcadeTheme.slateMuted,
                         fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],

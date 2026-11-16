@@ -78,7 +78,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'MONTHLY AUDIT VAULT',
+          'MONTHLY AUDIT',
           style: TextStyle(
             color: ArcadeTheme.acidYellow,
             fontWeight: FontWeight.w900,
@@ -103,7 +103,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isLocked ? 'VAULT STATUS: AUDITED' : 'VAULT STATUS: ACTIVE',
+                          isLocked ? 'STATUS: RECONCILED' : 'STATUS: ACTIVE',
                           style: TextStyle(
                             color: isLocked ? ArcadeTheme.neonCyan : ArcadeTheme.pureBlack,
                             fontWeight: FontWeight.w900,
@@ -113,7 +113,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                         const SizedBox(height: 4),
                         Text(
                           isLocked
-                              ? 'Closing balance is sealed 🔒'
+                              ? 'Closing balance is reconciled'
                               : 'Reconcile actual vs ledger balance',
                           style: TextStyle(
                             color: isLocked ? ArcadeTheme.slateMuted : ArcadeTheme.pureBlack,
@@ -236,12 +236,12 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                 ),
                 const SizedBox(height: 12),
                 ArcadeButton(
-                  text: 'LOCK & SEAL LEDGER 🔒',
+                  text: 'LOCK & RECONCILE LEDGER',
                   icon: Icons.verified_rounded,
                   backgroundColor: ArcadeTheme.arcadeGreen,
                   textColor: ArcadeTheme.pureBlack,
                   isLoading: _isLockingMonth,
-                  loadingText: 'Sealing Month Vault...',
+                  loadingText: 'Reconciling Ledger...',
                   onTap: _handleLockMonth,
                   width: double.infinity,
                 ),
