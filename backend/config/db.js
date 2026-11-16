@@ -8,15 +8,16 @@ const connectDB = async () => {
   }
 
   try {
-    const connUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/kharch';
+    const connUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/test';
     console.log(`Connecting to MongoDB at: ${connUri.replace(/:\/\/.*@/, '://***:***@')}`);
     const conn = await mongoose.connect(connUri, {
+      dbName: process.env.MONGODB_DB_NAME || 'test',
       bufferCommands: false,
       maxPoolSize: 10,
       autoIndex: true,
     });
     cachedConnection = conn;
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`MongoDB Connected: ${conn.connection.host} [Database: ${conn.connection.name}]`);
     return conn;
   } catch (error) {
     console.error(`MongoDB connection error: ${error.message}`);

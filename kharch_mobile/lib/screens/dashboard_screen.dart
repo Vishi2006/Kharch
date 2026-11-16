@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import '../providers/app_state.dart';
 import '../theme/arcade_theme.dart';
-import '../widgets/arcade_badge.dart';
-import '../widgets/arcade_button.dart';
 import '../widgets/arcade_card.dart';
 import '../widgets/kharch_logo.dart';
-import '../widgets/neo_chart.dart';
-import 'add_transaction_screen.dart';
+import 'add_pay_screen.dart';
+import 'analytics_screen.dart';
 import 'inbox_screen.dart';
-import 'qr_pay_screen.dart';
 import 'reconcile_screen.dart';
 import 'settings_screen.dart';
 import 'spaces_screen.dart';
@@ -23,9 +20,15 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _currentNavIndex = 0; // 0: Dashboard, 1: Pay, 2: Add, 3: Audit, 4: Setup
-  bool _isSettingOpening = false;
   final TextEditingController _openingCtrl = TextEditingController();
+  bool _isSettingOpening = false;
+  int _currentNavIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.appState.refreshDashboard();
+  }
 
   @override
   void dispose() {
@@ -35,7 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _handleSetOpening() async {
     final amt = double.tryParse(_openingCtrl.text);
-    if (amt == null) return;
+    if (amt == null || amt < 0) return;
 
     setState(() => _isSettingOpening = true);
     await widget.appState.setOpeningBalance(amt);
@@ -51,28 +54,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _currentNavIndex = index);
 
     if (index == 1) {
-      // PAY
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => QrPayScreen(appState: widget.appState)),
-      ).then((_) => setState(() => _currentNavIndex = 0));
-    } else if (index == 2) {
-      // ADD
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => AddTransactionScreen(appState: widget.appState)),
-      ).then((_) => setState(() => _currentNavIndex = 0));
-    } else if (index == 3) {
-      // AUDIT
+      // RECONCILE
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => ReconcileScreen(appState: widget.appState)),
       ).then((_) => setState(() => _currentNavIndex = 0));
-    } else if (index == 4) {
-      // SETUP
+    } else if (index == 2) {
+      // UNIFIED ADD & PAY
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => SettingsScreen(appState: widget.appState)),
+        MaterialPageRoute(builder: (_) => AddPayScreen(appState: widget.appState)),
+      ).then((_) => setState(() => _currentNavIndex = 0));
+    } else if (index == 3) {
+      // ANALYTICS
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => AnalyticsScreen(appState: widget.appState)),
+      ).then((_) => setState(() => _currentNavIndex = 0));
+    } else if (index == 4) {
+      // SPACES
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => SpacesScreen(appState: widget.appState)),
       ).then((_) => setState(() => _currentNavIndex = 0));
     }
   }
@@ -82,20 +85,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final user = widget.appState.user;
     final data = widget.appState.dashboardData;
     final activeSpace = widget.appState.activeSpace;
-    final spaces = widget.appState.spaces;
     final unreadInbox = widget.appState.inboxData?['unreadCount'] ?? 0;
 
-    final balance = (data?['netBalance'] ?? 0.0).toDouble();
-    final expense = (data?['monthlyExpense'] ?? 0.0).toDouble();
-    final income = (data?['monthlyIncome'] ?? 0.0).toDouble();
+    // Direct mapping to PWA dashboard response structure
     final openingBalance = (data?['openingBalance'] ?? 0.0).toDouble();
-    final transactions = (data?['recentTransactions'] as List?) ?? [];
+    final currentBalance = (data?['currentBalance'] ?? data?['netBalance'] ?? 0.0).toDouble();
+    final monthEarned = (data?['monthEarned'] ?? data?['monthlyIncome'] ?? 0.0).toDouble();
+    final monthSpent = (data?['monthSpent'] ?? data?['monthlyExpense'] ?? 0.0).toDouble();
+    final monthInvestments = (data?['monthInvestments'] ?? 0.0).toDouble();
+    final monthSavings = (data?['monthSavings'] ?? 0.0).toDouble();
+    final todaySpent = (data?['todaySpent'] ?? 0.0).toDouble();
+    final todayImportance = (data?['todayImportance'] as Map?) ?? {};
+    final recentTransactions = (data?['recentTransactions'] as List?) ?? [];
+    final insight = data?['insight'] as String? ?? 'Keep track of your expenses daily.';
 
-    // Chart mock/derived weekly cashflow values
-    final List<double> chartValues = expense > 0
-        ? <double>[expense * 0.15, expense * 0.25, expense * 0.20, expense * 0.35, expense * 0.05]
-        : <double>[150.0, 320.0, 200.0, 450.0, 180.0];
-    final chartLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    final essentialVal = (todayImportance['essential'] ?? 0).toDouble();
+    final moderateVal = (todayImportance['moderate'] ?? 0).toDouble();
+    final lowVal = (todayImportance['low_value'] ?? todayImportance['low'] ?? 0).toDouble();
+
+    final now = DateTime.now();
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final dateStr = '${now.day} ${months[now.month - 1]} ${now.year}';
+    final monthStr = '${months[now.month - 1]} ${now.year}';
 
     return Scaffold(
       backgroundColor: ArcadeTheme.darkCanvas,
@@ -105,18 +116,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         titleSpacing: 16,
         title: Row(
           children: [
-            const KharchLogo(size: 36),
-            const SizedBox(width: 12),
+            const KharchLogo(size: 34),
+            const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Kharch',
-                  style: TextStyle(
+                Text(
+                  dateStr.toUpperCase(),
+                  style: const TextStyle(
+                    color: ArcadeTheme.slateMuted,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 10,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                Text(
+                  'Hey, ${user?['name']?.toString().split(' ').first ?? 'User'} 👋',
+                  style: const TextStyle(
                     color: ArcadeTheme.pureWhite,
                     fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                    letterSpacing: 0.5,
+                    fontSize: 16,
                   ),
                 ),
                 GestureDetector(
@@ -129,15 +148,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Row(
                     children: [
                       Text(
-                        activeSpace?['name'] ?? 'Personal Life',
+                        'Space: ${activeSpace?['name'] ?? 'Personal Life'} →',
                         style: const TextStyle(
                           color: ArcadeTheme.acidYellow,
                           fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
                         ),
                       ),
-                      const SizedBox(width: 3),
-                      const Icon(Icons.arrow_drop_down, color: ArcadeTheme.acidYellow, size: 16),
                     ],
                   ),
                 ),
@@ -151,13 +169,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.inbox_rounded, color: ArcadeTheme.pureWhite, size: 24),
+                const Icon(Icons.inbox_rounded, color: ArcadeTheme.pureWhite, size: 22),
                 if (unreadInbox > 0)
                   Positioned(
                     right: -4,
                     top: -4,
                     child: Container(
-                      padding: const EdgeInsets.all(4),
+                      padding: const EdgeInsets.all(3),
                       decoration: const BoxDecoration(
                         color: ArcadeTheme.punchPink,
                         shape: BoxShape.circle,
@@ -166,7 +184,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         '$unreadInbox',
                         style: const TextStyle(
                           color: ArcadeTheme.pureWhite,
-                          fontSize: 9,
+                          fontSize: 8,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -181,9 +199,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             },
           ),
-          const SizedBox(width: 4),
-
-          // User Profile Photo
+          // Settings icon
+          IconButton(
+            icon: const Icon(Icons.settings_rounded, color: ArcadeTheme.pureWhite, size: 22),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => SettingsScreen(appState: widget.appState)),
+              );
+            },
+          ),
+          // User profile avatar
           GestureDetector(
             onTap: () {
               Navigator.push(
@@ -191,24 +217,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 MaterialPageRoute(builder: (_) => SettingsScreen(appState: widget.appState)),
               );
             },
-            child: Container(
-              margin: const EdgeInsets.only(right: 16),
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: ArcadeTheme.acidYellow,
-                shape: BoxShape.circle,
-                border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
-                boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
-              ),
-              child: ClipOval(
-                child: user?['picture'] != null && user!['picture'].toString().isNotEmpty
-                    ? Image.network(
-                        user['picture'],
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildAvatarFallback(user['name']),
-                      )
-                    : _buildAvatarFallback(user?['name']),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: ArcadeTheme.acidYellow,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
+                  boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
+                ),
+                child: ClipOval(
+                  child: user?['picture'] != null && user!['picture'].toString().isNotEmpty
+                      ? Image.network(
+                          user['picture'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatarFallback(user['name']),
+                        )
+                      : _buildAvatarFallback(user?['name']),
+                ),
               ),
             ),
           ),
@@ -224,106 +252,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Horizontal Spaces Pills Selector
-              SizedBox(
-                height: 38,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: spaces.length + 1,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    if (index == spaces.length) {
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SpacesScreen(appState: widget.appState),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: ArcadeTheme.darkCardLight,
-                            borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
-                            border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Row(
-                            children: [
-                              Icon(Icons.add, color: ArcadeTheme.acidYellow, size: 14),
-                              SizedBox(width: 4),
-                              Text(
-                                'SPACES',
-                                style: TextStyle(
-                                  color: ArcadeTheme.acidYellow,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    final sp = spaces[index];
-                    final isSelected = sp['_id'] == activeSpace?['_id'];
-                    return GestureDetector(
-                      onTap: () => widget.appState.switchSpace(sp),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: isSelected ? ArcadeTheme.acidYellow : ArcadeTheme.darkCard,
-                          borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
-                          border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
-                          boxShadow: isSelected
-                              ? ArcadeTheme.neoShadow(offset: const Offset(2, 2))
-                              : null,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          sp['name'] ?? 'Space',
-                          style: TextStyle(
-                            color: isSelected ? ArcadeTheme.pureBlack : ArcadeTheme.pureWhite,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Opening Balance Prompt if 0
+              // 1. Conditional Warning: Set Opening Balance (matches PWA)
               if (openingBalance == 0) ...[
-                ArcadeCard(
-                  fillColor: ArcadeTheme.darkCard,
-                  padding: const EdgeInsets.all(16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: ArcadeTheme.darkCard,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: ArcadeTheme.acidYellow, width: 2),
+                    boxShadow: ArcadeTheme.neoShadow(offset: const Offset(3, 3)),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: const [
-                          Icon(Icons.account_balance_wallet_rounded,
-                              color: ArcadeTheme.acidYellow, size: 18),
-                          SizedBox(width: 8),
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, color: ArcadeTheme.acidYellow, size: 18),
+                          const SizedBox(width: 6),
                           Text(
-                            'SET MONTH STARTING BALANCE',
-                            style: TextStyle(
+                            'Set $monthStr Opening Balance',
+                            style: const TextStyle(
                               color: ArcadeTheme.acidYellow,
                               fontWeight: FontWeight.w900,
-                              fontSize: 12,
+                              fontSize: 13,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       const Text(
-                        'Enter your opening bank balance to audit cashflow and reconciliation.',
+                        'To calculate your monthly reconciliation and cashflow, enter your starting bank balance.',
                         style: TextStyle(color: ArcadeTheme.slateMuted, fontSize: 11),
                       ),
                       const SizedBox(height: 10),
@@ -334,41 +292,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               controller: _openingCtrl,
                               keyboardType: TextInputType.number,
                               style: const TextStyle(
-                                  color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900),
+                                color: ArcadeTheme.pureWhite,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'e.g. ₹25,000',
-                                hintStyle: const TextStyle(color: ArcadeTheme.slateMuted),
+                                hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
                                 filled: true,
                                 fillColor: ArcadeTheme.darkCardLight,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                                  borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 8),
-                          ArcadeButton(
-                            text: 'SAVE',
-                            height: 42,
-                            fontSize: 12,
-                            backgroundColor: ArcadeTheme.acidYellow,
-                            textColor: ArcadeTheme.pureBlack,
-                            isLoading: _isSettingOpening,
+                          GestureDetector(
                             onTap: _handleSetOpening,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: ArcadeTheme.acidYellow,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
+                                boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
+                              ),
+                              child: _isSettingOpening
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: ArcadeTheme.pureBlack),
+                                    )
+                                  : const Text(
+                                      'SAVE',
+                                      style: TextStyle(
+                                        color: ArcadeTheme.pureBlack,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
               ],
 
-              // Expected Current Balance Card
+              // 2. Expected Current Balance Card (matches PWA)
               ArcadeCard(
                 fillColor: ArcadeTheme.acidYellow,
                 child: Column(
@@ -382,7 +358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           style: TextStyle(
                             color: ArcadeTheme.pureBlack,
                             fontWeight: FontWeight.w900,
-                            fontSize: 12,
+                            fontSize: 11,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -390,9 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => ReconcileScreen(appState: widget.appState),
-                              ),
+                              MaterialPageRoute(builder: (_) => ReconcileScreen(appState: widget.appState)),
                             );
                           },
                           child: Container(
@@ -406,19 +380,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               style: TextStyle(
                                 color: ArcadeTheme.pureWhite,
                                 fontWeight: FontWeight.w900,
-                                fontSize: 10,
+                                fontSize: 9,
                               ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
-                      '₹ ${balance.toStringAsFixed(2)}',
-                      style: ArcadeTheme.arcadeScore,
+                      '₹ ${currentBalance.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        color: ArcadeTheme.pureBlack,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 32,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
+                    // Sub-categories row (Earned & Spent)
                     Row(
                       children: [
                         Expanded(
@@ -431,22 +411,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.arrow_downward_rounded,
-                                    color: ArcadeTheme.arcadeGreen, size: 16),
-                                const SizedBox(width: 4),
+                                const Icon(Icons.trending_up_rounded, color: ArcadeTheme.arcadeGreen, size: 16),
+                                const SizedBox(width: 6),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('EARNED',
-                                        style: TextStyle(
-                                            color: ArcadeTheme.pureBlack,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w900)),
-                                    Text('₹ ${income.toStringAsFixed(0)}',
-                                        style: const TextStyle(
-                                            color: ArcadeTheme.pureBlack,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w900)),
+                                    const Text(
+                                      'EARNED',
+                                      style: TextStyle(
+                                        color: ArcadeTheme.pureBlack,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 9,
+                                      ),
+                                    ),
+                                    Text(
+                                      '+₹ ${monthEarned.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: ArcadeTheme.arcadeGreen,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -464,22 +449,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.arrow_upward_rounded,
-                                    color: ArcadeTheme.punchPink, size: 16),
-                                const SizedBox(width: 4),
+                                const Icon(Icons.trending_down_rounded, color: ArcadeTheme.punchPink, size: 16),
+                                const SizedBox(width: 6),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('SPENT',
-                                        style: TextStyle(
-                                            color: ArcadeTheme.pureBlack,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w900)),
-                                    Text('₹ ${expense.toStringAsFixed(0)}',
-                                        style: const TextStyle(
-                                            color: ArcadeTheme.pureBlack,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w900)),
+                                    const Text(
+                                      'SPENT',
+                                      style: TextStyle(
+                                        color: ArcadeTheme.pureBlack,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 9,
+                                      ),
+                                    ),
+                                    Text(
+                                      '-₹ ${monthSpent.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: ArcadeTheme.punchPink,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -488,12 +478,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ],
                     ),
+                    // Investments & Savings row (if present)
+                    if (monthInvestments > 0 || monthSavings > 0) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (monthInvestments > 0)
+                            Text(
+                              'Invested: ₹ ${monthInvestments.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: ArcadeTheme.pureBlack,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 10,
+                              ),
+                            ),
+                          if (monthSavings > 0)
+                            Text(
+                              'Emergency Savings: ₹ ${monthSavings.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: ArcadeTheme.pureBlack,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 10,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-              // Weekly Spending Chart Card
+              // 3. Today's Spend Overview & AI Insight Card (matches PWA)
               ArcadeCard(
                 fillColor: ArcadeTheme.darkCard,
                 child: Column(
@@ -501,37 +518,103 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text(
-                          'WEEKLY SPENDING TREND',
+                      children: [
+                        const Text(
+                          "TODAY'S SPEND OVERVIEW",
                           style: TextStyle(
-                            color: ArcadeTheme.neonCyan,
+                            color: ArcadeTheme.pureWhite,
                             fontWeight: FontWeight.w900,
                             fontSize: 12,
                             letterSpacing: 0.6,
                           ),
                         ),
-                        Icon(Icons.bar_chart_rounded, color: ArcadeTheme.neonCyan, size: 18),
+                        Text(
+                          '₹ ${todaySpent.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: ArcadeTheme.acidYellow,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      height: 100,
-                      width: double.infinity,
-                      child: CustomPaint(
-                        painter: NeoChartPainter(
-                          values: chartValues,
-                          labels: chartLabels,
-                          barColor: ArcadeTheme.acidYellow,
+                    const SizedBox(height: 10),
+                    if (todaySpent > 0) ...[
+                      // Stacked horizontal proportion bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: SizedBox(
+                          height: 8,
+                          child: Row(
+                            children: [
+                              if (essentialVal > 0)
+                                Expanded(
+                                  flex: (essentialVal * 100).toInt(),
+                                  child: Container(color: ArcadeTheme.arcadeGreen),
+                                ),
+                              if (moderateVal > 0)
+                                Expanded(
+                                  flex: (moderateVal * 100).toInt(),
+                                  child: Container(color: ArcadeTheme.acidYellow),
+                                ),
+                              if (lowVal > 0)
+                                Expanded(
+                                  flex: (lowVal * 100).toInt(),
+                                  child: Container(color: ArcadeTheme.punchPink),
+                                ),
+                            ],
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Legend pills
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildSpendLegend('Essential', essentialVal, ArcadeTheme.arcadeGreen),
+                          _buildSpendLegend('Moderate', moderateVal, ArcadeTheme.acidYellow),
+                          _buildSpendLegend('Low Value', lowVal, ArcadeTheme.punchPink),
+                        ],
+                      ),
+                    ] else
+                      const Text(
+                        'No transactions recorded today.',
+                        style: TextStyle(color: ArcadeTheme.slateMuted, fontSize: 11, fontStyle: FontStyle.italic),
+                      ),
+                    const SizedBox(height: 10),
+                    // Dynamic AI Insight banner
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: ArcadeTheme.darkCardLight,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.auto_awesome_rounded, color: ArcadeTheme.acidYellow, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              insight,
+                              style: const TextStyle(
+                                color: ArcadeTheme.pureWhite,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-              // Recent Activity (Top 5 transactions matching PWA layout)
+              // 4. Recent Activity (matches PWA 5 items)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -540,7 +623,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(
                       color: ArcadeTheme.pureWhite,
                       fontWeight: FontWeight.w900,
-                      fontSize: 14,
+                      fontSize: 13,
                       letterSpacing: 0.6,
                     ),
                   ),
@@ -548,109 +631,118 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => ReconcileScreen(appState: widget.appState),
-                        ),
+                        MaterialPageRoute(builder: (_) => AnalyticsScreen(appState: widget.appState)),
                       );
                     },
                     child: const Text(
-                      'View All',
+                      'View All →',
                       style: TextStyle(
                         color: ArcadeTheme.acidYellow,
                         fontWeight: FontWeight.w800,
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
-              if (transactions.isEmpty)
-                ArcadeCard(
-                  fillColor: ArcadeTheme.darkCard,
-                  padding: const EdgeInsets.all(28),
-                  child: const Center(
-                    child: Text(
-                      'No transactions recorded yet.',
-                      style: TextStyle(
-                        color: ArcadeTheme.slateMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              if (recentTransactions.isEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'No transaction logs recorded.',
+                    style: TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
                   ),
                 )
               else
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: transactions.take(5).length,
+                  itemCount: recentTransactions.length > 5 ? 5 : recentTransactions.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, idx) {
-                    final tx = transactions[idx];
+                    final tx = recentTransactions[idx];
+                    final isIncome = tx['type'] == 'income';
                     final amt = (tx['amount'] ?? 0.0).toDouble();
-                    final type = tx['type'] ?? 'expense';
-                    final title = tx['title'] ?? 'Transaction';
-                    final importance = tx['importance'] ?? 'essential';
+                    final title = tx['titleId']?['displayName'] ?? tx['title'] ?? 'Transaction';
+                    final dateRaw = tx['date']?.toString() ?? '';
+                    final note = tx['note']?.toString() ?? '';
 
-                    return ArcadeCard(
-                      fillColor: ArcadeTheme.darkCard,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    String dateLabel = dateRaw;
+                    if (dateRaw.isNotEmpty) {
+                      try {
+                        final dt = DateTime.parse(dateRaw).toLocal();
+                        dateLabel = '${dt.day} ${months[dt.month - 1]}';
+                      } catch (_) {}
+                    }
+
+                    Color dotColor = ArcadeTheme.punchPink;
+                    if (isIncome) {
+                      dotColor = ArcadeTheme.arcadeGreen;
+                    } else if (tx['type'] == 'investment') {
+                      dotColor = ArcadeTheme.neonCyan;
+                    } else if (tx['type'] == 'savings') {
+                      dotColor = const Color(0xFFC084FC);
+                    } else if (tx['importance'] == 'essential') {
+                      dotColor = ArcadeTheme.arcadeGreen;
+                    } else if (tx['importance'] == 'moderate') {
+                      dotColor = ArcadeTheme.acidYellow;
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: ArcadeTheme.darkCard,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
+                        boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
+                      ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: type == 'income'
-                                  ? ArcadeTheme.arcadeGreen
-                                  : ArcadeTheme.punchPink,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
-                            ),
-                            child: Icon(
-                              type == 'income'
-                                  ? Icons.arrow_downward_rounded
-                                  : Icons.arrow_upward_rounded,
-                              color: type == 'income'
-                                  ? ArcadeTheme.pureBlack
-                                  : ArcadeTheme.pureWhite,
-                              size: 16,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  title,
-                                  style: const TextStyle(
-                                    color: ArcadeTheme.pureWhite,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14,
+                          Row(
+                            children: [
+                              Container(
+                                width: 9,
+                                height: 9,
+                                decoration: BoxDecoration(
+                                  color: dotColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: ArcadeTheme.pureBlack, width: 1),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: const TextStyle(
+                                      color: ArcadeTheme.pureWhite,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    ArcadeBadge.transactionType(type),
-                                    const SizedBox(width: 6),
-                                    if (type == 'expense')
-                                      ArcadeBadge.importance(importance),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                  Text(
+                                    note.isNotEmpty ? '$dateLabel • $note' : dateLabel,
+                                    style: const TextStyle(
+                                      color: ArcadeTheme.slateMuted,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                           Text(
-                            '${type == 'income' ? '+' : '-'}₹ ${amt.toStringAsFixed(2)}',
+                            '${isIncome ? '+' : '-'}₹ ${amt.toStringAsFixed(0)}',
                             style: TextStyle(
-                              color: type == 'income'
-                                  ? ArcadeTheme.arcadeGreen
-                                  : ArcadeTheme.punchPink,
+                              color: isIncome ? ArcadeTheme.arcadeGreen : ArcadeTheme.punchPink,
                               fontWeight: FontWeight.w900,
-                              fontSize: 15,
+                              fontSize: 14,
                             ),
                           ),
                         ],
@@ -663,42 +755,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: ArcadeTheme.darkCard,
-          border: Border(
-            top: BorderSide(color: ArcadeTheme.pureBlack, width: 2.5),
-          ),
+      bottomNavigationBar: _buildPersistentBottomNav(),
+    );
+  }
+
+  Widget _buildSpendLegend(String label, double val, Color color) {
+    return Row(
+      children: [
+        Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        Text(
+          '$label (₹${val.toStringAsFixed(0)})',
+          style: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 9, fontWeight: FontWeight.w700),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      ],
+    );
+  }
+
+  Widget _buildPersistentBottomNav() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: ArcadeTheme.darkCard,
+        border: Border(top: BorderSide(color: ArcadeTheme.pureBlack, width: 2.5)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: SafeArea(
+        top: false,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavButton(
-              icon: Icons.dashboard_rounded,
-              label: 'Dashboard',
-              index: 0,
+            _buildNavItem(0, 'Home', Icons.home_rounded, ArcadeTheme.acidYellow),
+            _buildNavItem(1, 'Reconcile', Icons.scale_rounded, ArcadeTheme.acidYellow),
+            // Central Elevated Add/Pay Button
+            GestureDetector(
+              onTap: () => _onBottomNavTap(2),
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: ArcadeTheme.acidYellow,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: ArcadeTheme.pureBlack, width: 2.5),
+                  boxShadow: ArcadeTheme.neoShadow(offset: const Offset(3, 3)),
+                ),
+                child: const Icon(Icons.add_rounded, color: ArcadeTheme.pureBlack, size: 30),
+              ),
             ),
-            _buildNavButton(
-              icon: Icons.qr_code_scanner_rounded,
-              label: 'Pay',
-              index: 1,
+            _buildNavItem(3, 'Analytics', Icons.bar_chart_rounded, ArcadeTheme.acidYellow),
+            _buildNavItem(4, 'Spaces', Icons.folder_shared_rounded, ArcadeTheme.acidYellow),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, String label, IconData icon, Color activeColor) {
+    final isSelected = _currentNavIndex == index;
+    return GestureDetector(
+      onTap: () => _onBottomNavTap(index),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? activeColor : ArcadeTheme.slateMuted,
+              size: 22,
             ),
-            _buildNavButton(
-              icon: Icons.add_circle_rounded,
-              label: 'Add',
-              index: 2,
-              highlightColor: ArcadeTheme.acidYellow,
-            ),
-            _buildNavButton(
-              icon: Icons.lock_clock_rounded,
-              label: 'Audit',
-              index: 3,
-            ),
-            _buildNavButton(
-              icon: Icons.tune_rounded,
-              label: 'Setup',
-              index: 4,
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? activeColor : ArcadeTheme.slateMuted,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                fontSize: 10,
+              ),
             ),
           ],
         ),
@@ -707,54 +840,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildAvatarFallback(String? name) {
+    final initial = (name != null && name.isNotEmpty) ? name[0].toUpperCase() : 'U';
     return Container(
       color: ArcadeTheme.acidYellow,
       alignment: Alignment.center,
       child: Text(
-        name != null && name.isNotEmpty ? name[0].toUpperCase() : 'U',
+        initial,
         style: const TextStyle(
           color: ArcadeTheme.pureBlack,
           fontWeight: FontWeight.w900,
-          fontSize: 16,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavButton({
-    required IconData icon,
-    required String label,
-    required int index,
-    Color? highlightColor,
-  }) {
-    final isSelected = _currentNavIndex == index;
-    return GestureDetector(
-      onTap: () => _onBottomNavTap(index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? ArcadeTheme.acidYellow
-                  : (highlightColor ?? ArcadeTheme.slateMuted),
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? ArcadeTheme.acidYellow
-                    : (highlightColor ?? ArcadeTheme.slateMuted),
-                fontWeight: FontWeight.w900,
-                fontSize: 10,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
+          fontSize: 15,
         ),
       ),
     );
