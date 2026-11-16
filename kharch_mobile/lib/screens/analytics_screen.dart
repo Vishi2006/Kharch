@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../providers/app_state.dart';
 import '../theme/arcade_theme.dart';
 import '../widgets/arcade_card.dart';
@@ -383,7 +383,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 ],
                               ),
                               Text(
-                                '₹ ${amount.toStringAsFixed(0)}',
+                                'â‚¹ ${amount.toStringAsFixed(0)}',
                                 style: const TextStyle(
                                   color: ArcadeTheme.acidYellow,
                                   fontWeight: FontWeight.w900,
@@ -440,7 +440,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '-₹ ${amount.toStringAsFixed(0)}',
+                                    '-â‚¹ ${amount.toStringAsFixed(0)}',
                                     style: const TextStyle(
                                       color: ArcadeTheme.punchPink,
                                       fontWeight: FontWeight.w900,
@@ -530,7 +530,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            '₹ ${amount.toStringAsFixed(0)}',
+            'â‚¹ ${amount.toStringAsFixed(0)}',
             style: const TextStyle(
               color: ArcadeTheme.pureWhite,
               fontWeight: FontWeight.w900,
@@ -594,7 +594,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '₹ ${val.toStringAsFixed(0)}',
+            'â‚¹ ${val.toStringAsFixed(0)}',
             style: const TextStyle(
               color: ArcadeTheme.pureWhite,
               fontWeight: FontWeight.w900,
@@ -615,6 +615,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildTrendsBarChart(List trends) {
+    if (trends.isEmpty) {
+      return const SizedBox(
+        height: 120,
+        child: Center(
+          child: Text(
+            'NO ACTIVITY IN THIS TIMEFRAME',
+            style: TextStyle(
+              color: ArcadeTheme.slateMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+
     // Find max value for scaling
     double maxVal = 100;
     for (final t in trends) {
@@ -624,9 +640,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       if (e > maxVal) maxVal = e;
     }
 
-    final displayTrends = trends.length > 7 ? trends.sublist(trends.length - 7) : trends;
+    final displayTrends = trends;
+    final bool scrollable = displayTrends.length > 7;
 
-    return Row(
+    final row = Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: displayTrends.map((item) {
         final spent = (item['spent'] ?? 0).toDouble();
@@ -637,54 +654,62 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         final spentHeight = (spent / maxVal) * 110;
         final earnedHeight = (earned / maxVal) * 110;
 
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // Spent bar
-                    Container(
-                      width: 10,
-                      height: spentHeight < 4 ? 4 : spentHeight,
-                      decoration: BoxDecoration(
-                        color: ArcadeTheme.punchPink,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
-                        border: Border.all(color: ArcadeTheme.pureBlack, width: 1),
-                      ),
+        final barContent = Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Spent bar
+                  Container(
+                    width: scrollable ? 12 : 10,
+                    height: spentHeight < 4 ? 4 : spentHeight,
+                    decoration: BoxDecoration(
+                      color: ArcadeTheme.punchPink,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+                      border: Border.all(color: ArcadeTheme.pureBlack, width: 1),
                     ),
-                    const SizedBox(width: 2),
-                    // Earned bar
-                    Container(
-                      width: 10,
-                      height: earnedHeight < 4 ? 4 : earnedHeight,
-                      decoration: BoxDecoration(
-                        color: ArcadeTheme.arcadeGreen,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
-                        border: Border.all(color: ArcadeTheme.pureBlack, width: 1),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  shortLabel,
-                  style: const TextStyle(
-                    color: ArcadeTheme.slateMuted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: 2),
+                  // Earned bar
+                  Container(
+                    width: scrollable ? 12 : 10,
+                    height: earnedHeight < 4 ? 4 : earnedHeight,
+                    decoration: BoxDecoration(
+                      color: ArcadeTheme.arcadeGreen,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+                      border: Border.all(color: ArcadeTheme.pureBlack, width: 1),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                shortLabel,
+                style: const TextStyle(
+                  color: ArcadeTheme.slateMuted,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
                 ),
-              ],
-            ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         );
+
+        return scrollable ? SizedBox(width: 44, child: barContent) : Expanded(child: barContent);
       }).toList(),
     );
+
+    return scrollable
+        ? SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: row,
+          )
+        : row;
   }
 }

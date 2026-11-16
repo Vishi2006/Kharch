@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../providers/app_state.dart';
 import '../theme/arcade_theme.dart';
 import '../widgets/arcade_button.dart';
@@ -185,8 +186,25 @@ class _SpacesScreenState extends State<SpacesScreen> {
                         if (!isCurrent)
                           GestureDetector(
                             onTap: () {
+                              HapticFeedback.lightImpact();
                               widget.appState.switchSpace(sp);
-                              Navigator.pop(context);
+                              if (!widget.isEmbedded && Navigator.canPop(context)) {
+                                Navigator.pop(context);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'SWITCHED TO ${sp['name']?.toString().toUpperCase() ?? 'SPACE'}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: ArcadeTheme.pureBlack,
+                                      ),
+                                    ),
+                                    backgroundColor: ArcadeTheme.arcadeGreen,
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              }
                             },
                             child: Container(
                               padding:

@@ -25,14 +25,16 @@ router.get('/', protect, async (req, res) => {
   }
 
   try {
-    const query = { spaceId, userId: req.user._id };
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(spaceId) ? new mongoose.Types.ObjectId(spaceId) : null;
+    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, spaceId.toString()] } : spaceId;
+    const query = { spaceId: spaceMatch };
     
     if (q && q.trim()) {
       query.normalizedName = { $regex: q.trim().toLowerCase(), $options: 'i' };
     }
 
-    const titles = await ExpenseTitle.find(query).limit(50).sort({ displayName: 1 });
-    res.json(titles);
+    const titles = await ExpenseTitle.find(query).limit(100).sort({ displayName: 1 });
+    res.json({ success: true, data: titles, titles });
   } catch (error) {
     console.error('Error fetching titles:', error.message);
     res.status(500).json({ message: 'Server error fetching titles' });
@@ -50,35 +52,38 @@ router.get('/recent', protect, async (req, res) => {
   }
 
   try {
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(spaceId) ? new mongoose.Types.ObjectId(spaceId) : null;
+    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, spaceId.toString()] } : spaceId;
+
     // Aggregate transactions in this space to find the most recently used titleIds
     const recentTx = await Transaction.aggregate([
-      { $match: { spaceId: new mongoose.Types.ObjectId(spaceId) } },
+      { $match: { spaceId: spaceMatch } },
       { $sort: { date: -1 } },
       { $group: { _id: '$titleId', lastUsed: { $first: '$date' } } },
       { $sort: { lastUsed: -1 } },
       { $limit: 30 }
     ]);
 
-    const titleIds = recentTx.map(tx => tx._id);
+    const titleIds = recentTx.map(tx => tx._id).filter(Boolean);
+    const validTitleIds = titleIds.map(id => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id);
     
     // Fetch actual Title objects
-    let titles = await ExpenseTitle.find({ _id: { $in: titleIds } });
+    let titles = await ExpenseTitle.find({ _id: { $in: validTitleIds } });
     
     // Maintain aggregation order
     titles = titleIds.map(id => titles.find(t => t._id.toString() === id.toString())).filter(Boolean);
 
-    // If we have fewer than 5 recent titles, fill with other general titles in the space
-    if (titles.length < 5) {
+    // If we have fewer than 10 recent titles, fill with other general titles in the space
+    if (titles.length < 10) {
       const existingIds = titles.map(t => t._id);
       const fills = await ExpenseTitle.find({ 
-        spaceId, 
-        userId: req.user._id,
+        spaceId: spaceMatch, 
         _id: { $nin: existingIds }
-      }).limit(5 - titles.length);
+      }).limit(10 - titles.length);
       titles = [...titles, ...fills];
     }
 
-    res.json(titles);
+    res.json({ success: true, data: titles, titles });
   } catch (error) {
     console.error('Error fetching recent titles:', error.message);
     res.status(500).json({ message: 'Server error fetching recent titles' });
@@ -96,24 +101,27 @@ router.post('/', protect, async (req, res) => {
   }
 
   try {
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(spaceId) ? new mongoose.Types.ObjectId(spaceId) : null;
+    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, spaceId.toString()] } : spaceId;
+
     const rawName = name.trim();
     const normalizedName = rawName.toLowerCase();
     
     // Check if it already exists
-    let title = await ExpenseTitle.findOne({ spaceId, normalizedName });
+    let title = await ExpenseTitle.findOne({ spaceId: spaceMatch, normalizedName });
     
     if (!title) {
       const displayName = formatDisplayName(rawName);
       title = new ExpenseTitle({
         userId: req.user._id,
-        spaceId,
+        spaceId: spaceObjectId || spaceId,
         normalizedName,
         displayName
       });
       await title.save();
     }
 
-    res.status(201).json(title);
+    res.status(201).json({ success: true, data: title, title });
   } catch (error) {
     console.error('Error creating canonical title:', error.message);
     res.status(500).json({ message: 'Server error creating title' });

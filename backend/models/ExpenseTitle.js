@@ -31,4 +31,4 @@ const ExpenseTitleSchema = new mongoose.Schema({
 // Avoid duplicate titles per space
 ExpenseTitleSchema.index({ spaceId: 1, normalizedName: 1 }, { unique: true });
 
-module.exports = mongoose.model('ExpenseTitle', ExpenseTitleSchema);
+module.exports = mongoose.models.ExpenseTitle || mongoose.model('ExpenseTitle', ExpenseTitleSchema);

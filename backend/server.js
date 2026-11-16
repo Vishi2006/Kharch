@@ -15,6 +15,17 @@ dotenv.config();
 
 const connectDB = require('./config/db');
 
+// Pre-register all Mongoose models before any route handler runs
+require('./models/User');
+require('./models/Space');
+require('./models/ExpenseTitle');
+require('./models/Transaction');
+require('./models/MonthlySummary');
+require('./models/PaymentAttempt');
+require('./models/NotificationEvent');
+require('./models/Consent');
+require('./models/DeviceToken');
+
 // Connect DB (non-blocking for serverless warm up)
 connectDB().catch((err) => console.error('Initial DB connection attempt:', err.message));
 

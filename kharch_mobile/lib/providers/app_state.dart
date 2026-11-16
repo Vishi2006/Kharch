@@ -27,6 +27,7 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? _summaryData;
   Map<String, dynamic>? _analyticsData;
   bool _isAnalyticsLoading = false;
+  List<Map<String, dynamic>> _titles = [];
 
   // Background permission states
   bool _isNotificationListenerGranted = false;
@@ -43,6 +44,7 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? get summaryData => _summaryData;
   Map<String, dynamic>? get analyticsData => _analyticsData;
   bool get isAnalyticsLoading => _isAnalyticsLoading;
+  List<Map<String, dynamic>> get titles => _titles;
   bool get isNotificationListenerGranted => _isNotificationListenerGranted;
   bool get isBatteryOptimizationIgnored => _isBatteryOptimizationIgnored;
 
@@ -216,6 +218,7 @@ class AppState extends ChangeNotifier {
       await refreshDashboard();
       await refreshInbox();
       await fetchAnalytics();
+      await fetchTitles();
     }
     notifyListeners();
   }
@@ -242,6 +245,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     refreshDashboard();
     refreshSummary();
+    fetchAnalytics();
+    fetchTitles();
   }
 
   Future<bool> createSpace(String name) async {
@@ -301,6 +306,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> fetchTitles([String? query]) async {
+    if (_activeSpace == null) return;
+    final spaceId = _activeSpace!['_id'];
+    final q = query != null && query.isNotEmpty ? '&q=$query' : '';
+    final res = await _api.get('/api/titles?spaceId=$spaceId$q');
+    if (res['data'] is List) {
+      _titles = List<Map<String, dynamic>>.from(res['data']);
+      notifyListeners();
+    } else if (res['titles'] is List) {
+      _titles = List<Map<String, dynamic>>.from(res['titles']);
+      notifyListeners();
+    }
+  }
+
   Future<bool> addTransaction({
     required double amount,
     required String title,
@@ -323,6 +342,7 @@ class AppState extends ChangeNotifier {
     if (res['error'] == null) {
       await refreshDashboard();
       await fetchAnalytics();
+      await fetchTitles();
       return true;
     }
     return false;

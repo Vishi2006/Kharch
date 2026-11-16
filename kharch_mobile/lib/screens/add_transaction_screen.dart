@@ -34,9 +34,31 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    widget.appState.fetchTitles();
+  }
+
+  @override
   void dispose() {
     _customTitleCtrl.dispose();
     super.dispose();
+  }
+
+  List<Map<String, dynamic>> _getAllCategories() {
+    final defaultNames = _categories.map((c) => c['name'] as String).toSet();
+    final list = List<Map<String, dynamic>>.from(_categories);
+    for (final t in widget.appState.titles) {
+      final name = (t['displayName'] ?? t['normalizedName'] ?? '').toString().trim();
+      if (name.isNotEmpty && !defaultNames.contains(name)) {
+        defaultNames.add(name);
+        list.add({
+          'name': name,
+          'icon': Icons.label_important_outline_rounded,
+        });
+      }
+    }
+    return list;
   }
 
   void _onKeypadTap(String val) {
@@ -238,18 +260,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
               // Category Quick Chips
               const Text(
-                'CATEGORY',
+                'CATEGORY / EXPENSE TITLE',
                 style: TextStyle(
-                  color: ArcadeTheme.pureWhite,
+                  color: ArcadeTheme.punchPink,
                   fontWeight: FontWeight.w900,
                   fontSize: 12,
+                  letterSpacing: 0.8,
                 ),
               ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _categories.map((c) {
+                children: _getAllCategories().map((c) {
                   final isSel = _selectedCategory == c['name'];
                   final icon = c['icon'] as IconData;
                   return GestureDetector(

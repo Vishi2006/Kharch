@@ -54,6 +54,23 @@ class _AddPayScreenState extends State<AddPayScreen> {
   void initState() {
     super.initState();
     _activeTab = widget.initialTab;
+    widget.appState.fetchTitles();
+  }
+
+  List<Map<String, dynamic>> _getAllCategories() {
+    final defaultNames = _categories.map((c) => c['name'] as String).toSet();
+    final list = List<Map<String, dynamic>>.from(_categories);
+    for (final t in widget.appState.titles) {
+      final name = (t['displayName'] ?? t['normalizedName'] ?? '').toString().trim();
+      if (name.isNotEmpty && !defaultNames.contains(name)) {
+        defaultNames.add(name);
+        list.add({
+          'name': name,
+          'icon': Icons.label_important_outline_rounded,
+        });
+      }
+    }
+    return list;
   }
 
   @override
@@ -313,16 +330,17 @@ class _AddPayScreenState extends State<AddPayScreen> {
           const Text(
             'CATEGORY / TITLE',
             style: TextStyle(
-              color: ArcadeTheme.pureWhite,
+              color: ArcadeTheme.punchPink,
               fontWeight: FontWeight.w900,
               fontSize: 11,
+              letterSpacing: 0.8,
             ),
           ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: _categories.map((c) {
+            children: _getAllCategories().map((c) {
               final isSel = _selectedCategory == c['name'];
               final icon = c['icon'] as IconData;
               return GestureDetector(
