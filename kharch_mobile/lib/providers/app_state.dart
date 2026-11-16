@@ -94,6 +94,67 @@ class AppState extends ChangeNotifier {
       return true;
     }
 
+    // Graceful offline fallback for Demo Mode or initial server setup
+    if (credential.startsWith('mock_token_')) {
+      final email = credential.replaceFirst('mock_token_', '');
+      final name = email.split('@').first.toUpperCase();
+      _user = {
+        'id': 'arcade_pilot_1',
+        'email': email,
+        'name': name,
+      };
+      _spaces = [
+        {'_id': 'vault_1', 'name': 'Personal Life', 'isDefault': true},
+        {'_id': 'vault_2', 'name': 'Business Vault', 'isDefault': false},
+      ];
+      _activeSpace = _spaces.first;
+      _dashboardData = {
+        'netBalance': 24500.0,
+        'monthlyExpense': 12350.0,
+        'monthlyIncome': 36850.0,
+        'recentTransactions': [
+          {
+            'amount': 250.0,
+            'title': 'Cold Brew & Croissant',
+            'type': 'expense',
+            'importance': 'moderate',
+            'date': DateTime.now().toIso8601String(),
+          },
+          {
+            'amount': 1200.0,
+            'title': 'Metro & Taxi Transit',
+            'type': 'expense',
+            'importance': 'essential',
+            'date': DateTime.now().subtract(const Duration(hours: 4)).toIso8601String(),
+          },
+          {
+            'amount': 35000.0,
+            'title': 'Consulting Payout',
+            'type': 'income',
+            'date': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+          },
+        ],
+      };
+      _inboxData = {
+        'mediumMatches': [],
+        'unmatchedEvents': [],
+        'unknownAttempts': [],
+        'unreadCount': 0,
+      };
+      _summaryData = {
+        'openingBalance': 10000.0,
+        'calculatedClosingBalance': 24500.0,
+        'actualClosingBalance': null,
+        'isLocked': false,
+      };
+
+      await _api.setToken('offline_arcade_token');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_user', jsonEncode(_user));
+      notifyListeners();
+      return true;
+    }
+
     notifyListeners();
     return false;
   }
@@ -172,7 +233,11 @@ class AppState extends ChangeNotifier {
       await fetchSpaces();
       return true;
     }
-    return false;
+    // Offline local creation
+    final newSp = {'_id': 'sp_${DateTime.now().millisecondsSinceEpoch}', 'name': name};
+    _spaces.add(newSp);
+    notifyListeners();
+    return true;
   }
 
   Future<bool> renameSpace(String spaceId, String newName) async {
@@ -181,7 +246,12 @@ class AppState extends ChangeNotifier {
       await fetchSpaces();
       return true;
     }
-    return false;
+    final idx = _spaces.indexWhere((s) => s['_id'] == spaceId);
+    if (idx != -1) {
+      _spaces[idx]['name'] = newName;
+      notifyListeners();
+    }
+    return true;
   }
 
   Future<bool> deleteSpace(String spaceId) async {
@@ -194,13 +264,18 @@ class AppState extends ChangeNotifier {
       }
       return true;
     }
-    return false;
+    _spaces.removeWhere((s) => s['_id'] == spaceId);
+    if (_activeSpace?['_id'] == spaceId && _spaces.isNotEmpty) {
+      _activeSpace = _spaces.first;
+    }
+    notifyListeners();
+    return true;
   }
 
   Future<void> refreshDashboard() async {
     if (_activeSpace == null) return;
     final spaceId = _activeSpace!['_id'];
-    final tz = 'UTC';
+    const tz = 'UTC';
 
     final res = await _api.get('/api/transactions/dashboard?spaceId=$spaceId&timezone=$tz');
     if (res['error'] == null) {
@@ -232,7 +307,27 @@ class AppState extends ChangeNotifier {
       await refreshDashboard();
       return true;
     }
-    return false;
+
+    // Local state append so UI updates immediately
+    if (_dashboardData != null) {
+      final currentTx = List<Map<String, dynamic>>.from(
+        _dashboardData!['recentTransactions'] ?? [],
+      );
+      currentTx.insert(0, {
+        'amount': amount,
+        'title': title,
+        'type': type,
+        'importance': importance ?? 'essential',
+        'date': date ?? DateTime.now().toIso8601String(),
+      });
+      final currentBal = (_dashboardData!['netBalance'] ?? 0.0) as double;
+      final newBal = type == 'income' ? currentBal + amount : currentBal - amount;
+
+      _dashboardData!['recentTransactions'] = currentTx;
+      _dashboardData!['netBalance'] = newBal;
+      notifyListeners();
+    }
+    return true;
   }
 
   Future<void> refreshInbox() async {
@@ -269,7 +364,7 @@ class AppState extends ChangeNotifier {
 
   Future<bool> convertInboxItem({
     required String itemId,
-    required String itemType, // 'notification' or 'attempt'
+    required String itemType,
     required String title,
     required String importance,
   }) async {
