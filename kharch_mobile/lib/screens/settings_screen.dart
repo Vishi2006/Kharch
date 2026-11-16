@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../providers/app_state.dart';
-import '../services/api_service.dart';
 import '../theme/arcade_theme.dart';
 import '../widgets/arcade_button.dart';
 import '../widgets/arcade_card.dart';
@@ -15,35 +14,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late TextEditingController _serverUrlCtrl;
-  bool _isSavingUrl = false;
   bool _isLoggingOut = false;
 
   @override
   void initState() {
     super.initState();
-    _serverUrlCtrl = TextEditingController(text: ApiService.instance.baseUrl);
     widget.appState.checkNativePermissions();
-  }
-
-  @override
-  void dispose() {
-    _serverUrlCtrl.dispose();
-    super.dispose();
-  }
-
-  void _handleSaveUrl() async {
-    setState(() => _isSavingUrl = true);
-    await ApiService.instance.setBaseUrl(_serverUrlCtrl.text);
-    if (mounted) {
-      setState(() => _isSavingUrl = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Serverless Backend URL updated!'),
-          backgroundColor: ArcadeTheme.arcadeGreen,
-        ),
-      );
-    }
   }
 
   void _handleLogout() async {
@@ -225,53 +201,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onTap: () => widget.appState.requestBatteryOptimization(),
                         width: double.infinity,
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // VERCEL SERVERLESS BACKEND CONFIG
-              const Text(
-                'VERCEL SERVERLESS BACKEND',
-                style: TextStyle(
-                  color: ArcadeTheme.neonCyan,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 13,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const SizedBox(height: 10),
-              ArcadeCard(
-                fillColor: ArcadeTheme.darkCard,
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _serverUrlCtrl,
-                      style: const TextStyle(
-                          color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w800),
-                      decoration: InputDecoration(
-                        labelText: 'API Base URL',
-                        labelStyle: const TextStyle(color: ArcadeTheme.acidYellow),
-                        filled: true,
-                        fillColor: ArcadeTheme.darkCardLight,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ArcadeButton(
-                      text: 'SAVE BACKEND URL',
-                      height: 42,
-                      backgroundColor: ArcadeTheme.acidYellow,
-                      textColor: ArcadeTheme.pureBlack,
-                      isLoading: _isSavingUrl,
-                      loadingText: 'Saving...',
-                      onTap: _handleSaveUrl,
-                      width: double.infinity,
-                    ),
                   ],
                 ),
               ),

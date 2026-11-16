@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../providers/app_state.dart';
 import '../theme/arcade_theme.dart';
 import '../widgets/arcade_button.dart';
@@ -19,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isUnlocked = false;
   bool _isLoading = false;
   String _errorMessage = '';
+  bool _isApi10 = false;
 
   final double _sliderWidth = 280;
   final double _handleWidth = 56;
@@ -27,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
+      _isApi10 = false;
     });
 
     final result = await widget.appState.signInWithGoogle();
@@ -39,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _isLoading = false;
         _errorMessage = result['error'] ?? 'Sign-in failed. Please try again.';
+        _isApi10 = result['isApi10'] == true;
         _isUnlocked = false;
         _dragPosition = 0;
       });
@@ -220,6 +224,72 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontSize: 12,
                           ),
                           textAlign: TextAlign.center,
+                        ),
+                      ],
+
+                      if (_isApi10) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: ArcadeTheme.darkCardLight,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: ArcadeTheme.acidYellow, width: 2),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.vpn_key_rounded, size: 16, color: ArcadeTheme.acidYellow),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'GOOGLE CLOUD SHA-1 NEEDED',
+                                    style: TextStyle(
+                                      color: ArcadeTheme.acidYellow,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Add this SHA-1 fingerprint to your Android OAuth Client in Google Cloud Console (Package: com.kharch.kharch_mobile):',
+                                style: TextStyle(color: ArcadeTheme.pureWhite, fontSize: 11),
+                              ),
+                              const SizedBox(height: 8),
+                              const SelectableText(
+                                'B7:AE:28:C0:AB:01:86:31:5B:F6:C9:41:BB:76:C4:93:0D:75:2C:14',
+                                style: TextStyle(
+                                  color: ArcadeTheme.neonCyan,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 10,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ArcadeButton(
+                                text: 'COPY SHA-1 FINGERPRINT',
+                                icon: Icons.copy_rounded,
+                                height: 36,
+                                backgroundColor: ArcadeTheme.acidYellow,
+                                textColor: ArcadeTheme.pureBlack,
+                                onTap: () {
+                                  Clipboard.setData(const ClipboardData(
+                                    text: 'B7:AE:28:C0:AB:01:86:31:5B:F6:C9:41:BB:76:C4:93:0D:75:2C:14',
+                                  ));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('SHA-1 copied to clipboard!'),
+                                      backgroundColor: ArcadeTheme.arcadeGreen,
+                                    ),
+                                  );
+                                },
+                                width: double.infinity,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ],

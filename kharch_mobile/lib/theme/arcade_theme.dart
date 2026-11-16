@@ -8,9 +8,9 @@ class ArcadeTheme {
   static const Color neonCyan = Color(0xFF00F0FF);
   static const Color punchPink = Color(0xFFFF3B81);
   static const Color arcadeGreen = Color(0xFF00E676);
-  static const Color darkCanvas = Color(0xFF111219);
-  static const Color darkCard = Color(0xFF1B1C26);
-  static const Color darkCardLight = Color(0xFF262736);
+  static const Color darkCanvas = Color(0xFF222634); // Brighter slate canvas so bold black borders & neon accents pop sharply
+  static const Color darkCard = Color(0xFF161923); // High-contrast container fill
+  static const Color darkCardLight = Color(0xFF2C3242); // Elevated card container
   static const Color pureBlack = Color(0xFF000000);
   static const Color pureWhite = Color(0xFFFFFFFF);
   static const Color creamWhite = Color(0xFFFFFBEA);

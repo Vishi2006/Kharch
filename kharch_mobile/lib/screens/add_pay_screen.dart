@@ -29,15 +29,15 @@ class _AddPayScreenState extends State<AddPayScreen> {
   final TextEditingController _noteCtrl = TextEditingController();
   bool _isSaving = false;
 
-  final List<Map<String, String>> _categories = [
-    {'name': 'Food', 'icon': '🍔'},
-    {'name': 'Transit', 'icon': '🚕'},
-    {'name': 'Groceries', 'icon': '🛒'},
-    {'name': 'Chai Pani', 'icon': '☕'},
-    {'name': 'Shopping', 'icon': '🛍️'},
-    {'name': 'Home', 'icon': '🏠'},
-    {'name': 'Salary', 'icon': '💰'},
-    {'name': 'Tech', 'icon': '💻'},
+  final List<Map<String, dynamic>> _categories = [
+    {'name': 'Food', 'icon': Icons.restaurant_rounded},
+    {'name': 'Transit', 'icon': Icons.directions_car_rounded},
+    {'name': 'Groceries', 'icon': Icons.shopping_cart_rounded},
+    {'name': 'Chai Pani', 'icon': Icons.local_cafe_rounded},
+    {'name': 'Shopping', 'icon': Icons.shopping_bag_rounded},
+    {'name': 'Home', 'icon': Icons.home_rounded},
+    {'name': 'Salary', 'icon': Icons.account_balance_wallet_rounded},
+    {'name': 'Tech', 'icon': Icons.devices_rounded},
   ];
 
   // --- QR Pay State ---
@@ -311,8 +311,9 @@ class _AddPayScreenState extends State<AddPayScreen> {
             runSpacing: 6,
             children: _categories.map((c) {
               final isSel = _selectedCategory == c['name'];
+              final icon = c['icon'] as IconData;
               return GestureDetector(
-                onTap: () => setState(() => _selectedCategory = c['name']!),
+                onTap: () => setState(() => _selectedCategory = c['name'] as String),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
@@ -321,13 +322,24 @@ class _AddPayScreenState extends State<AddPayScreen> {
                     border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                     boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
                   ),
-                  child: Text(
-                    '${c['icon']} ${c['name']}',
-                    style: TextStyle(
-                      color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.pureWhite,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 14,
+                        color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.neonCyan,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        c['name'] as String,
+                        style: TextStyle(
+                          color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.pureWhite,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );

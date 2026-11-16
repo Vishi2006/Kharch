@@ -8,14 +8,12 @@ import '../services/native_bridge.dart';
 class AppState extends ChangeNotifier {
   final ApiService _api = ApiService.instance;
 
-  // Web Client ID (Required as serverClientId on Android to obtain ID tokens for backend)
-  static const String webClientId = String.fromEnvironment(
-    'GOOGLE_CLIENT_ID',
-    defaultValue: '804504560516-0g5l1kbk9qr0lpgps8aq4t2ji7q3mkit.apps.googleusercontent.com',
-  );
+  // Google OAuth Client IDs (Supporting Web App Client ID & fallback)
+  static const String webClientId1 = '804504560516-0g5l1kbk9qr0lpgps8aq4t2ji7q3mkit.apps.googleusercontent.com';
+  static const String webClientId2 = '804504560516-4bggeumofelo18bbn7stct4lnama7otn.apps.googleusercontent.com';
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: webClientId,
+  GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: webClientId1,
     scopes: ['email', 'profile'],
   );
 
@@ -90,60 +88,94 @@ class AppState extends ChangeNotifier {
     await checkNativePermissions();
   }
 
-  /// Trigger Native / Web Google Sign-In and authenticate with serverless backend
+  /// Trigger Native / Web Google Sign-In with automatic client ID and fallback resolution
   Future<Map<String, dynamic>> signInWithGoogle() async {
     _isLoading = true;
     notifyListeners();
 
-    try {
-      final GoogleSignInAccount? account = await _googleSignIn.signIn();
-      if (account == null) {
-        _isLoading = false;
-        notifyListeners();
-        return {'success': false, 'error': 'Sign-in cancelled'};
-      }
+    final clientIdsToTry = [
+      const String.fromEnvironment('GOOGLE_CLIENT_ID', defaultValue: webClientId1),
+      webClientId2,
+      null, // null attempts native Android sign-in without serverClientId
+    ];
 
-      final GoogleSignInAuthentication auth = await account.authentication;
-      final String? idToken = auth.idToken ?? auth.accessToken;
+    Object? lastError;
 
-      if (idToken == null) {
-        _isLoading = false;
-        notifyListeners();
-        return {'success': false, 'error': 'Unable to retrieve Google ID token'};
-      }
+    for (final cid in clientIdsToTry) {
+      try {
+        _googleSignIn = GoogleSignIn(
+          serverClientId: cid,
+          scopes: ['email', 'profile'],
+        );
 
-      // Send Google credential to backend API
-      final res = await _api.post('/api/auth/google', {'credential': idToken});
-      _isLoading = false;
+        try {
+          await _googleSignIn.signOut();
+        } catch (_) {}
 
-      if (res['token'] != null) {
-        final token = res['token'] as String;
-        await _api.setToken(token);
-
-        if (res['user'] != null) {
-          _user = Map<String, dynamic>.from(res['user']);
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('cached_user', jsonEncode(_user));
+        final GoogleSignInAccount? account = await _googleSignIn.signIn();
+        if (account == null) {
+          _isLoading = false;
+          notifyListeners();
+          return {'success': false, 'error': 'Sign-in cancelled'};
         }
 
-        await fetchUserData();
-        notifyListeners();
-        return {'success': true};
-      }
+        final GoogleSignInAuthentication auth = await account.authentication;
+        final String? tokenToSend = auth.idToken ?? auth.accessToken;
 
-      // Fallback: if server returned an explicit error
-      if (res['error'] != null) {
-        notifyListeners();
-        return {'success': false, 'error': res['error']};
-      }
+        if (tokenToSend == null) {
+          continue;
+        }
 
-      notifyListeners();
-      return {'success': false, 'error': 'Server did not return session token: $res'};
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      return {'success': false, 'error': 'Google Sign-in failed: ${e.toString()}'};
+        // Send Google credential to backend API
+        final res = await _api.post('/api/auth/google', {'credential': tokenToSend});
+
+        if (res['token'] != null) {
+          final token = res['token'] as String;
+          await _api.setToken(token);
+
+          if (res['user'] != null) {
+            _user = Map<String, dynamic>.from(res['user']);
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('cached_user', jsonEncode(_user));
+          }
+
+          await fetchUserData();
+          _isLoading = false;
+          notifyListeners();
+          return {'success': true};
+        }
+
+        if (res['error'] != null) {
+          _isLoading = false;
+          notifyListeners();
+          return {'success': false, 'error': res['error']};
+        }
+      } catch (e) {
+        lastError = e;
+        final errStr = e.toString();
+        if (errStr.contains('sign_in_canceled') || errStr.contains('canceled')) {
+          _isLoading = false;
+          notifyListeners();
+          return {'success': false, 'error': 'Sign-in cancelled'};
+        }
+        // If error occurred with this client ID, loop to try next
+        continue;
+      }
     }
+
+    _isLoading = false;
+    notifyListeners();
+
+    final errString = lastError?.toString() ?? 'Unknown error';
+    final isApi10 = errString.contains('ApiException: 10') || errString.contains('DEVELOPER_ERROR');
+
+    return {
+      'success': false,
+      'isApi10': isApi10,
+      'error': isApi10
+          ? 'Google Sign-in failed (ApiException: 10). Missing SHA-1 in Google Cloud Console.'
+          : 'Google Sign-in failed: $errString',
+    };
   }
 
   Future<void> logout() async {

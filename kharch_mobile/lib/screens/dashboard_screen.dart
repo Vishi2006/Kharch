@@ -131,7 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 Text(
-                  'Hey, ${user?['name']?.toString().split(' ').first ?? 'User'} 👋',
+                  'Hey, ${user?['name']?.toString().split(' ').first ?? 'User'}',
                   style: const TextStyle(
                     color: ArcadeTheme.pureWhite,
                     fontWeight: FontWeight.w900,
@@ -375,13 +375,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               color: ArcadeTheme.pureBlack,
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text(
-                              'AUDIT 🔒',
-                              style: TextStyle(
-                                color: ArcadeTheme.pureWhite,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 9,
-                              ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.lock_outline_rounded, size: 10, color: ArcadeTheme.pureWhite),
+                                SizedBox(width: 3),
+                                Text(
+                                  'AUDIT',
+                                  style: TextStyle(
+                                    color: ArcadeTheme.pureWhite,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
