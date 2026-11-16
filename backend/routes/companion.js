@@ -49,16 +49,16 @@ router.post('/token', protect, async (req, res) => {
  * @desc    Direct APK download for sideloading on Android devices
  */
 router.get('/download', (req, res) => {
-  const apkPath = path.resolve(__dirname, '../../android/app/build/outputs/apk/debug/app-debug.apk');
+  const apkPath = path.resolve(__dirname, '../../kharch_mobile/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk');
 
   if (!fs.existsSync(apkPath)) {
     return res.status(404).json({
-      message: 'Companion APK not found. Please run `gradlew assembleDebug` in the android/ directory first.',
+      message: 'Kharch Mobile APK not found. Please build the Flutter app first with `flutter build apk --split-per-abi`.',
     });
   }
 
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-  res.setHeader('Content-Disposition', 'attachment; filename="KharchCompanion.apk"');
+  res.setHeader('Content-Disposition', 'attachment; filename="KharchMobile.apk"');
   return res.sendFile(apkPath);
 });
 
