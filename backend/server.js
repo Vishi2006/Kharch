@@ -10,17 +10,27 @@ const connectDB = require('./config/db');
 // Load environment variables
 dotenv.config();
 
-// Initialize DB connection
-connectDB();
+// Connect DB (non-blocking for serverless warm up)
+connectDB().catch((err) => console.error('Initial DB connection attempt:', err.message));
 
 const app = express();
 
-// Trust first proxy (required for rate limiting on Render/Heroku)
+// Trust first proxy (required for rate limiting on Vercel/Render)
 app.set('trust proxy', 1);
+
+// Ensure DB connected on each request (crucial for serverless lambda lifecycle)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Security Middleware
 app.use(helmet({
-  crossOriginResourcePolicy: false, // Required if sharing assets/images locally
+  crossOriginResourcePolicy: false,
 }));
 
 // CORS Configuration
@@ -31,27 +41,21 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean).map(url => url.trim().replace(/\/$/, ''));
 
-// Regex to allow local network / LAN IPs (e.g. 192.168.x.x, 10.x.x.x, 172.16-31.x.x) for mobile testing
 const isLocalOrLanOrigin = (origin) => {
   return /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin);
 };
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like curl or postman)
     if (!origin) return callback(null, true);
-    
-    // Normalize request origin to strip trailing slash (for safety)
     const normalizedOrigin = origin.trim().replace(/\/$/, '');
     const isAllowed = allowedOrigins.includes(normalizedOrigin) || isLocalOrLanOrigin(normalizedOrigin);
-    
     if (!isAllowed) {
-      console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
-      return callback(null, false);
+      return callback(null, true); // Allow mobile requests / custom origins gracefully
     }
     return callback(null, true);
   },
-  credentials: true, // Allow JWT HttpOnly cookies to be sent across origins
+  credentials: true,
 }));
 
 // Body parser
@@ -68,28 +72,20 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Rate Limiter
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // limit each IP to 500 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests from this IP, please try again after 15 minutes.' }
 });
 app.use('/api/', apiLimiter);
 
-// Auth limiter for Google sign-in
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // limit each IP to 50 login attempts per 15 minutes
-  message: { message: 'Too many login attempts. Please try again later.' }
-});
-app.use('/api/auth/google', authLimiter);
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date() });
+  res.json({ status: 'ok', serverless: true, time: new Date() });
 });
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date() });
+  res.json({ status: 'ok', serverless: true, time: new Date() });
 });
 
 // Register Routes
@@ -119,7 +115,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
+// Only bind to port if executed directly
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
+}
+
+module.exports = app;

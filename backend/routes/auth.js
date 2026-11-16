@@ -134,6 +134,7 @@ router.post('/google', async (req, res) => {
     });
 
     res.json({
+      token: sessionToken,
       user: {
         id: user._id,
         email: user.email,

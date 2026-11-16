@@ -1,16 +1,29 @@
 const mongoose = require('mongoose');
 
+let cachedConnection = null;
+
 const connectDB = async () => {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
+  }
+
   try {
     const connUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/kharch';
-    console.log(`Connecting to MongoDB at: ${connUri}`);
+    console.log(`Connecting to MongoDB at: ${connUri.replace(/:\/\/.*@/, '://***:***@')}`);
     const conn = await mongoose.connect(connUri, {
-      autoIndex: true, // Auto-build indexes in development; might disable in high-scale prod but fine for Altas Free tier
+      bufferCommands: false,
+      maxPoolSize: 10,
+      autoIndex: true,
     });
+    cachedConnection = conn;
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    return conn;
   } catch (error) {
     console.error(`MongoDB connection error: ${error.message}`);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+      process.exit(1);
+    }
+    throw error;
   }
 };
 

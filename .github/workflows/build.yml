@@ -1,0 +1,69 @@
+name: Kharch CI & Build
+
+on:
+  push:
+    branches: [ main, migrate_pwa_to_flutter, Kharch-2.0 ]
+  pull_request:
+    branches: [ main, migrate_pwa_to_flutter ]
+
+jobs:
+  backend-check:
+    name: Backend Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci || npm install
+
+      - name: Verify Backend Server Module
+        working-directory: ./backend
+        run: node -e "const app = require('./server'); console.log('Backend initialized successfully');"
+
+  flutter-build:
+    name: Build Flutter APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: actions/setup-flutter@v3
+        with:
+          channel: 'stable'
+
+      - name: Install Flutter Dependencies
+        working-directory: ./kharch_mobile
+        run: flutter pub get
+
+      - name: Run Flutter Analyzer
+        working-directory: ./kharch_mobile
+        run: flutter analyze
+
+      - name: Run Flutter Tests
+        working-directory: ./kharch_mobile
+        run: flutter test
+
+      - name: Build Release APKs (Split per ABI)
+        working-directory: ./kharch_mobile
+        run: flutter build apk --split-per-abi
+
+      - name: Upload Release APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: kharch-release-apks
+          path: kharch_mobile/build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
