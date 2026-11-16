@@ -27,6 +27,8 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? _dashboardData;
   Map<String, dynamic>? _inboxData;
   Map<String, dynamic>? _summaryData;
+  Map<String, dynamic>? _analyticsData;
+  bool _isAnalyticsLoading = false;
 
   // Background permission states
   bool _isNotificationListenerGranted = false;
@@ -41,6 +43,8 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? get dashboardData => _dashboardData;
   Map<String, dynamic>? get inboxData => _inboxData;
   Map<String, dynamic>? get summaryData => _summaryData;
+  Map<String, dynamic>? get analyticsData => _analyticsData;
+  bool get isAnalyticsLoading => _isAnalyticsLoading;
   bool get isNotificationListenerGranted => _isNotificationListenerGranted;
   bool get isBatteryOptimizationIgnored => _isBatteryOptimizationIgnored;
 
@@ -248,6 +252,20 @@ class AppState extends ChangeNotifier {
       _dashboardData = res;
       notifyListeners();
     }
+  }
+
+  Future<void> fetchAnalytics([String period = 'month']) async {
+    if (_activeSpace == null) return;
+    _isAnalyticsLoading = true;
+    notifyListeners();
+
+    final spaceId = _activeSpace!['_id'];
+    final res = await _api.get('/api/transactions/analytics?spaceId=$spaceId&period=$period&timezone=UTC');
+    if (res['error'] == null) {
+      _analyticsData = res;
+    }
+    _isAnalyticsLoading = false;
+    notifyListeners();
   }
 
   Future<bool> addTransaction({
