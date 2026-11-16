@@ -84,7 +84,7 @@ class _InboxScreenState extends State<InboxScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'ARCADE INBOX',
+          'INBOX',
           style: TextStyle(
             color: ArcadeTheme.acidYellow,
             fontWeight: FontWeight.w900,

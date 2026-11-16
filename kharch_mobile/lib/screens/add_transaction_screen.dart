@@ -99,7 +99,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'ARCADE ADD',
+          'ADD TRANSACTION',
           style: TextStyle(
             color: ArcadeTheme.acidYellow,
             fontWeight: FontWeight.w900,
@@ -318,14 +318,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 18),
 
-              // Submit Action with Cute Tap Loading
+              // Submit Action with Tactile Loading
               ArcadeButton(
-                text: 'RECORD TO VAULT',
+                text: 'SAVE TRANSACTION',
                 icon: Icons.check_circle_rounded,
                 backgroundColor: ArcadeTheme.acidYellow,
                 textColor: ArcadeTheme.pureBlack,
                 isLoading: _isSaving,
-                loadingText: 'Locking Coin into Vault...',
+                loadingText: 'Saving Transaction...',
                 onTap: _handleSave,
                 width: double.infinity,
               ),

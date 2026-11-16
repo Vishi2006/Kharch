@@ -122,7 +122,7 @@ class _SpacesScreenState extends State<SpacesScreen> {
               const SizedBox(height: 20),
 
               const Text(
-                'EXISTING VAULTS',
+                'YOUR SPACES',
                 style: TextStyle(
                   color: ArcadeTheme.pureWhite,
                   fontWeight: FontWeight.w900,

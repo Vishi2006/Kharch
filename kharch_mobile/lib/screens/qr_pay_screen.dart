@@ -115,7 +115,7 @@ class _QrPayScreenState extends State<QrPayScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'ARCADE QR PAY',
+          'SCAN & PAY',
           style: TextStyle(
             color: ArcadeTheme.acidYellow,
             fontWeight: FontWeight.w900,
