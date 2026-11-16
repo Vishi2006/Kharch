@@ -6,8 +6,9 @@ import '../widgets/arcade_card.dart';
 
 class SpacesScreen extends StatefulWidget {
   final AppState appState;
+  final bool isEmbedded;
 
-  const SpacesScreen({super.key, required this.appState});
+  const SpacesScreen({super.key, required this.appState, this.isEmbedded = false});
 
   @override
   State<SpacesScreen> createState() => _SpacesScreenState();
@@ -47,14 +48,17 @@ class _SpacesScreenState extends State<SpacesScreen> {
       appBar: AppBar(
         backgroundColor: ArcadeTheme.darkCanvas,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureWhite),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
+        leading: widget.isEmbedded
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
+                onPressed: () => Navigator.pop(context),
+              ),
         title: const Text(
           'BUDGET SPACES',
           style: TextStyle(
-            color: ArcadeTheme.acidYellow,
+            color: ArcadeTheme.pureBlack,
             fontWeight: FontWeight.w900,
             fontSize: 18,
             letterSpacing: 0.8,

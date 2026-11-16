@@ -11,7 +11,7 @@ class AddPayScreen extends StatefulWidget {
   final AppState appState;
   final int initialTab; // 0: Manual Add, 1: Scan & Pay
 
-  const AddPayScreen({super.key, required this.appState, this.initialTab = 0});
+  const AddPayScreen({super.key, required this.appState, this.initialTab = 1});
 
   @override
   State<AddPayScreen> createState() => _AddPayScreenState();
@@ -188,7 +188,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
         backgroundColor: ArcadeTheme.darkCanvas,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureWhite),
+          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
           onPressed: () => Navigator.pop(context),
         ),
         title: Container(
@@ -513,19 +513,13 @@ class _AddPayScreenState extends State<AddPayScreen> {
                 controller: _scannerCtrl,
                 onDetect: _onDetect,
               ),
+              // Clean Viewfinder Overlay (hollow interior with sharp yellow border for maximum scan clarity)
               Container(
-                width: 240,
-                height: 240,
+                width: 250,
+                height: 250,
                 decoration: BoxDecoration(
                   border: Border.all(color: ArcadeTheme.acidYellow, width: 3),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: ArcadeTheme.acidYellow.withValues(alpha: 0.3),
-                      blurRadius: 16,
-                      spreadRadius: 2,
-                    ),
-                  ],
                 ),
               ),
               Positioned(

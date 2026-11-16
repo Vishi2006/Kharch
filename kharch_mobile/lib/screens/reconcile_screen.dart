@@ -6,8 +6,9 @@ import '../widgets/arcade_card.dart';
 
 class ReconcileScreen extends StatefulWidget {
   final AppState appState;
+  final bool isEmbedded;
 
-  const ReconcileScreen({super.key, required this.appState});
+  const ReconcileScreen({super.key, required this.appState, this.isEmbedded = false});
 
   @override
   State<ReconcileScreen> createState() => _ReconcileScreenState();
@@ -59,8 +60,10 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
   @override
   Widget build(BuildContext context) {
     final summary = widget.appState.summaryData;
+    final data = widget.appState.dashboardData;
     final opening = (summary?['openingBalance'] ?? 0.0).toDouble();
     final calculated = (summary?['calculatedClosingBalance'] ?? 0.0).toDouble();
+    final currentBalance = (data?['currentBalance'] ?? data?['netBalance'] ?? calculated).toDouble();
     final actual = summary?['actualClosingBalance'] != null
         ? (summary!['actualClosingBalance'] as num).toDouble()
         : null;
@@ -73,14 +76,17 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
       appBar: AppBar(
         backgroundColor: ArcadeTheme.darkCanvas,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureWhite),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
+        leading: widget.isEmbedded
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
+                onPressed: () => Navigator.pop(context),
+              ),
         title: const Text(
-          'MONTHLY AUDIT',
+          'MONTHLY AUDIT & BALANCE',
           style: TextStyle(
-            color: ArcadeTheme.acidYellow,
+            color: ArcadeTheme.pureBlack,
             fontWeight: FontWeight.w900,
             fontSize: 18,
             letterSpacing: 0.8,
@@ -93,7 +99,68 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Vault Status Card
+              // 1. Expected Current Balance Card (Privately Moved to Audit/Reconcile)
+              ArcadeCard(
+                fillColor: ArcadeTheme.acidYellow,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'EXPECTED CURRENT BALANCE',
+                          style: TextStyle(
+                            color: ArcadeTheme.pureBlack,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: ArcadeTheme.pureBlack,
+                            borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.shield_rounded, size: 12, color: ArcadeTheme.acidYellow),
+                              SizedBox(width: 4),
+                              Text(
+                                'PRIVATE VAULT',
+                                style: TextStyle(
+                                  color: ArcadeTheme.acidYellow,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '₹ ${currentBalance.toStringAsFixed(2)}',
+                      style: ArcadeTheme.arcadeScore.copyWith(fontSize: 30),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Protected balance view. Not visible on home scan screen.',
+                      style: TextStyle(
+                        color: ArcadeTheme.pureBlack,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 2. Vault Status Card
               ArcadeCard(
                 fillColor: isLocked ? ArcadeTheme.darkCardLight : ArcadeTheme.acidYellow,
                 child: Row(
@@ -163,7 +230,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                 const Text(
                   'UPDATE OPENING BALANCE',
                   style: TextStyle(
-                    color: ArcadeTheme.pureWhite,
+                    color: ArcadeTheme.pureBlack,
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
                   ),
@@ -210,7 +277,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                 const Text(
                   'SEAL MONTH-END CLOSING BALANCE',
                   style: TextStyle(
-                    color: ArcadeTheme.pureWhite,
+                    color: ArcadeTheme.pureBlack,
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
                   ),

@@ -10,13 +10,13 @@ import 'widgets/kharch_logo.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Dark navigation bar & status bar styling
+  // Neo-Brutalist Light canvas navigation bar & status bar styling
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: ArcadeTheme.darkCanvas,
-      systemNavigationBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: ArcadeTheme.lightCanvas,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
 

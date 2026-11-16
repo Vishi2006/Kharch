@@ -43,13 +43,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: ArcadeTheme.darkCanvas,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureWhite),
+          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'SETTINGS',
           style: TextStyle(
-            color: ArcadeTheme.acidYellow,
+            color: ArcadeTheme.pureBlack,
             fontWeight: FontWeight.w900,
             fontSize: 18,
             letterSpacing: 0.8,
@@ -66,7 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Text(
                 'PERMISSIONS & AUTO-TRACKING',
                 style: TextStyle(
-                  color: ArcadeTheme.acidYellow,
+                  color: ArcadeTheme.pureBlack,
                   fontWeight: FontWeight.w900,
                   fontSize: 13,
                   letterSpacing: 0.8,
@@ -211,7 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Text(
                   'USER ACCOUNT',
                   style: TextStyle(
-                    color: ArcadeTheme.pureWhite,
+                    color: ArcadeTheme.pureBlack,
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
                     letterSpacing: 0.8,
@@ -223,23 +223,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Row(
                     children: [
                       Container(
-                        width: 44,
-                        height: 44,
+                        width: 46,
+                        height: 46,
                         decoration: BoxDecoration(
                           color: ArcadeTheme.acidYellow,
                           shape: BoxShape.circle,
                           border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
-                          image: user['picture'] != null && (user['picture'] as String).isNotEmpty
-                              ? DecorationImage(
-                                  image: NetworkImage(user['picture']),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
+                          boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
                         ),
-                        child: user['picture'] == null || (user['picture'] as String).isEmpty
-                            ? const Icon(Icons.person_rounded,
-                                color: ArcadeTheme.pureBlack, size: 28)
-                            : null,
+                        child: ClipOval(
+                          child: user['picture'] != null && (user['picture'] as String).isNotEmpty
+                              ? Image.network(
+                                  user['picture'],
+                                  width: 46,
+                                  height: 46,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Center(
+                                    child: Icon(Icons.person_rounded, color: ArcadeTheme.pureBlack, size: 28),
+                                  ),
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Center(
+                                      child: Icon(Icons.person_rounded, color: ArcadeTheme.pureBlack, size: 28),
+                                    );
+                                  },
+                                )
+                              : const Center(
+                                  child: Icon(Icons.person_rounded, color: ArcadeTheme.pureBlack, size: 28),
+                                ),
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
