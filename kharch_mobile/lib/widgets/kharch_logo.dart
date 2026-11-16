@@ -16,12 +16,14 @@ class KharchLogo extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
+        color: const Color(0xFFE2FD52),
         borderRadius: BorderRadius.circular(size * 0.28),
+        border: Border.all(color: Colors.black, width: size > 40 ? 2.5 : 2.0),
         boxShadow: showShadow
-            ? const [
+            ? [
                 BoxShadow(
                   color: Colors.black,
-                  offset: Offset(4, 4),
+                  offset: Offset(size > 40 ? 3.5 : 2.0, size > 40 ? 3.5 : 2.0),
                   blurRadius: 0,
                 ),
               ]
@@ -33,16 +35,15 @@ class KharchLogo extends StatelessWidget {
           'assets/logo.png',
           width: size,
           height: size,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Container(
-            color: const Color(0xFFE2FD52),
-            alignment: Alignment.center,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Center(
             child: Text(
               '₹',
               style: TextStyle(
-                fontSize: size * 0.5,
+                fontSize: size * 0.58,
                 fontWeight: FontWeight.w900,
                 color: Colors.black,
+                height: 1.0,
               ),
             ),
           ),
