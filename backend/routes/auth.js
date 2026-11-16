@@ -64,7 +64,7 @@ router.post('/google', async (req, res) => {
       }
     }
   } else {
-    // Standard Google Verification
+    // Standard Google Verification (supports both ID Token and Access Token fallback)
     try {
       const allowedAudiences = [
         process.env.GOOGLE_CLIENT_ID,
@@ -78,8 +78,28 @@ router.post('/google', async (req, res) => {
       });
       userPayload = ticket.getPayload();
     } catch (error) {
-      console.error('Google token verification failed:', error.message);
-      return res.status(401).json({ message: 'Invalid Google token' });
+      console.warn('Google ID token verification failed, trying Google userinfo endpoint...', error.message);
+      try {
+        const fetch = globalThis.fetch || require('node-fetch');
+        const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${credential}` },
+        });
+        if (userinfoRes.ok) {
+          const info = await userinfoRes.json();
+          userPayload = {
+            sub: info.sub,
+            email: info.email,
+            name: info.name || info.email.split('@')[0],
+            picture: info.picture,
+          };
+        } else {
+          console.error('Google userinfo fetch failed with status:', userinfoRes.status);
+          return res.status(401).json({ message: 'Invalid Google token' });
+        }
+      } catch (fetchErr) {
+        console.error('Google token verification failed completely:', fetchErr.message);
+        return res.status(401).json({ message: 'Invalid Google token' });
+      }
     }
   }
 

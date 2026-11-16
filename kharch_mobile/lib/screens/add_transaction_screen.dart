@@ -21,15 +21,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final TextEditingController _customTitleCtrl = TextEditingController();
   bool _isSaving = false;
 
-  final List<Map<String, String>> _categories = [
-    {'name': 'Food', 'icon': '🍔'},
-    {'name': 'Transit', 'icon': '🚕'},
-    {'name': 'Coffee', 'icon': '☕'},
-    {'name': 'Rent', 'icon': '🏠'},
-    {'name': 'Groceries', 'icon': '🛒'},
-    {'name': 'Tech', 'icon': '💻'},
-    {'name': 'Health', 'icon': '💊'},
-    {'name': 'Fun', 'icon': '🎮'},
+  final List<Map<String, dynamic>> _categories = [
+    {'name': 'Food', 'icon': Icons.restaurant_rounded},
+    {'name': 'Transit', 'icon': Icons.directions_car_rounded},
+    {'name': 'Coffee', 'icon': Icons.local_cafe_rounded},
+    {'name': 'Rent', 'icon': Icons.home_rounded},
+    {'name': 'Groceries', 'icon': Icons.shopping_cart_rounded},
+    {'name': 'Tech', 'icon': Icons.devices_rounded},
+    {'name': 'Health', 'icon': Icons.medical_services_rounded},
+    {'name': 'Fun', 'icon': Icons.sports_esports_rounded},
   ];
 
   @override
@@ -133,15 +133,28 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               : null,
                         ),
                         alignment: Alignment.center,
-                        child: Text(
-                          '💸 EXPENSE',
-                          style: TextStyle(
-                            color: _type == 'expense'
-                                ? ArcadeTheme.pureWhite
-                                : ArcadeTheme.slateMuted,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.arrow_upward_rounded,
+                              size: 16,
+                              color: _type == 'expense'
+                                  ? ArcadeTheme.pureWhite
+                                  : ArcadeTheme.slateMuted,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'EXPENSE',
+                              style: TextStyle(
+                                color: _type == 'expense'
+                                    ? ArcadeTheme.pureWhite
+                                    : ArcadeTheme.slateMuted,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -163,15 +176,28 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               : null,
                         ),
                         alignment: Alignment.center,
-                        child: Text(
-                          '💰 INCOME',
-                          style: TextStyle(
-                            color: _type == 'income'
-                                ? ArcadeTheme.pureBlack
-                                : ArcadeTheme.slateMuted,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.arrow_downward_rounded,
+                              size: 16,
+                              color: _type == 'income'
+                                  ? ArcadeTheme.pureBlack
+                                  : ArcadeTheme.slateMuted,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'INCOME',
+                              style: TextStyle(
+                                color: _type == 'income'
+                                    ? ArcadeTheme.pureBlack
+                                    : ArcadeTheme.slateMuted,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -223,8 +249,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 runSpacing: 8,
                 children: _categories.map((c) {
                   final isSel = _selectedCategory == c['name'];
+                  final icon = c['icon'] as IconData;
                   return GestureDetector(
-                    onTap: () => setState(() => _selectedCategory = c['name']!),
+                    onTap: () => setState(() => _selectedCategory = c['name'] as String),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
@@ -235,13 +262,24 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             ? ArcadeTheme.neoShadow(offset: const Offset(2, 2))
                             : null,
                       ),
-                      child: Text(
-                        '${c['icon']} ${c['name']}',
-                        style: TextStyle(
-                          color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.pureWhite,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            icon,
+                            size: 14,
+                            color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.neonCyan,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            c['name'] as String,
+                            style: TextStyle(
+                              color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.pureWhite,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );

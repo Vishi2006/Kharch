@@ -190,7 +190,7 @@ class _InboxScreenState extends State<InboxScreen> {
             Icon(Icons.mark_email_read_rounded, color: ArcadeTheme.arcadeGreen, size: 52),
             SizedBox(height: 12),
             Text(
-              'INBOX ZERO 🎉',
+              'INBOX IS CLEAR',
               style: TextStyle(
                 color: ArcadeTheme.pureWhite,
                 fontWeight: FontWeight.w900,
@@ -226,7 +226,7 @@ class _InboxScreenState extends State<InboxScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const ArcadeBadge(
-                    text: '★ UPI MATCH CANDIDATE',
+                    text: 'UPI MATCH CANDIDATE',
                     backgroundColor: ArcadeTheme.arcadeViolet,
                     textColor: ArcadeTheme.pureWhite,
                   ),
