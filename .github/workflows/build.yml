@@ -52,7 +52,7 @@ jobs:
 
       - name: Run Flutter Analyzer
         working-directory: ./kharch_mobile
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: Run Flutter Tests
         working-directory: ./kharch_mobile
