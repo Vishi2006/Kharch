@@ -21,11 +21,11 @@ jobs:
 
       - name: Install Backend Dependencies
         working-directory: ./backend
-        run: npm ci || npm install
+        run: npm install
 
       - name: Verify Backend Server Module
         working-directory: ./backend
-        run: node -e "const app = require('./server'); console.log('Backend initialized successfully');"
+        run: node -e "const app = require('./server'); console.log('Backend initialized successfully'); process.exit(0);"
 
   flutter-build:
     name: Build Flutter APK
@@ -41,9 +41,10 @@ jobs:
           java-version: '17'
 
       - name: Setup Flutter
-        uses: actions/setup-flutter@v3
+        uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
 
       - name: Install Flutter Dependencies
         working-directory: ./kharch_mobile
