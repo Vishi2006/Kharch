@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -29,6 +31,7 @@ class _QrPayScreenState extends State<QrPayScreen> {
     for (final barcode in barcodes) {
       final code = barcode.rawValue;
       if (code != null && code.startsWith('upi://')) {
+        HapticFeedback.mediumImpact();
         setState(() {
           _hasScanned = true;
           _parseUpiUri(code);
@@ -56,29 +59,34 @@ class _QrPayScreenState extends State<QrPayScreen> {
     final amtVal = double.tryParse(_amount) ?? 0.0;
     if (amtVal <= 0) return;
 
+    HapticFeedback.selectionClick();
     setState(() => _isProcessing = true);
 
-    // 1. Record payment attempt to backend
     final paymentAttemptId = 'att_${DateTime.now().millisecondsSinceEpoch}';
-    await ApiService.instance.post('/api/payment-attempts', {
-      'paymentAttemptId': paymentAttemptId,
-      'amount': amtVal,
-      'payeeVpa': _payeeVpa,
-      'payeeName': _payeeName,
-      'status': 'PENDING',
-    });
+
+    // 1. Asynchronous non-blocking payment attempt recording (zero UI/app delay)
+    unawaited(
+      ApiService.instance.post('/api/payment-attempts', {
+        'paymentAttemptId': paymentAttemptId,
+        'amount': amtVal,
+        'payeeVpa': _payeeVpa,
+        'payeeName': _payeeName,
+        'status': 'PENDING',
+      }).catchError((e) => <String, dynamic>{'error': e.toString()}),
+    );
 
     // 2. Build full UPI Intent URI
     final intentUri = Uri.parse(
       'upi://pay?pa=$_payeeVpa&pn=${Uri.encodeComponent(_payeeName)}&am=$amtVal&cu=INR&tr=$paymentAttemptId',
     );
 
-    // 3. Launch UPI App
+    // 3. Launch UPI App immediately
     try {
-      if (await canLaunchUrl(intentUri)) {
-        await launchUrl(intentUri, mode: LaunchMode.externalApplication);
-      } else {
-        // Fallback generic
+      final launched = await launchUrl(
+        intentUri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
         await launchUrl(intentUri);
       }
     } catch (e) {
@@ -95,12 +103,6 @@ class _QrPayScreenState extends State<QrPayScreen> {
     if (mounted) {
       setState(() => _isProcessing = false);
     }
-  }
-
-  @override
-  void dispose() {
-    _scannerCtrl.dispose();
-    super.dispose();
   }
 
   @override
@@ -180,7 +182,7 @@ class _QrPayScreenState extends State<QrPayScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: const BoxDecoration(
-                  color: ArcadeTheme.darkCard,
+                  color: ArcadeTheme.lightCanvas,
                   border: Border(
                     top: BorderSide(color: ArcadeTheme.pureBlack, width: 2.5),
                   ),

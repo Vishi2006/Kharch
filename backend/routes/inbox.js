@@ -83,7 +83,9 @@ router.get('/', protect, async (req, res) => {
  */
 router.post('/accept-match', protect, async (req, res) => {
   try {
-    const { notificationEventId, paymentAttemptId, spaceId, importance, note, title } = req.body;
+    const notificationEventId = req.body.notificationEventId || req.body.eventId;
+    const paymentAttemptId = req.body.paymentAttemptId || req.body.attemptId;
+    const { spaceId, importance, note, title } = req.body;
 
     const event = await NotificationEvent.findOne({
       _id: notificationEventId,
@@ -169,7 +171,9 @@ router.post('/accept-match', protect, async (req, res) => {
  */
 router.post('/convert', protect, async (req, res) => {
   try {
-    const { id, source, spaceId, title, importance, type, note, date } = req.body;
+    const id = req.body.id || req.body.itemId;
+    const source = req.body.source || req.body.itemType;
+    const { spaceId, title, importance, type, note, date } = req.body;
 
     if (!id || !source) {
       return res.status(400).json({ message: 'id and source are required' });
@@ -202,7 +206,7 @@ router.post('/convert', protect, async (req, res) => {
       resolvedDate = eventRecord.timestamp;
       defaultTitle = eventRecord.counterparty || 'UPI Transaction';
       txType = eventRecord.type === 'CREDIT' ? 'income' : 'expense';
-    } else if (source === 'payment_attempt') {
+    } else if (source === 'payment_attempt' || source === 'attempt') {
       attemptRecord = await PaymentAttempt.findOne({ paymentAttemptId: id, userId: req.user._id });
       if (!attemptRecord) return res.status(404).json({ message: 'Payment attempt not found' });
       amount = attemptRecord.amount;
@@ -267,16 +271,23 @@ router.post('/convert', protect, async (req, res) => {
  */
 router.post('/dismiss', protect, async (req, res) => {
   try {
-    const { id, source } = req.body;
+    const id = req.body.id || req.body.itemId;
+    const source = req.body.source || req.body.itemType;
 
     if (source === 'notification') {
       await NotificationEvent.findOneAndUpdate(
         { _id: id, userId: req.user._id },
         { status: 'DISMISSED' }
       );
-    } else if (source === 'payment_attempt') {
+    } else if (source === 'payment_attempt' || source === 'attempt') {
       await PaymentAttempt.findOneAndUpdate(
-        { paymentAttemptId: id, userId: req.user._id },
+        {
+          userId: req.user._id,
+          $or: [
+            { paymentAttemptId: id },
+            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: id }] : []),
+          ],
+        },
         { status: 'FAILED' }
       );
     }

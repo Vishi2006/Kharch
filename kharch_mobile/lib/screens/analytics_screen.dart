@@ -28,6 +28,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.appState,
+      builder: (context, _) {
     final activeSpace = widget.appState.activeSpace;
     final analytics = widget.appState.analyticsData;
     final isLoading = widget.appState.isAnalyticsLoading;
@@ -459,6 +462,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
         ),
       ),
+        );
+      },
     );
   }
 

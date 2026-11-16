@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -63,6 +65,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
   }
 
   void _onKeypadTap(String val) {
+    HapticFeedback.lightImpact();
     setState(() {
       if (val == 'C') {
         _amountStr = '0';
@@ -116,6 +119,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
     for (final barcode in capture.barcodes) {
       final code = barcode.rawValue;
       if (code != null && code.startsWith('upi://')) {
+        HapticFeedback.mediumImpact();
         setState(() {
           _hasScanned = true;
           _parseUpiUri(code);
@@ -143,25 +147,34 @@ class _AddPayScreenState extends State<AddPayScreen> {
     final amtVal = double.tryParse(_qrAmount) ?? 0.0;
     if (amtVal <= 0) return;
 
+    HapticFeedback.selectionClick();
     setState(() => _isProcessing = true);
 
     final paymentAttemptId = 'att_${DateTime.now().millisecondsSinceEpoch}';
-    await ApiService.instance.post('/api/payment-attempts', {
-      'paymentAttemptId': paymentAttemptId,
-      'amount': amtVal,
-      'payeeVpa': _payeeVpa,
-      'payeeName': _payeeName,
-      'status': 'PENDING',
-    });
 
+    // 1. Asynchronous non-blocking payment attempt recording (zero UI/app delay)
+    unawaited(
+      ApiService.instance.post('/api/payment-attempts', {
+        'paymentAttemptId': paymentAttemptId,
+        'amount': amtVal,
+        'payeeVpa': _payeeVpa,
+        'payeeName': _payeeName,
+        'status': 'PENDING',
+      }).catchError((e) => <String, dynamic>{'error': e.toString()}),
+    );
+
+    // 2. Build UPI intent URI
     final intentUri = Uri.parse(
       'upi://pay?pa=$_payeeVpa&pn=${Uri.encodeComponent(_payeeName)}&am=$amtVal&cu=INR&tr=$paymentAttemptId',
     );
 
+    // 3. Launch UPI App immediately
     try {
-      if (await canLaunchUrl(intentUri)) {
-        await launchUrl(intentUri, mode: LaunchMode.externalApplication);
-      } else {
+      final launched = await launchUrl(
+        intentUri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
         await launchUrl(intentUri);
       }
     } catch (e) {
@@ -546,14 +559,14 @@ class _AddPayScreenState extends State<AddPayScreen> {
           ),
         ),
 
-        // Pay Actions
+        // Pay Actions with Light Canvas Background
         Expanded(
           flex: 4,
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
-              color: ArcadeTheme.darkCard,
+              color: ArcadeTheme.lightCanvas,
               border: Border(top: BorderSide(color: ArcadeTheme.pureBlack, width: 2.5)),
             ),
             child: SingleChildScrollView(
@@ -564,15 +577,16 @@ class _AddPayScreenState extends State<AddPayScreen> {
                     const Center(
                       child: Text(
                         'Supports PhonePe, GPay, Paytm, or BharatQR',
-                        style: TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: ArcadeTheme.slateDark, fontSize: 12, fontWeight: FontWeight.w700),
                       ),
                     ),
                     const SizedBox(height: 12),
                     ArcadeButton(
                       text: 'ENTER MANUAL UPI VPA',
-                      backgroundColor: ArcadeTheme.darkCardLight,
+                      backgroundColor: ArcadeTheme.punchPink,
                       textColor: ArcadeTheme.pureWhite,
                       onTap: () {
+                        HapticFeedback.lightImpact();
                         setState(() {
                           _hasScanned = true;
                           _payeeVpa = 'merchant@upi';
@@ -583,48 +597,78 @@ class _AddPayScreenState extends State<AddPayScreen> {
                       width: double.infinity,
                     ),
                   ] else ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'MERCHANT DETECTED',
-                          style: TextStyle(color: ArcadeTheme.neonCyan, fontWeight: FontWeight.w900, fontSize: 11),
-                        ),
-                        GestureDetector(
-                          onTap: () => setState(() => _hasScanned = false),
-                          child: const Text(
-                            'SCAN AGAIN',
-                            style: TextStyle(color: ArcadeTheme.acidYellow, fontWeight: FontWeight.w900, fontSize: 11),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _payeeName,
-                      style: const TextStyle(color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900, fontSize: 16),
-                    ),
-                    Text(
-                      _payeeVpa,
-                      style: const TextStyle(color: ArcadeTheme.slateMuted, fontWeight: FontWeight.w700, fontSize: 11),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900),
-                      decoration: InputDecoration(
-                        labelText: 'Amount (₹)',
-                        labelStyle: const TextStyle(color: ArcadeTheme.acidYellow),
-                        filled: true,
-                        fillColor: ArcadeTheme.darkCardLight,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
-                        ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: ArcadeTheme.pureWhite,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
+                        boxShadow: ArcadeTheme.neoShadow(offset: const Offset(3, 3)),
                       ),
-                      controller: TextEditingController(text: _qrAmount)
-                        ..selection = TextSelection.fromPosition(TextPosition(offset: _qrAmount.length)),
-                      onChanged: (val) => _qrAmount = val,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: ArcadeTheme.punchPink,
+                                  borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
+                                  border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+                                ),
+                                child: const Text(
+                                  'MERCHANT DETECTED',
+                                  style: TextStyle(color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900, fontSize: 10),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  setState(() => _hasScanned = false);
+                                },
+                                child: const Text(
+                                  'SCAN AGAIN',
+                                  style: TextStyle(
+                                    color: ArcadeTheme.punchPink,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 11,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _payeeName,
+                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900, fontSize: 16),
+                          ),
+                          Text(
+                            _payeeVpa,
+                            style: const TextStyle(color: ArcadeTheme.slateDark, fontWeight: FontWeight.w700, fontSize: 11),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900, fontSize: 15),
+                            decoration: InputDecoration(
+                              labelText: 'Amount (₹)',
+                              labelStyle: const TextStyle(color: ArcadeTheme.punchPink, fontWeight: FontWeight.w800),
+                              filled: true,
+                              fillColor: ArcadeTheme.pureWhite,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                              ),
+                            ),
+                            controller: TextEditingController(text: _qrAmount)
+                              ..selection = TextSelection.fromPosition(TextPosition(offset: _qrAmount.length)),
+                            onChanged: (val) => _qrAmount = val,
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 12),
                     ArcadeButton(

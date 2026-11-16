@@ -251,7 +251,8 @@ router.get('/dashboard', protect, async (req, res) => {
   }
 
   try {
-    const spaceObjectId = new mongoose.Types.ObjectId(spaceId);
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(spaceId) ? new mongoose.Types.ObjectId(spaceId) : null;
+    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, spaceId.toString()] } : spaceId;
 
     // 1. Get current month representation (local time according to user's timezone)
     const now = new Date();
@@ -294,7 +295,7 @@ router.get('/dashboard', protect, async (req, res) => {
     const monthTxTotals = await Transaction.aggregate([
       { 
         $match: { 
-          spaceId: spaceObjectId,
+          spaceId: spaceMatch,
           date: { $gte: dateRange.start, $lt: dateRange.end }
         } 
       },
@@ -327,7 +328,7 @@ router.get('/dashboard', protect, async (req, res) => {
     const todayExpenses = await Transaction.aggregate([
       {
         $match: {
-          spaceId: spaceObjectId,
+          spaceId: spaceMatch,
           type: 'expense'
         }
       },
@@ -421,7 +422,8 @@ router.get('/analytics', protect, async (req, res) => {
   }
 
   try {
-    const spaceObjectId = new mongoose.Types.ObjectId(spaceId);
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(spaceId) ? new mongoose.Types.ObjectId(spaceId) : null;
+    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, spaceId.toString()] } : spaceId;
     
     // Date cutoff helper
     const now = new Date();
@@ -429,7 +431,7 @@ router.get('/analytics', protect, async (req, res) => {
     
     if (period === 'day') {
       // Last 7 days
-      startDate.setDate(now.getDate() - 7);
+      startDate.setDate(now.getDate() - 30);
     } else if (period === 'week') {
       // Last 8 weeks
       startDate.setDate(now.getDate() - 56);
@@ -452,7 +454,7 @@ router.get('/analytics', protect, async (req, res) => {
     const trends = await Transaction.aggregate([
       { 
         $match: { 
-          spaceId: spaceObjectId,
+          spaceId: spaceMatch,
           date: { $gte: startDate }
         } 
       },
@@ -496,7 +498,7 @@ router.get('/analytics', protect, async (req, res) => {
     const importanceAgg = await Transaction.aggregate([
       {
         $match: {
-          spaceId: spaceObjectId,
+          spaceId: spaceMatch,
           type: 'expense',
           date: { $gte: startDate }
         }
@@ -526,7 +528,7 @@ router.get('/analytics', protect, async (req, res) => {
     const topTitlesAgg = await Transaction.aggregate([
       {
         $match: {
-          spaceId: spaceObjectId,
+          spaceId: spaceMatch,
           type: 'expense',
           date: { $gte: startDate }
         }
@@ -556,7 +558,7 @@ router.get('/analytics', protect, async (req, res) => {
     const wastefulAgg = await Transaction.aggregate([
       {
         $match: {
-          spaceId: spaceObjectId,
+          spaceId: spaceMatch,
           type: 'expense',
           importance: 'low_value',
           date: { $gte: startDate }

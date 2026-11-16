@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../providers/app_state.dart';
 import '../theme/arcade_theme.dart';
 import '../widgets/arcade_card.dart';
@@ -49,6 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _onBottomNavTap(int index) {
+    HapticFeedback.selectionClick();
     if (index == 2) {
       // Central Scan & Pay button: opens camera QR scanner by default
       Navigator.push(
