@@ -86,40 +86,48 @@ router.post('/google', async (req, res) => {
   try {
     const { sub: googleId, email, name, picture } = userPayload;
 
-    // 1. Find or create user
-    let user = await User.findOne({ googleId });
+    // 1. Find or create user (Search by BOTH googleId and email to link existing accounts)
+    let user = await User.findOne({
+      $or: [{ googleId }, { email: email.toLowerCase() }],
+    });
     let isNewUser = false;
 
-    if (!user) {
+    if (user) {
+      // Existing user: Link googleId and sync profile
+      user.googleId = googleId;
+      if (name) user.name = name;
+      if (picture) user.picture = picture;
+      await user.save();
+      console.log(`Linked existing user: ${user.email} (ID: ${user._id})`);
+    } else {
       user = new User({
         googleId,
-        email,
+        email: email.toLowerCase(),
         name,
         picture,
       });
       await user.save();
       isNewUser = true;
       console.log(`Created new user: ${email}`);
-    } else {
-      // Update details in case they changed in Google
-      user.name = name;
-      user.picture = picture;
-      await user.save();
     }
 
-    // 2. Ensure default "Personal Life" space exists for user
+    // 2. Ensure default space exists for user
     let defaultSpace = await Space.findOne({ userId: user._id, isDefault: true });
     if (!defaultSpace) {
-      // Check if they have ANY space named "Personal Life" first
       defaultSpace = await Space.findOne({ userId: user._id, name: 'Personal Life' });
       if (!defaultSpace) {
-        defaultSpace = new Space({
-          userId: user._id,
-          name: 'Personal Life',
-          isDefault: true,
-        });
-        await defaultSpace.save();
-        console.log(`Created default 'Personal Life' space for user: ${email}`);
+        const anySpace = await Space.findOne({ userId: user._id });
+        if (anySpace) {
+          defaultSpace = anySpace;
+        } else {
+          defaultSpace = new Space({
+            userId: user._id,
+            name: 'Personal Life',
+            isDefault: true,
+          });
+          await defaultSpace.save();
+          console.log(`Created default 'Personal Life' space for user: ${email}`);
+        }
       } else if (!defaultSpace.isDefault) {
         defaultSpace.isDefault = true;
         await defaultSpace.save();
@@ -140,6 +148,7 @@ router.post('/google', async (req, res) => {
     });
 
     res.json({
+      success: true,
       token: sessionToken,
       user: {
         id: user._id,
@@ -147,7 +156,7 @@ router.post('/google', async (req, res) => {
         name: user.name,
         picture: user.picture,
       },
-      defaultSpaceId: defaultSpace._id,
+      defaultSpaceId: defaultSpace ? defaultSpace._id : null,
     });
   } catch (error) {
     console.error('Server error during Google auth:', error.message);

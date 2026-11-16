@@ -112,28 +112,29 @@ class AppState extends ChangeNotifier {
       final res = await _api.post('/api/auth/google', {'credential': idToken});
       _isLoading = false;
 
-      if (res['token'] != null && res['user'] != null) {
+      if (res['token'] != null) {
         final token = res['token'] as String;
         await _api.setToken(token);
-        _user = Map<String, dynamic>.from(res['user']);
 
-        // Persist session to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('cached_user', jsonEncode(_user));
+        if (res['user'] != null) {
+          _user = Map<String, dynamic>.from(res['user']);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('cached_user', jsonEncode(_user));
+        }
 
         await fetchUserData();
         notifyListeners();
         return {'success': true};
       }
 
-      // Fallback: if server accepts profile directly or is in cold-start
+      // Fallback: if server returned an explicit error
       if (res['error'] != null) {
         notifyListeners();
         return {'success': false, 'error': res['error']};
       }
 
       notifyListeners();
-      return {'success': false, 'error': 'Server did not return session token'};
+      return {'success': false, 'error': 'Server did not return session token: $res'};
     } catch (e) {
       _isLoading = false;
       notifyListeners();

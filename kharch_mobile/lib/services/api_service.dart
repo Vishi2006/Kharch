@@ -121,15 +121,28 @@ class ApiService {
   }
 
   Map<String, dynamic> _processResponse(http.Response response) {
+    // Extract token from Set-Cookie header if present
+    String? cookieToken;
+    final setCookie = response.headers['set-cookie'];
+    if (setCookie != null) {
+      final match = RegExp(r'token=([^;]+)').firstMatch(setCookie);
+      if (match != null) {
+        cookieToken = match.group(1);
+      }
+    }
+
     try {
       final decoded = jsonDecode(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (decoded is Map<String, dynamic>) {
+          if (decoded['token'] == null && cookieToken != null) {
+            decoded['token'] = cookieToken;
+          }
           return decoded;
         } else if (decoded is List) {
           return {'data': decoded, 'status': response.statusCode};
         }
-        return {'success': true, 'status': response.statusCode};
+        return {'success': true, 'token': cookieToken, 'status': response.statusCode};
       }
       final msg = decoded is Map && decoded['message'] != null
           ? decoded['message']
@@ -137,9 +150,9 @@ class ApiService {
       return {'error': msg, 'status': response.statusCode};
     } catch (e) {
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return {'success': true, 'status': response.statusCode};
+        return {'success': true, 'token': cookieToken, 'status': response.statusCode};
       }
-      return {'error': 'Invalid server response', 'status': response.statusCode};
+      return {'error': 'Invalid server response: ${response.body}', 'status': response.statusCode};
     }
   }
 }
