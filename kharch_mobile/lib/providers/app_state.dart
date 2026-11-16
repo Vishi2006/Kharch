@@ -11,7 +11,7 @@ class AppState extends ChangeNotifier {
   // Google OAuth Client ID matching PWA configuration
   static const String googleClientId = String.fromEnvironment(
     'GOOGLE_CLIENT_ID',
-    defaultValue: '804504560516-0g5l1kbk9qr0lpgps8aq4t2ji7q3mkit.apps.googleusercontent.com',
+    defaultValue: '804504560516-4bggeumofelo18bbn7stct4lnama7otn.apps.googleusercontent.com',
   );
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
