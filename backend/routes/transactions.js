@@ -44,8 +44,11 @@ router.post('/', protect, async (req, res) => {
   }
 
   try {
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(spaceId) ? new mongoose.Types.ObjectId(spaceId) : null;
+    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, spaceId.toString()] } : spaceId;
+
     // 1. Verify space belongs to user
-    const space = await Space.findOne({ _id: spaceId, userId: req.user._id });
+    const space = await Space.findOne({ _id: spaceObjectId || spaceId, userId: req.user._id });
     if (!space) {
       return res.status(404).json({ message: 'Space not found' });
     }
@@ -53,7 +56,7 @@ router.post('/', protect, async (req, res) => {
     // 2. Resolve titleId
     let finalTitleId;
     if (titleId) {
-      const canonicalTitle = await ExpenseTitle.findOne({ _id: titleId, spaceId });
+      const canonicalTitle = await ExpenseTitle.findOne({ _id: titleId, spaceId: spaceMatch });
       if (!canonicalTitle) {
         return res.status(400).json({ message: 'Canonical title not found in this space' });
       }
@@ -62,11 +65,11 @@ router.post('/', protect, async (req, res) => {
       const rawTitle = title.trim();
       const normalizedName = rawTitle.toLowerCase();
       
-      let canonicalTitle = await ExpenseTitle.findOne({ spaceId, normalizedName });
+      let canonicalTitle = await ExpenseTitle.findOne({ spaceId: spaceMatch, normalizedName });
       if (!canonicalTitle) {
         canonicalTitle = new ExpenseTitle({
           userId: req.user._id,
-          spaceId,
+          spaceId: space._id,
           normalizedName,
           displayName: formatDisplayName(rawTitle)
         });
@@ -83,7 +86,7 @@ router.post('/', protect, async (req, res) => {
     // 4. Create and save transaction
     const transaction = new Transaction({
       userId: req.user._id,
-      spaceId,
+      spaceId: space._id,
       type,
       amount: parseFloat(amount),
       titleId: finalTitleId,
@@ -94,8 +97,8 @@ router.post('/', protect, async (req, res) => {
 
     await transaction.save();
     
-    // Populate titleId details
-    await transaction.populate('titleId');
+    // Explicitly populate titleId details with ExpenseTitle model
+    await transaction.populate({ path: 'titleId', model: ExpenseTitle });
 
     res.status(201).json(transaction);
   } catch (error) {
@@ -115,7 +118,9 @@ router.get('/', protect, async (req, res) => {
   }
 
   try {
-    const query = { spaceId, userId: req.user._id };
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(spaceId) ? new mongoose.Types.ObjectId(spaceId) : null;
+    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, spaceId.toString()] } : spaceId;
+    const query = { spaceId: spaceMatch, userId: req.user._id };
 
     if (type) {
       query.type = type;
@@ -134,7 +139,7 @@ router.get('/', protect, async (req, res) => {
     // Search filter based on ExpenseTitle names
     if (search && search.trim()) {
       const titles = await ExpenseTitle.find({
-        spaceId,
+        spaceId: spaceMatch,
         normalizedName: { $regex: search.trim().toLowerCase(), $options: 'i' }
       });
       const titleIds = titles.map(t => t._id);
@@ -142,7 +147,7 @@ router.get('/', protect, async (req, res) => {
     }
 
     const transactions = await Transaction.find(query)
-      .populate('titleId')
+      .populate({ path: 'titleId', model: ExpenseTitle })
       .sort({ date: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip));
@@ -160,39 +165,37 @@ router.get('/', protect, async (req, res) => {
 // @desc    Update a transaction
 // @access  Private
 router.put('/:id', protect, async (req, res) => {
-  const { amount, type, title, titleId, importance, date, note } = req.body;
+  const { amount, title, titleId, importance, date, note, type } = req.body;
 
   try {
-    let transaction = await Transaction.findOne({ _id: req.params.id, userId: req.user._id });
+    const transaction = await Transaction.findOne({ _id: req.params.id, userId: req.user._id });
     if (!transaction) {
       return res.status(404).json({ message: 'Transaction not found' });
     }
 
-    if (type) {
-      transaction.type = type;
-    }
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(transaction.spaceId) ? new mongoose.Types.ObjectId(transaction.spaceId) : null;
+    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, transaction.spaceId.toString()] } : transaction.spaceId;
+
     if (amount !== undefined) {
       transaction.amount = parseFloat(amount);
     }
-    if (note !== undefined) {
-      transaction.note = note;
-    }
-    if (date) {
-      transaction.date = new Date(date);
+
+    if (type && ['income', 'expense', 'investment', 'savings'].includes(type)) {
+      transaction.type = type;
     }
 
-    // Resolve title / titleId changes
+    // Resolve title if updating
     if (titleId) {
-      const canonicalTitle = await ExpenseTitle.findOne({ _id: titleId, spaceId: transaction.spaceId });
+      const canonicalTitle = await ExpenseTitle.findOne({ _id: titleId, spaceId: spaceMatch });
       if (!canonicalTitle) {
-        return res.status(400).json({ message: 'Title not found in this space' });
+        return res.status(400).json({ message: 'Canonical title not found' });
       }
       transaction.titleId = canonicalTitle._id;
     } else if (title && title.trim()) {
       const rawTitle = title.trim();
       const normalizedName = rawTitle.toLowerCase();
       
-      let canonicalTitle = await ExpenseTitle.findOne({ spaceId: transaction.spaceId, normalizedName });
+      let canonicalTitle = await ExpenseTitle.findOne({ spaceId: spaceMatch, normalizedName });
       if (!canonicalTitle) {
         canonicalTitle = new ExpenseTitle({
           userId: req.user._id,
@@ -205,7 +208,14 @@ router.put('/:id', protect, async (req, res) => {
       transaction.titleId = canonicalTitle._id;
     }
 
-    // Conditional logic for importance
+    if (date) {
+      transaction.date = new Date(date);
+    }
+
+    if (note !== undefined) {
+      transaction.note = note;
+    }
+
     if (transaction.type === 'expense') {
       if (importance) {
         transaction.importance = importance;
@@ -215,7 +225,7 @@ router.put('/:id', protect, async (req, res) => {
     }
 
     await transaction.save();
-    await transaction.populate('titleId');
+    await transaction.populate({ path: 'titleId', model: ExpenseTitle });
 
     res.json(transaction);
   } catch (error) {
@@ -233,7 +243,8 @@ router.delete('/:id', protect, async (req, res) => {
     if (!transaction) {
       return res.status(404).json({ message: 'Transaction not found' });
     }
-    res.json({ message: 'Transaction deleted successfully' });
+
+    res.json({ message: 'Transaction removed successfully' });
   } catch (error) {
     console.error('Error deleting transaction:', error.message);
     res.status(500).json({ message: 'Server error deleting transaction' });
@@ -275,12 +286,12 @@ router.get('/dashboard', protect, async (req, res) => {
     }
     
     // 2. Fetch the monthly summary to extract Opening Balance
-    let summary = await MonthlySummary.findOne({ spaceId, month: localYearMonth });
+    let summary = await MonthlySummary.findOne({ spaceId: spaceMatch, month: localYearMonth });
     if (!summary) {
       // Create a default monthly summary if one doesn't exist yet
       summary = new MonthlySummary({
         userId: req.user._id,
-        spaceId,
+        spaceId: spaceObjectId || spaceId,
         month: localYearMonth,
         openingBalance: 0,
         actualClosingBalance: 0,
@@ -296,7 +307,10 @@ router.get('/dashboard', protect, async (req, res) => {
       { 
         $match: { 
           spaceId: spaceMatch,
-          date: { $gte: dateRange.start, $lt: dateRange.end }
+          $or: [
+            { date: { $gte: dateRange.start, $lt: dateRange.end } },
+            { date: { $gte: dateRange.start.toISOString(), $lt: dateRange.end.toISOString() } }
+          ]
         } 
       },
       {
@@ -322,8 +336,7 @@ router.get('/dashboard', protect, async (req, res) => {
     const currentBalance = expectedClosing; // At active month, opening + net movements is current expected balance
 
     // 4. Calculate today's spending (respecting user timezone boundary)
-    // Match transactions whose string format date in user's timezone equals today's date
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone }); // e.g. "2026-07-31"
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone }); // e.g. "2026-11-16"
 
     const todayExpenses = await Transaction.aggregate([
       {
@@ -340,8 +353,15 @@ router.get('/dashboard', protect, async (req, res) => {
           dateStr: {
             $dateToString: {
               format: '%Y-%m-%d',
-              date: '$date',
-              timezone: timezone
+              date: {
+                $convert: {
+                  input: '$date',
+                  to: 'date',
+                  onError: new Date(),
+                  onNull: new Date()
+                }
+              },
+              timezone: timezone || 'UTC'
             }
           }
         }
@@ -356,8 +376,11 @@ router.get('/dashboard', protect, async (req, res) => {
     let todayTotalSpent = 0;
     const todayImportanceBreakdown = { essential: 0, moderate: 0, low_value: 0 };
     
-    // Resolve today's transactions details
-    const populatedTodayExpenses = await Transaction.populate(todayExpenses, { path: 'titleId' });
+    // Explicitly resolve today's transactions details with ExpenseTitle model
+    const populatedTodayExpenses = await Transaction.populate(todayExpenses, { 
+      path: 'titleId', 
+      model: ExpenseTitle 
+    });
 
     populatedTodayExpenses.forEach(tx => {
       todayTotalSpent += tx.amount;
@@ -366,11 +389,11 @@ router.get('/dashboard', protect, async (req, res) => {
       }
     });
 
-    // 5. Get recent transactions (limit 5)
-    const recentTransactions = await Transaction.find({ spaceId })
-      .populate('titleId')
+    // 5. Get recent transactions (limit 10)
+    const recentTransactions = await Transaction.find({ spaceId: spaceMatch })
+      .populate({ path: 'titleId', model: ExpenseTitle })
       .sort({ date: -1 })
-      .limit(5);
+      .limit(10);
 
     // 6. Generate dynamic financial insight for today
     let insight = '';
@@ -382,7 +405,6 @@ router.get('/dashboard', protect, async (req, res) => {
       const lowValueItems = populatedTodayExpenses.filter(tx => tx.importance === 'low_value');
       let lowestValueSpendText = '';
       if (lowValueItems.length > 0) {
-        // sort by amount desc or find specific item
         const lowestItem = lowValueItems.reduce((prev, current) => (prev.amount < current.amount) ? prev : current);
         lowestValueSpendText = ` Your ₹${lowestItem.amount} ${lowestItem.titleId?.displayName || 'spend'} was your lowest-value spend today.`;
       }
@@ -430,23 +452,24 @@ router.get('/analytics', protect, async (req, res) => {
     let startDate = new Date();
     
     if (period === 'day') {
-      // Last 7 days
-      startDate.setDate(now.getDate() - 30);
+      // Show every day of current month or at least 35 days back so earlier-month txns are fully included
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const thirtyFiveDaysAgo = new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000);
+      startDate = thirtyFiveDaysAgo < currentMonthStart ? thirtyFiveDaysAgo : currentMonthStart;
     } else if (period === 'week') {
-      // Last 8 weeks
-      startDate.setDate(now.getDate() - 56);
+      // Last 12 weeks
+      startDate = new Date(now.getTime() - 84 * 24 * 60 * 60 * 1000);
     } else if (period === 'month') {
-      // Last 6 months
-      startDate.setMonth(now.getMonth() - 6);
-    } else if (period === 'year') {
       // Last 12 months
-      startDate.setFullYear(now.getFullYear() - 1);
+      startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    } else if (period === 'year') {
+      // Last 5 years
+      startDate = new Date(now.getFullYear() - 4, 0, 1);
     } else {
-      startDate.setMonth(now.getMonth() - 1); // fallback
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1); // fallback
     }
 
     // 1. Earned vs Spent vs Investment vs Savings trends
-    // Let's group based on period
     let groupFormat = '%Y-%m-%d';
     if (period === 'week') groupFormat = '%Y-W%V';
     if (period === 'month' || period === 'year') groupFormat = '%Y-%m';
@@ -455,7 +478,10 @@ router.get('/analytics', protect, async (req, res) => {
       { 
         $match: { 
           spaceId: spaceMatch,
-          date: { $gte: startDate }
+          $or: [
+            { date: { $gte: startDate } },
+            { date: { $gte: startDate.toISOString() } }
+          ]
         } 
       },
       {
@@ -464,8 +490,15 @@ router.get('/analytics', protect, async (req, res) => {
             period: {
               $dateToString: {
                 format: groupFormat,
-                date: '$date',
-                timezone: timezone
+                date: {
+                  $convert: {
+                    input: '$date',
+                    to: 'date',
+                    onError: new Date(),
+                    onNull: new Date()
+                  }
+                },
+                timezone: timezone || 'UTC'
               }
             },
             type: '$type'
@@ -476,7 +509,7 @@ router.get('/analytics', protect, async (req, res) => {
       { $sort: { '_id.period': 1 } }
     ]);
 
-    // Reshape trends for easy frontend chart intake: [{ label: '2026-07-25', earned: 100, spent: 50, investments: 20, savings: 10 }]
+    // Reshape trends for chart intake
     const trendMap = {};
     trends.forEach(item => {
       const periodLabel = item._id.period;
@@ -500,7 +533,10 @@ router.get('/analytics', protect, async (req, res) => {
         $match: {
           spaceId: spaceMatch,
           type: 'expense',
-          date: { $gte: startDate }
+          $or: [
+            { date: { $gte: startDate } },
+            { date: { $gte: startDate.toISOString() } }
+          ]
         }
       },
       {
@@ -530,7 +566,10 @@ router.get('/analytics', protect, async (req, res) => {
         $match: {
           spaceId: spaceMatch,
           type: 'expense',
-          date: { $gte: startDate }
+          $or: [
+            { date: { $gte: startDate } },
+            { date: { $gte: startDate.toISOString() } }
+          ]
         }
       },
       {
@@ -543,25 +582,32 @@ router.get('/analytics', protect, async (req, res) => {
       { $limit: 20 }
     ]);
 
-    // Populate titles display name
-    let topTitles = await ExpenseTitle.find({ _id: { $in: topTitlesAgg.map(t => t._id) } });
+    // Populate titles display name with explicit model
+    const topTitleIds = topTitlesAgg
+      .map(t => t._id)
+      .filter(Boolean)
+      .map(id => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id);
+
+    let topTitles = await ExpenseTitle.find({ _id: { $in: topTitleIds } });
     const topSpendingTitles = topTitlesAgg.map(item => {
       const match = topTitles.find(t => t._id.toString() === item._id?.toString());
       return {
-        name: match ? match.displayName : 'Miscellaneous',
+        name: match ? match.displayName : 'Other Expense',
         amount: item.total
       };
     });
 
     // 4. Repeated Low-Value / Wasteful Spending
-    // Expenses marked as low_value in the period grouped by title
     const wastefulAgg = await Transaction.aggregate([
       {
         $match: {
           spaceId: spaceMatch,
           type: 'expense',
           importance: 'low_value',
-          date: { $gte: startDate }
+          $or: [
+            { date: { $gte: startDate } },
+            { date: { $gte: startDate.toISOString() } }
+          ]
         }
       },
       {
@@ -575,7 +621,12 @@ router.get('/analytics', protect, async (req, res) => {
       { $limit: 20 }
     ]);
 
-    let wastefulTitles = await ExpenseTitle.find({ _id: { $in: wastefulAgg.map(w => w._id) } });
+    const wastefulTitleIds = wastefulAgg
+      .map(w => w._id)
+      .filter(Boolean)
+      .map(id => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id);
+
+    let wastefulTitles = await ExpenseTitle.find({ _id: { $in: wastefulTitleIds } });
     const repeatedWasteful = wastefulAgg.map(item => {
       const match = wastefulTitles.find(t => t._id.toString() === item._id?.toString());
       return {

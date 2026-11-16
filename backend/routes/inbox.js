@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { protect } = require('../middleware/auth');
 const NotificationEvent = require('../models/NotificationEvent');
 const PaymentAttempt = require('../models/PaymentAttempt');
@@ -88,13 +89,19 @@ router.post('/accept-match', protect, async (req, res) => {
     const { spaceId, importance, note, title } = req.body;
 
     const event = await NotificationEvent.findOne({
-      _id: notificationEventId,
       userId: req.user._id,
+      $or: [
+        { notificationId: notificationEventId },
+        ...(mongoose.Types.ObjectId.isValid(notificationEventId) ? [{ _id: new mongoose.Types.ObjectId(notificationEventId) }] : []),
+      ],
     });
 
     const attempt = await PaymentAttempt.findOne({
-      paymentAttemptId,
       userId: req.user._id,
+      $or: [
+        { paymentAttemptId },
+        ...(mongoose.Types.ObjectId.isValid(paymentAttemptId) ? [{ _id: new mongoose.Types.ObjectId(paymentAttemptId) }] : []),
+      ],
     });
 
     if (!event || !attempt) {
@@ -114,18 +121,21 @@ router.post('/accept-match', protect, async (req, res) => {
       return res.status(400).json({ message: 'No valid Space found for this user' });
     }
 
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(targetSpaceId) ? new mongoose.Types.ObjectId(targetSpaceId) : targetSpaceId;
+    const spaceMatch = mongoose.Types.ObjectId.isValid(targetSpaceId) ? { $in: [spaceObjectId, targetSpaceId.toString()] } : targetSpaceId;
+
     const titleStr = title || event.counterparty || attempt.payeeName || 'UPI Payment';
     const normalizedName = titleStr.toLowerCase().trim();
 
     let canonicalTitle = await ExpenseTitle.findOne({
-      spaceId: targetSpaceId,
+      spaceId: spaceMatch,
       normalizedName,
     });
 
     if (!canonicalTitle) {
       canonicalTitle = new ExpenseTitle({
         userId: req.user._id,
-        spaceId: targetSpaceId,
+        spaceId: spaceObjectId,
         normalizedName,
         displayName: formatDisplayName(titleStr),
       });
@@ -136,7 +146,7 @@ router.post('/accept-match', protect, async (req, res) => {
 
     const transaction = new Transaction({
       userId: req.user._id,
-      spaceId: targetSpaceId,
+      spaceId: spaceObjectId,
       type: txType,
       amount: event.amount,
       titleId: canonicalTitle._id,
@@ -146,6 +156,7 @@ router.post('/accept-match', protect, async (req, res) => {
     });
 
     await transaction.save();
+    await transaction.populate({ path: 'titleId', model: ExpenseTitle });
 
     // Link records
     event.status = 'LINKED';
@@ -191,6 +202,9 @@ router.post('/convert', protect, async (req, res) => {
       return res.status(400).json({ message: 'No valid Space found for this user' });
     }
 
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(targetSpaceId) ? new mongoose.Types.ObjectId(targetSpaceId) : targetSpaceId;
+    const spaceMatch = mongoose.Types.ObjectId.isValid(targetSpaceId) ? { $in: [spaceObjectId, targetSpaceId.toString()] } : targetSpaceId;
+
     let amount = 0;
     let resolvedDate = date ? new Date(date) : new Date();
     let defaultTitle = 'Payment';
@@ -200,17 +214,29 @@ router.post('/convert', protect, async (req, res) => {
     let attemptRecord = null;
 
     if (source === 'notification') {
-      eventRecord = await NotificationEvent.findOne({ _id: id, userId: req.user._id });
+      eventRecord = await NotificationEvent.findOne({
+        userId: req.user._id,
+        $or: [
+          ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
+          { notificationId: id },
+        ],
+      });
       if (!eventRecord) return res.status(404).json({ message: 'Notification event not found' });
       amount = eventRecord.amount;
-      resolvedDate = eventRecord.timestamp;
+      resolvedDate = eventRecord.timestamp || resolvedDate;
       defaultTitle = eventRecord.counterparty || 'UPI Transaction';
       txType = eventRecord.type === 'CREDIT' ? 'income' : 'expense';
     } else if (source === 'payment_attempt' || source === 'attempt') {
-      attemptRecord = await PaymentAttempt.findOne({ paymentAttemptId: id, userId: req.user._id });
+      attemptRecord = await PaymentAttempt.findOne({
+        userId: req.user._id,
+        $or: [
+          { paymentAttemptId: id },
+          ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
+        ],
+      });
       if (!attemptRecord) return res.status(404).json({ message: 'Payment attempt not found' });
       amount = attemptRecord.amount;
-      resolvedDate = attemptRecord.initiatedAt;
+      resolvedDate = attemptRecord.initiatedAt || resolvedDate;
       defaultTitle = attemptRecord.payeeName || 'UPI Payment';
       txType = attemptRecord.type || 'expense';
     }
@@ -219,14 +245,14 @@ router.post('/convert', protect, async (req, res) => {
     const normalizedName = titleStr.toLowerCase().trim();
 
     let canonicalTitle = await ExpenseTitle.findOne({
-      spaceId: targetSpaceId,
+      spaceId: spaceMatch,
       normalizedName,
     });
 
     if (!canonicalTitle) {
       canonicalTitle = new ExpenseTitle({
         userId: req.user._id,
-        spaceId: targetSpaceId,
+        spaceId: spaceObjectId,
         normalizedName,
         displayName: formatDisplayName(titleStr),
       });
@@ -235,7 +261,7 @@ router.post('/convert', protect, async (req, res) => {
 
     const transaction = new Transaction({
       userId: req.user._id,
-      spaceId: targetSpaceId,
+      spaceId: spaceObjectId,
       type: txType,
       amount,
       titleId: canonicalTitle._id,
@@ -245,6 +271,7 @@ router.post('/convert', protect, async (req, res) => {
     });
 
     await transaction.save();
+    await transaction.populate({ path: 'titleId', model: ExpenseTitle });
 
     if (eventRecord) {
       eventRecord.status = 'LINKED';
@@ -274,9 +301,19 @@ router.post('/dismiss', protect, async (req, res) => {
     const id = req.body.id || req.body.itemId;
     const source = req.body.source || req.body.itemType;
 
+    if (!id) {
+      return res.status(400).json({ message: 'id is required' });
+    }
+
     if (source === 'notification') {
       await NotificationEvent.findOneAndUpdate(
-        { _id: id, userId: req.user._id },
+        {
+          userId: req.user._id,
+          $or: [
+            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
+            { notificationId: id },
+          ],
+        },
         { status: 'DISMISSED' }
       );
     } else if (source === 'payment_attempt' || source === 'attempt') {
@@ -285,7 +322,29 @@ router.post('/dismiss', protect, async (req, res) => {
           userId: req.user._id,
           $or: [
             { paymentAttemptId: id },
-            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: id }] : []),
+            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
+          ],
+        },
+        { status: 'FAILED' }
+      );
+    } else {
+      // If source wasn't strictly specified, try dismissing in either
+      await NotificationEvent.findOneAndUpdate(
+        {
+          userId: req.user._id,
+          $or: [
+            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
+            { notificationId: id },
+          ],
+        },
+        { status: 'DISMISSED' }
+      );
+      await PaymentAttempt.findOneAndUpdate(
+        {
+          userId: req.user._id,
+          $or: [
+            { paymentAttemptId: id },
+            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
           ],
         },
         { status: 'FAILED' }

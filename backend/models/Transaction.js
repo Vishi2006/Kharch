@@ -1,4 +1,8 @@
 const mongoose = require('mongoose');
+// Ensure ExpenseTitle and Space models are registered for populate references
+require('./ExpenseTitle');
+require('./Space');
+require('./User');
 
 const TransactionSchema = new mongoose.Schema({
   userId: {
@@ -49,7 +53,9 @@ const TransactionSchema = new mongoose.Schema({
   },
 });
 
-// Compound indexes for history sorting and search filters
+// Indexes for high performance querying
 TransactionSchema.index({ spaceId: 1, date: -1 });
+TransactionSchema.index({ spaceId: 1, type: 1, date: -1 });
+TransactionSchema.index({ spaceId: 1, titleId: 1 });
 
-module.exports = mongoose.model('Transaction', TransactionSchema);
+module.exports = mongoose.models.Transaction || mongoose.model('Transaction', TransactionSchema);
