@@ -5,8 +5,9 @@ import '../widgets/arcade_card.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final AppState appState;
+  final bool isEmbedded;
 
-  const AnalyticsScreen({super.key, required this.appState});
+  const AnalyticsScreen({super.key, required this.appState, this.isEmbedded = false});
 
   @override
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
@@ -61,17 +62,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       appBar: AppBar(
         backgroundColor: ArcadeTheme.darkCanvas,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureWhite),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
+        leading: widget.isEmbedded
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
+                onPressed: () => Navigator.pop(context),
+              ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'ANALYTICS & TRENDS',
               style: TextStyle(
-                color: ArcadeTheme.acidYellow,
+                color: ArcadeTheme.pureBlack,
                 fontWeight: FontWeight.w900,
                 fontSize: 16,
                 letterSpacing: 0.8,
@@ -80,7 +84,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             Text(
               activeSpace?['name'] ?? 'Personal Life',
               style: const TextStyle(
-                color: ArcadeTheme.slateMuted,
+                color: ArcadeTheme.slateDark,
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
               ),

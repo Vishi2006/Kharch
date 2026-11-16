@@ -80,13 +80,13 @@ class _InboxScreenState extends State<InboxScreen> {
         backgroundColor: ArcadeTheme.darkCanvas,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureWhite),
+          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'INBOX',
           style: TextStyle(
-            color: ArcadeTheme.acidYellow,
+            color: ArcadeTheme.pureBlack,
             fontWeight: FontWeight.w900,
             fontSize: 18,
             letterSpacing: 0.8,

@@ -4,6 +4,7 @@ import '../providers/app_state.dart';
 import '../theme/arcade_theme.dart';
 import '../widgets/arcade_button.dart';
 import '../widgets/arcade_card.dart';
+import '../widgets/google_logo.dart';
 import '../widgets/kharch_logo.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -60,41 +61,70 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Punch Pink Neo-Brutal Tag
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: ArcadeTheme.punchPink,
+                    borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
+                    border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
+                    boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2.5, 2.5)),
+                  ),
+                  child: const Text(
+                    '✦ SMART EXPENSE VAULT ✦',
+                    style: TextStyle(
+                      color: ArcadeTheme.pureWhite,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 // Clean App Logo
                 const KharchLogo(size: 88),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // App Title & Tagline matching PWA
+                // App Title & Tagline
                 const Text(
                   'Kharch',
                   style: TextStyle(
-                    color: ArcadeTheme.pureWhite,
+                    color: ArcadeTheme.pureBlack,
                     fontSize: 34,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Where did your money go?',
-                  style: TextStyle(
-                    color: ArcadeTheme.acidYellow,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: ArcadeTheme.punchPink,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+                  ),
+                  child: const Text(
+                    'Where did your money go?',
+                    style: TextStyle(
+                      color: ArcadeTheme.pureWhite,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 const Text(
                   'Personal finance, cashflow & smart auto-capture',
                   style: TextStyle(
-                    color: ArcadeTheme.slateMuted,
+                    color: ArcadeTheme.slateDark,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 32),
 
-                // Clean Login Card in Wyb Neo-Brutal styling
+                // Clean Login Card in Neo-Brutal styling
                 ArcadeCard(
                   fillColor: ArcadeTheme.darkCard,
                   padding: const EdgeInsets.all(24),
@@ -120,26 +150,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Slide-to-Unlock Slider (PWA gesture in Wyb style)
+                      // Slide-to-Unlock Slider with Punch Pink Touch & Authentic Google Logo
                       if (!_isUnlocked)
                         Container(
                           width: _sliderWidth,
-                          height: 56,
+                          height: 58,
                           decoration: BoxDecoration(
                             color: ArcadeTheme.darkCardLight,
                             borderRadius: BorderRadius.circular(100),
-                            border: Border.all(color: ArcadeTheme.pureBlack, width: 2.5),
+                            border: Border.all(color: ArcadeTheme.punchPink, width: 2.5),
+                            boxShadow: ArcadeTheme.neoShadow(offset: const Offset(3, 3)),
                           ),
                           child: Stack(
                             children: [
                               const Center(
                                 child: Text(
-                                  'SLIDE TO SIGN IN ▶▶',
+                                  'SLIDE TO SIGN IN',
                                   style: TextStyle(
                                     color: ArcadeTheme.slateMuted,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 12,
-                                    letterSpacing: 1.0,
+                                    letterSpacing: 1.2,
                                   ),
                                 ),
                               ),
@@ -174,24 +205,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       border: Border.all(color: ArcadeTheme.pureBlack, width: 2.5),
                                       boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
                                     ),
-                                    child: Center(
-                                      child: Container(
-                                        width: 22,
-                                        height: 22,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Center(
-                                          child: Text(
-                                            'G',
-                                            style: TextStyle(
-                                              color: Color(0xFF4285F4),
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                    child: const Center(
+                                      child: GoogleLogo(size: 26),
                                     ),
                                   ),
                                 ),

@@ -6,15 +6,22 @@ class ArcadeTheme {
   static const Color arcadeViolet = Color(0xFF8B5CF6);
   static const Color deepViolet = Color(0xFF6D28D9);
   static const Color neonCyan = Color(0xFF00F0FF);
-  static const Color punchPink = Color(0xFFFF3B81);
+  static const Color punchPink = Color(0xFFFF2E93); // Vibrant Neo-Brutalist Punch Pink
+  static const Color punchPinkLight = Color(0xFFFFE5EE);
   static const Color arcadeGreen = Color(0xFF00E676);
-  static const Color darkCanvas = Color(0xFF222634); // Brighter slate canvas so bold black borders & neon accents pop sharply
-  static const Color darkCard = Color(0xFF161923); // High-contrast container fill
+  
+  // Warm Beige / Off-White Canvas for authentic high-contrast Neo-Brutalism
+  static const Color lightCanvas = Color(0xFFF7F4EB); // Warm off-white / light beige canvas
+  static const Color darkCanvas = Color(0xFFF7F4EB);  // Primary app background
+  static const Color darkCard = Color(0xFF1E2230);    // High-contrast container fill
   static const Color darkCardLight = Color(0xFF2C3242); // Elevated card container
+  static const Color cardWhite = Color(0xFFFFFFFF);
   static const Color pureBlack = Color(0xFF000000);
   static const Color pureWhite = Color(0xFFFFFFFF);
   static const Color creamWhite = Color(0xFFFFFBEA);
   static const Color slateMuted = Color(0xFF94A3B8);
+  static const Color slateDark = Color(0xFF475569);
+  static const Color textDark = Color(0xFF0F172A);
 
   // Border & Shadow Specs
   static const double borderWidth = 2.5;

@@ -5,10 +5,15 @@ const morgan = require('morgan');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
+const path = require('path');
 
-// Load environment variables
+// Load environment variables from multiple search paths
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 dotenv.config();
+
+const connectDB = require('./config/db');
 
 // Connect DB (non-blocking for serverless warm up)
 connectDB().catch((err) => console.error('Initial DB connection attempt:', err.message));

@@ -138,20 +138,13 @@ class _QrPayScreenState extends State<QrPayScreen> {
                     onDetect: _onDetect,
                   ),
 
-                  // Retro Target Viewfinder Overlay
+                  // Retro Target Viewfinder Overlay (clean border only, completely unobstructed camera preview)
                   Container(
                     width: 250,
                     height: 250,
                     decoration: BoxDecoration(
                       border: Border.all(color: ArcadeTheme.acidYellow, width: 3),
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: ArcadeTheme.acidYellow.withValues(alpha: 0.3),
-                          blurRadius: 16,
-                          spreadRadius: 2,
-                        ),
-                      ],
                     ),
                   ),
 
