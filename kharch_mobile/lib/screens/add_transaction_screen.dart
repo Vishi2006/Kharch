@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../providers/app_state.dart';
 import '../theme/arcade_theme.dart';
 import '../widgets/arcade_button.dart';
@@ -39,6 +40,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _onKeypadTap(String val) {
+    HapticFeedback.lightImpact();
     setState(() {
       if (val == 'C') {
         _amountStr = '0';

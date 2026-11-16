@@ -215,6 +215,7 @@ class AppState extends ChangeNotifier {
     if (_activeSpace != null) {
       await refreshDashboard();
       await refreshInbox();
+      await fetchAnalytics();
     }
     notifyListeners();
   }
@@ -321,6 +322,7 @@ class AppState extends ChangeNotifier {
     final res = await _api.post('/api/transactions', body);
     if (res['error'] == null) {
       await refreshDashboard();
+      await fetchAnalytics();
       return true;
     }
     return false;
@@ -344,7 +346,9 @@ class AppState extends ChangeNotifier {
 
     final res = await _api.post('/api/inbox/accept-match', {
       'eventId': eventId,
+      'notificationEventId': eventId,
       'attemptId': attemptId,
+      'paymentAttemptId': attemptId,
       'spaceId': _activeSpace!['_id'],
       'title': title,
       'importance': importance,
@@ -367,7 +371,9 @@ class AppState extends ChangeNotifier {
     if (_activeSpace == null) return false;
 
     final res = await _api.post('/api/inbox/convert', {
+      'id': itemId,
       'itemId': itemId,
+      'source': itemType == 'attempt' ? 'payment_attempt' : itemType,
       'itemType': itemType,
       'spaceId': _activeSpace!['_id'],
       'title': title,
@@ -377,6 +383,7 @@ class AppState extends ChangeNotifier {
     if (res['error'] == null) {
       await refreshInbox();
       await refreshDashboard();
+      await fetchAnalytics();
       return true;
     }
     return false;
@@ -384,7 +391,9 @@ class AppState extends ChangeNotifier {
 
   Future<bool> dismissInboxItem(String itemId, String itemType) async {
     final res = await _api.post('/api/inbox/dismiss', {
+      'id': itemId,
       'itemId': itemId,
+      'source': itemType == 'attempt' ? 'payment_attempt' : itemType,
       'itemType': itemType,
     });
 

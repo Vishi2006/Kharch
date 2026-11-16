@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import '../providers/app_state.dart';
 import '../theme/arcade_theme.dart';
@@ -16,13 +17,14 @@ class InboxScreen extends StatefulWidget {
 
 class _InboxScreenState extends State<InboxScreen> {
   String _activeTab = 'matches'; // 'matches' | 'unmatched'
-  bool _isActioning = false;
+  String? _actioningKey;
 
   void _handleAcceptMatch(Map<String, dynamic> match) async {
-    setState(() => _isActioning = true);
-
     final eventId = match['event']?['_id'] ?? '';
     final attemptId = match['suggestedAttempt']?['_id'] ?? '';
+    HapticFeedback.lightImpact();
+    setState(() => _actioningKey = 'accept_$eventId');
+
     final title = match['event']?['counterparty'] ??
         match['suggestedAttempt']?['payeeName'] ??
         'UPI Payment';
@@ -35,14 +37,15 @@ class _InboxScreenState extends State<InboxScreen> {
     );
 
     if (mounted) {
-      setState(() => _isActioning = false);
+      setState(() => _actioningKey = null);
     }
   }
 
   void _handleConvertUnmatched(Map<String, dynamic> item) async {
-    setState(() => _isActioning = true);
-
     final itemId = item['_id'] ?? '';
+    HapticFeedback.lightImpact();
+    setState(() => _actioningKey = 'convert_$itemId');
+
     final title = item['counterparty'] ?? item['payeeName'] ?? 'UPI Transaction';
 
     await widget.appState.convertInboxItem(
@@ -53,15 +56,16 @@ class _InboxScreenState extends State<InboxScreen> {
     );
 
     if (mounted) {
-      setState(() => _isActioning = false);
+      setState(() => _actioningKey = null);
     }
   }
 
   void _handleDismiss(String itemId, String itemType) async {
-    setState(() => _isActioning = true);
+    HapticFeedback.lightImpact();
+    setState(() => _actioningKey = 'dismiss_$itemId');
     await widget.appState.dismissInboxItem(itemId, itemType);
     if (mounted) {
-      setState(() => _isActioning = false);
+      setState(() => _actioningKey = null);
     }
   }
 
@@ -186,13 +190,13 @@ class _InboxScreenState extends State<InboxScreen> {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.mark_email_read_rounded, color: ArcadeTheme.arcadeGreen, size: 52),
+          children: [
+            const Icon(Icons.mark_email_read_rounded, color: ArcadeTheme.arcadeGreen, size: 52),
             SizedBox(height: 12),
             Text(
               'INBOX IS CLEAR',
-              style: TextStyle(
-                color: ArcadeTheme.pureWhite,
+              style: const TextStyle(
+                color: ArcadeTheme.punchPink,
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
               ),
@@ -327,7 +331,7 @@ class _InboxScreenState extends State<InboxScreen> {
                       fontSize: 12,
                       backgroundColor: ArcadeTheme.arcadeGreen,
                       textColor: ArcadeTheme.pureBlack,
-                      isLoading: _isActioning,
+                      isLoading: _actioningKey == 'accept_${event['_id']}',
                       loadingText: 'Merging...',
                       onTap: () => _handleAcceptMatch(match),
                     ),
@@ -339,7 +343,8 @@ class _InboxScreenState extends State<InboxScreen> {
                     fontSize: 12,
                     backgroundColor: ArcadeTheme.darkCardLight,
                     textColor: ArcadeTheme.pureWhite,
-                    isLoading: _isActioning,
+                    isLoading: _actioningKey == 'dismiss_${event['_id']}',
+                    loadingText: 'Dismissing...',
                     onTap: () => _handleDismiss(event['_id'], 'notification'),
                   ),
                 ],
@@ -356,14 +361,14 @@ class _InboxScreenState extends State<InboxScreen> {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.check_circle_outline_rounded,
+          children: [
+            const Icon(Icons.check_circle_outline_rounded,
                 color: ArcadeTheme.arcadeGreen, size: 52),
             SizedBox(height: 12),
             Text(
               'NO UNRESOLVED ITEMS',
-              style: TextStyle(
-                color: ArcadeTheme.pureWhite,
+              style: const TextStyle(
+                color: ArcadeTheme.punchPink,
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
               ),
@@ -421,7 +426,7 @@ class _InboxScreenState extends State<InboxScreen> {
                       fontSize: 11,
                       backgroundColor: ArcadeTheme.acidYellow,
                       textColor: ArcadeTheme.pureBlack,
-                      isLoading: _isActioning,
+                      isLoading: _actioningKey == 'convert_${item['_id']}',
                       loadingText: 'Recording...',
                       onTap: () => _handleConvertUnmatched(item),
                     ),
@@ -433,7 +438,8 @@ class _InboxScreenState extends State<InboxScreen> {
                     fontSize: 11,
                     backgroundColor: ArcadeTheme.darkCardLight,
                     textColor: ArcadeTheme.slateMuted,
-                    isLoading: _isActioning,
+                    isLoading: _actioningKey == 'dismiss_${item['_id']}',
+                    loadingText: 'Ignoring...',
                     onTap: () => _handleDismiss(
                       item['_id'],
                       item['counterparty'] != null ? 'notification' : 'attempt',

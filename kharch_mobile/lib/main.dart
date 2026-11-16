@@ -67,7 +67,7 @@ class _KharchAppState extends State<KharchApp> {
                     KharchLogo(size: 72),
                     SizedBox(height: 24),
                     CuteCoinLoader(
-                      message: 'Booting Arcade Vault...',
+                      message: 'Compiling your transactions...',
                       coinSize: 28,
                     ),
                   ],
