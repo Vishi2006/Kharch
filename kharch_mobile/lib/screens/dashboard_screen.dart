@@ -158,7 +158,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: ArcadeTheme.punchPink,
                           fontWeight: FontWeight.w800,
                           fontSize: 11,
-                          decoration: TextDecoration.underline,
                         ),
                       ),
                     ],
@@ -219,12 +218,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.warning_amber_rounded, color: ArcadeTheme.acidYellow, size: 18),
+                          const Icon(Icons.warning_amber_rounded, color: ArcadeTheme.pureBlack, size: 18),
                           const SizedBox(width: 6),
                           Text(
                             'Set $monthStr Opening Balance',
                             style: const TextStyle(
-                              color: ArcadeTheme.acidYellow,
+                              color: ArcadeTheme.pureBlack,
                               fontWeight: FontWeight.w900,
                               fontSize: 13,
                             ),
@@ -343,7 +342,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.shield_rounded, size: 11, color: ArcadeTheme.pureBlack),
+                                Icon(Icons.shield_rounded, size: 11, color: ArcadeTheme.punchPink),
                                 SizedBox(width: 4),
                                 Text(
                                   'AUDIT VAULT →',
@@ -501,7 +500,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: ArcadeTheme.punchPink,
                           fontWeight: FontWeight.w900,
                           fontSize: 11,
-                          decoration: TextDecoration.underline,
                         ),
                       ),
                     ),
@@ -512,7 +510,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               // 4. Today's Spend Breakdown & AI Insight Card (Pink Neo-Brutal background)
               ArcadeCard(
-                fillColor: const Color(0xFFFFD9E8),
+                fillColor: ArcadeTheme.acidYellow,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -765,7 +763,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildSpendLegend(String label, double val, Color color) {
     return Row(
       children: [
-        Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5))),
         const SizedBox(width: 4),
         Text(
           '$label (₹${val.toStringAsFixed(0)})',
