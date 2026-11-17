@@ -402,7 +402,12 @@ class _InboxScreenState extends State<InboxScreen> {
                     textColor: ArcadeTheme.pureWhite,
                     isLoading: _actioningKey == 'dismiss_${event['_id']}',
                     loadingText: 'Dismissing...',
-                    onTap: () => _handleDismiss(event['_id'], 'notification'),
+                    onTap: () {
+                      final eventId = (event['_id'] ?? event['notificationId'] ?? '').toString();
+                      final attemptId = (attempt['paymentAttemptId'] ?? attempt['_id'] ?? '').toString();
+                      if (eventId.isNotEmpty) _handleDismiss(eventId, 'notification');
+                      if (attemptId.isNotEmpty) _handleDismiss(attemptId, 'payment_attempt');
+                    },
                   ),
                 ],
               ),
@@ -497,10 +502,13 @@ class _InboxScreenState extends State<InboxScreen> {
                     textColor: ArcadeTheme.slateMuted,
                     isLoading: _actioningKey == 'dismiss_${item['_id']}',
                     loadingText: 'Ignoring...',
-                    onTap: () => _handleDismiss(
-                      item['_id'],
-                      item['counterparty'] != null ? 'notification' : 'attempt',
-                    ),
+                    onTap: () {
+                      final itemId = (item['paymentAttemptId'] ?? item['_id'] ?? '').toString();
+                      _handleDismiss(
+                        itemId,
+                        item['counterparty'] != null ? 'notification' : 'payment_attempt',
+                      );
+                    },
                   ),
                 ],
               ),

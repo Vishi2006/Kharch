@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { connectDB } from '@/lib/mongodb';
 import { getAuthenticatedUser, unauthorized } from '@/lib/auth';
 import NotificationEvent from '@/models/NotificationEvent';
@@ -13,19 +14,38 @@ export async function POST(request) {
   await connectDB();
 
   try {
-    const { id, source } = await request.json();
+    const body = await request.json();
+    const id = body.id || body.itemId;
 
-    if (source === 'notification') {
-      await NotificationEvent.findOneAndUpdate(
-        { _id: id, userId: auth.user._id },
-        { status: 'DISMISSED' }
-      );
-    } else if (source === 'payment_attempt') {
-      await PaymentAttempt.findOneAndUpdate(
-        { paymentAttemptId: id, userId: auth.user._id },
-        { status: 'FAILED' }
-      );
+    if (!id) {
+      return NextResponse.json({ message: 'id is required' }, { status: 400 });
     }
+
+    const objectIdCheck = mongoose.Types.ObjectId.isValid(id)
+      ? [{ _id: new mongoose.Types.ObjectId(id) }]
+      : [];
+
+    await NotificationEvent.updateMany(
+      {
+        $or: [
+          ...objectIdCheck,
+          { notificationId: id },
+        ],
+        userId: auth.user._id,
+      },
+      { status: 'DISMISSED' }
+    );
+
+    await PaymentAttempt.updateMany(
+      {
+        $or: [
+          { paymentAttemptId: id },
+          ...objectIdCheck,
+        ],
+        userId: auth.user._id,
+      },
+      { status: 'FAILED' }
+    );
 
     return NextResponse.json({ success: true, message: 'Item dismissed' });
   } catch (error) {

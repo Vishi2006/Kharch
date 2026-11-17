@@ -410,18 +410,43 @@ class AppState extends ChangeNotifier {
   }
 
   Future<bool> dismissInboxItem(String itemId, String itemType) async {
+    // 1. Optimistically remove from inbox data in memory so UI reflects immediately
+    if (_inboxData != null) {
+      if (_inboxData!['unknownAttempts'] is List) {
+        (_inboxData!['unknownAttempts'] as List).removeWhere(
+          (x) => x['_id']?.toString() == itemId || x['paymentAttemptId']?.toString() == itemId,
+        );
+      }
+      if (_inboxData!['unmatchedEvents'] is List) {
+        (_inboxData!['unmatchedEvents'] as List).removeWhere(
+          (x) => x['_id']?.toString() == itemId || x['notificationId']?.toString() == itemId,
+        );
+      }
+      if (_inboxData!['mediumMatches'] is List) {
+        (_inboxData!['mediumMatches'] as List).removeWhere(
+          (x) =>
+              x['event']?['_id']?.toString() == itemId ||
+              x['event']?['notificationId']?.toString() == itemId ||
+              x['suggestedAttempt']?['_id']?.toString() == itemId ||
+              x['suggestedAttempt']?['paymentAttemptId']?.toString() == itemId,
+        );
+      }
+      final mm = (_inboxData!['mediumMatches'] as List?)?.length ?? 0;
+      final ue = (_inboxData!['unmatchedEvents'] as List?)?.length ?? 0;
+      final ua = (_inboxData!['unknownAttempts'] as List?)?.length ?? 0;
+      _inboxData!['unreadCount'] = mm + ue + ua;
+      notifyListeners();
+    }
+
     final res = await _api.post('/api/inbox/dismiss', {
       'id': itemId,
       'itemId': itemId,
-      'source': itemType == 'attempt' ? 'payment_attempt' : itemType,
-      'itemType': itemType,
+      'source': (itemType == 'attempt' || itemType == 'payment_attempt') ? 'payment_attempt' : 'notification',
+      'itemType': (itemType == 'attempt' || itemType == 'payment_attempt') ? 'payment_attempt' : 'notification',
     });
 
-    if (res['error'] == null) {
-      await refreshInbox();
-      return true;
-    }
-    return false;
+    await refreshInbox();
+    return res['error'] == null;
   }
 
   Future<void> refreshSummary() async {

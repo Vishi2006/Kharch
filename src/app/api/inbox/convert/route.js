@@ -51,15 +51,29 @@ export async function POST(request) {
     let eventRecord = null;
     let attemptRecord = null;
 
+    const objectIdCheck = mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : [];
+
     if (source === 'notification') {
-      eventRecord = await NotificationEvent.findOne({ _id: id, userId: auth.user._id });
+      eventRecord = await NotificationEvent.findOne({
+        $or: [
+          ...objectIdCheck,
+          { notificationId: id },
+        ],
+        userId: auth.user._id,
+      });
       if (!eventRecord) return NextResponse.json({ message: 'Notification event not found' }, { status: 404 });
       amount = eventRecord.amount;
       resolvedDate = eventRecord.timestamp;
       defaultTitle = eventRecord.counterparty || 'UPI Transaction';
       txType = eventRecord.type === 'CREDIT' ? 'income' : 'expense';
-    } else if (source === 'payment_attempt') {
-      attemptRecord = await PaymentAttempt.findOne({ paymentAttemptId: id, userId: auth.user._id });
+    } else {
+      attemptRecord = await PaymentAttempt.findOne({
+        $or: [
+          { paymentAttemptId: id },
+          ...objectIdCheck,
+        ],
+        userId: auth.user._id,
+      });
       if (!attemptRecord) return NextResponse.json({ message: 'Payment attempt not found' }, { status: 404 });
       amount = attemptRecord.amount;
       resolvedDate = attemptRecord.initiatedAt;
