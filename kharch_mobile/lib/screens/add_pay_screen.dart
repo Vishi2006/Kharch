@@ -12,8 +12,16 @@ import '../widgets/arcade_card.dart';
 class AddPayScreen extends StatefulWidget {
   final AppState appState;
   final int initialTab; // 0: Manual Add, 1: Scan & Pay
+  final bool isEmbedded;
+  final VoidCallback? onBackOrDone;
 
-  const AddPayScreen({super.key, required this.appState, this.initialTab = 1});
+  const AddPayScreen({
+    super.key,
+    required this.appState,
+    this.initialTab = 1,
+    this.isEmbedded = false,
+    this.onBackOrDone,
+  });
 
   @override
   State<AddPayScreen> createState() => _AddPayScreenState();
@@ -26,21 +34,36 @@ class _AddPayScreenState extends State<AddPayScreen> {
   String _amountStr = '0';
   String _type = 'expense'; // 'expense' | 'income' | 'investment' | 'savings'
   String _importance = 'essential'; // 'essential' | 'moderate' | 'low_value'
-  String _selectedCategory = 'Food';
+  String _selectedCategory = 'Fast Food';
   final TextEditingController _customTitleCtrl = TextEditingController();
   final TextEditingController _noteCtrl = TextEditingController();
   bool _isSaving = false;
 
-  final List<Map<String, dynamic>> _categories = [
-    {'name': 'Food', 'icon': Icons.restaurant_rounded},
-    {'name': 'Transit', 'icon': Icons.directions_car_rounded},
+  // 15-20 Curated Daily Life Title Chips + Other
+  final List<Map<String, dynamic>> _coreCategories = [
+    {'name': 'Transportation', 'icon': Icons.directions_car_rounded},
     {'name': 'Groceries', 'icon': Icons.shopping_cart_rounded},
+    {'name': 'Fast Food', 'icon': Icons.fastfood_rounded},
     {'name': 'Chai Pani', 'icon': Icons.local_cafe_rounded},
     {'name': 'Shopping', 'icon': Icons.shopping_bag_rounded},
     {'name': 'Home', 'icon': Icons.home_rounded},
     {'name': 'Salary', 'icon': Icons.account_balance_wallet_rounded},
+    {'name': 'Udhari', 'icon': Icons.handshake_rounded},
     {'name': 'Tech', 'icon': Icons.devices_rounded},
+    {'name': 'Dining', 'icon': Icons.restaurant_rounded},
+    {'name': 'Fuel', 'icon': Icons.local_gas_station_rounded},
+    {'name': 'Rent', 'icon': Icons.apartment_rounded},
+    {'name': 'Bills', 'icon': Icons.receipt_long_rounded},
+    {'name': 'Healthcare', 'icon': Icons.medical_services_rounded},
+    {'name': 'Entertainment', 'icon': Icons.movie_creation_rounded},
+    {'name': 'Investment', 'icon': Icons.trending_up_rounded},
+    {'name': 'Education', 'icon': Icons.school_rounded},
+    {'name': 'Personal Care', 'icon': Icons.spa_rounded},
+    {'name': 'Other', 'icon': Icons.add_circle_outline_rounded},
   ];
+
+  // User created custom titles in current session
+  final Set<String> _userAddedTitles = {};
 
   // --- QR Pay State ---
   final MobileScannerController _scannerCtrl = MobileScannerController();
@@ -54,18 +77,14 @@ class _AddPayScreenState extends State<AddPayScreen> {
   void initState() {
     super.initState();
     _activeTab = widget.initialTab;
-    widget.appState.fetchTitles();
   }
 
   List<Map<String, dynamic>> _getAllCategories() {
-    final defaultNames = _categories.map((c) => c['name'] as String).toSet();
-    final list = List<Map<String, dynamic>>.from(_categories);
-    for (final t in widget.appState.titles) {
-      final name = (t['displayName'] ?? t['normalizedName'] ?? '').toString().trim();
-      if (name.isNotEmpty && !defaultNames.contains(name)) {
-        defaultNames.add(name);
-        list.add({
-          'name': name,
+    final list = List<Map<String, dynamic>>.from(_coreCategories);
+    for (final title in _userAddedTitles) {
+      if (!list.any((c) => c['name'] == title)) {
+        list.insert(list.length - 1, {
+          'name': title,
           'icon': Icons.label_important_outline_rounded,
         });
       }
@@ -111,11 +130,26 @@ class _AddPayScreenState extends State<AddPayScreen> {
 
   void _handleSaveManual() async {
     final amount = double.tryParse(_amountStr);
-    if (amount == null || amount <= 0) return;
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter an amount greater than ₹0', style: TextStyle(fontWeight: FontWeight.w900)),
+          backgroundColor: ArcadeTheme.punchPink,
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
 
-    final title = _customTitleCtrl.text.trim().isNotEmpty
-        ? _customTitleCtrl.text.trim()
-        : _selectedCategory;
+    String title = _customTitleCtrl.text.trim();
+    if (title.isEmpty) {
+      title = _selectedCategory == 'Other' ? 'Miscellaneous' : _selectedCategory;
+    } else {
+      // User entered custom title, keep in quick chips
+      _userAddedTitles.add(title);
+    }
+
+    final note = _noteCtrl.text.trim();
 
     setState(() => _isSaving = true);
 
@@ -124,12 +158,37 @@ class _AddPayScreenState extends State<AddPayScreen> {
       title: title,
       type: _type,
       importance: _importance,
+      note: note.isNotEmpty ? note : null,
     );
 
     if (mounted) {
-      setState(() => _isSaving = false);
+      setState(() {
+        _isSaving = false;
+        _amountStr = '0';
+        _customTitleCtrl.clear();
+        _noteCtrl.clear();
+      });
       if (success) {
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('TRANSACTION SAVED', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureBlack)),
+            backgroundColor: ArcadeTheme.arcadeGreen,
+            duration: Duration(seconds: 1),
+          ),
+        );
+        if (widget.isEmbedded) {
+          widget.onBackOrDone?.call();
+        } else {
+          Navigator.pop(context);
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('FAILED TO SAVE TRANSACTION', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureWhite)),
+            backgroundColor: ArcadeTheme.punchPink,
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
     }
   }
@@ -167,7 +226,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
     if (payeeVpa.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid UPI VPA / ID (e.g. merchant@okaxis)'),
+          content: Text('Please enter a valid UPI VPA / ID (e.g. merchant@okaxis)', style: TextStyle(fontWeight: FontWeight.w900)),
           backgroundColor: ArcadeTheme.punchPink,
         ),
       );
@@ -178,7 +237,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
     if (amtVal <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter an amount greater than ₹0'),
+          content: Text('Please enter an amount greater than ₹0', style: TextStyle(fontWeight: FontWeight.w900)),
           backgroundColor: ArcadeTheme.punchPink,
         ),
       );
@@ -188,16 +247,20 @@ class _AddPayScreenState extends State<AddPayScreen> {
     final payeeName = _payeeNameCtrl.text.trim().isNotEmpty
         ? _payeeNameCtrl.text.trim()
         : 'UPI Merchant';
-    final title = _customTitleCtrl.text.trim().isNotEmpty
-        ? _customTitleCtrl.text.trim()
-        : (_selectedCategory.isNotEmpty ? _selectedCategory : payeeName);
+
+    String title = _customTitleCtrl.text.trim();
+    if (title.isEmpty) {
+      title = _selectedCategory == 'Other' ? payeeName : _selectedCategory;
+    } else {
+      _userAddedTitles.add(title);
+    }
 
     HapticFeedback.selectionClick();
     setState(() => _isProcessing = true);
 
     final paymentAttemptId = 'att_${DateTime.now().millisecondsSinceEpoch}';
 
-    // 1. Asynchronous non-blocking payment attempt recording (zero UI/app delay)
+    // Asynchronous non-blocking payment attempt recording
     unawaited(
       ApiService.instance.post('/api/payment-attempts', {
         'paymentAttemptId': paymentAttemptId,
@@ -212,12 +275,11 @@ class _AddPayScreenState extends State<AddPayScreen> {
       }).catchError((e) => <String, dynamic>{'error': e.toString()}),
     );
 
-    // 2. Build UPI intent URI
+    // Build UPI intent URI
     final intentUri = Uri.parse(
       'upi://pay?pa=$payeeVpa&pn=${Uri.encodeComponent(payeeName)}&am=$amtVal&cu=INR&tr=$paymentAttemptId',
     );
 
-    // 3. Launch UPI App immediately
     try {
       final launched = await launchUrl(
         intentUri,
@@ -230,7 +292,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not open UPI app: $e'),
+            content: Text('Could not open UPI app: $e', style: const TextStyle(fontWeight: FontWeight.w900)),
             backgroundColor: ArcadeTheme.punchPink,
           ),
         );
@@ -245,26 +307,30 @@ class _AddPayScreenState extends State<AddPayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ArcadeTheme.darkCanvas,
+      backgroundColor: ArcadeTheme.lightCanvas,
       appBar: AppBar(
-        backgroundColor: ArcadeTheme.darkCanvas,
+        backgroundColor: ArcadeTheme.lightCanvas,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
+        leading: widget.isEmbedded
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
+                onPressed: () => Navigator.pop(context),
+              ),
         title: Container(
           decoration: BoxDecoration(
-            color: ArcadeTheme.darkCard,
+            color: ArcadeTheme.cardWhite,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
+            boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
           ),
           padding: const EdgeInsets.all(3),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildTopTab(0, 'ADD EXPENSE', Icons.edit_note_rounded),
               _buildTopTab(1, 'SCAN & PAY', Icons.qr_code_scanner_rounded),
+              _buildTopTab(0, 'MANUAL ADD', Icons.edit_note_rounded),
             ],
           ),
         ),
@@ -279,7 +345,10 @@ class _AddPayScreenState extends State<AddPayScreen> {
   Widget _buildTopTab(int tabIndex, String label, IconData icon) {
     final isSel = _activeTab == tabIndex;
     return GestureDetector(
-      onTap: () => setState(() => _activeTab = tabIndex),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _activeTab = tabIndex);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
@@ -292,13 +361,13 @@ class _AddPayScreenState extends State<AddPayScreen> {
             Icon(
               icon,
               size: 15,
-              color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.slateMuted,
+              color: ArcadeTheme.pureBlack,
             ),
             const SizedBox(width: 5),
             Text(
               label,
               style: TextStyle(
-                color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.slateMuted,
+                color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.slateDark,
                 fontWeight: FontWeight.w900,
                 fontSize: 11,
               ),
@@ -309,7 +378,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
     );
   }
 
-  // --- Manual Add Content ---
+  // --- Manual Add Content (Neo-Brutalist Light Style) ---
   Widget _buildManualAddView() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -330,16 +399,16 @@ class _AddPayScreenState extends State<AddPayScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Amount Display
+          // Amount Display Card (White Neo-Brutal Card)
           ArcadeCard(
-            fillColor: ArcadeTheme.darkCard,
+            fillColor: ArcadeTheme.cardWhite,
             child: Column(
               children: [
                 const Text(
                   'ENTER AMOUNT',
                   style: TextStyle(
-                    color: ArcadeTheme.slateMuted,
-                    fontSize: 10,
+                    color: ArcadeTheme.slateDark,
+                    fontSize: 11,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.8,
                   ),
@@ -348,7 +417,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
                 Text(
                   '₹ $_amountStr',
                   style: const TextStyle(
-                    color: ArcadeTheme.acidYellow,
+                    color: ArcadeTheme.punchPink,
                     fontSize: 34,
                     fontWeight: FontWeight.w900,
                   ),
@@ -356,19 +425,19 @@ class _AddPayScreenState extends State<AddPayScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           // Category Quick Chips
           const Text(
-            'CATEGORY / TITLE',
+            'QUICK TITLE / CATEGORY',
             style: TextStyle(
-              color: ArcadeTheme.punchPink,
+              color: ArcadeTheme.pureBlack,
               fontWeight: FontWeight.w900,
-              fontSize: 11,
+              fontSize: 12,
               letterSpacing: 0.8,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -376,11 +445,21 @@ class _AddPayScreenState extends State<AddPayScreen> {
               final isSel = _selectedCategory == c['name'];
               final icon = c['icon'] as IconData;
               return GestureDetector(
-                onTap: () => setState(() => _selectedCategory = c['name'] as String),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _selectedCategory = c['name'] as String;
+                    if (c['name'] != 'Other') {
+                      _customTitleCtrl.text = c['name'] as String;
+                    } else {
+                      _customTitleCtrl.clear();
+                    }
+                  });
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isSel ? ArcadeTheme.acidYellow : ArcadeTheme.darkCard,
+                    color: isSel ? ArcadeTheme.acidYellow : ArcadeTheme.cardWhite,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                     boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
@@ -391,14 +470,14 @@ class _AddPayScreenState extends State<AddPayScreen> {
                       Icon(
                         icon,
                         size: 14,
-                        color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.neonCyan,
+                        color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.punchPink,
                       ),
                       const SizedBox(width: 5),
                       Text(
                         c['name'] as String,
                         style: TextStyle(
-                          color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.pureWhite,
-                          fontWeight: FontWeight.w800,
+                          color: ArcadeTheme.pureBlack,
+                          fontWeight: isSel ? FontWeight.w900 : FontWeight.w700,
                           fontSize: 11,
                         ),
                       ),
@@ -408,28 +487,76 @@ class _AddPayScreenState extends State<AddPayScreen> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          // Custom Note
+          // Custom Title (Optional / For "Other")
           TextField(
             controller: _customTitleCtrl,
-            style: const TextStyle(color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w700, fontSize: 13),
+            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900, fontSize: 13),
             decoration: InputDecoration(
-              hintText: 'Custom Title / Note (optional)',
+              labelText: 'Custom Title / Expense Name (Optional)',
+              labelStyle: const TextStyle(color: ArcadeTheme.punchPink, fontWeight: FontWeight.w800, fontSize: 12),
+              hintText: 'e.g. Swiggy, Metro Card, Cricket Kit',
               hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
               filled: true,
-              fillColor: ArcadeTheme.darkCard,
+              fillColor: ArcadeTheme.cardWhite,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+              ),
             ),
           ),
           const SizedBox(height: 10),
 
+          // Additional Optional Note
+          TextField(
+            controller: _noteCtrl,
+            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w700, fontSize: 13),
+            decoration: InputDecoration(
+              labelText: 'Note / Remarks (Optional)',
+              labelStyle: const TextStyle(color: ArcadeTheme.slateDark, fontWeight: FontWeight.w800, fontSize: 12),
+              hintText: 'e.g. Split with Aman, reimbursed later',
+              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
+              filled: true,
+              fillColor: ArcadeTheme.cardWhite,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // Importance Selector (if Expense)
           if (_type == 'expense') ...[
+            const Text(
+              'IMPORTANCE',
+              style: TextStyle(
+                color: ArcadeTheme.pureBlack,
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(child: _buildImportancePill('essential', 'ESSENTIAL', ArcadeTheme.arcadeGreen)),
@@ -439,12 +566,12 @@ class _AddPayScreenState extends State<AddPayScreen> {
                 Expanded(child: _buildImportancePill('low_value', 'LOW VALUE', ArcadeTheme.punchPink)),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
           ],
 
-          // Tactile Numpad
+          // Tactile Numpad (White Neo-Brutalist Box)
           Container(
-            decoration: ArcadeTheme.neoBox(fillColor: ArcadeTheme.darkCard, radius: 10),
+            decoration: ArcadeTheme.neoBox(fillColor: ArcadeTheme.cardWhite, radius: 10),
             padding: const EdgeInsets.all(10),
             child: Column(
               children: [
@@ -458,7 +585,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
           // Save Button
           ArcadeButton(
@@ -471,7 +598,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
             onTap: _handleSaveManual,
             width: double.infinity,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -481,11 +608,14 @@ class _AddPayScreenState extends State<AddPayScreen> {
     final isSel = _type == type;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _type = type),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _type = type);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSel ? color : ArcadeTheme.darkCard,
+            color: isSel ? color : ArcadeTheme.cardWhite,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
             boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
@@ -494,7 +624,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
           child: Text(
             label,
             style: TextStyle(
-              color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.slateMuted,
+              color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.slateDark,
               fontWeight: FontWeight.w900,
               fontSize: 10,
             ),
@@ -507,11 +637,14 @@ class _AddPayScreenState extends State<AddPayScreen> {
   Widget _buildImportancePill(String val, String label, Color color) {
     final isSel = _importance == val;
     return GestureDetector(
-      onTap: () => setState(() => _importance = val),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _importance = val);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 7),
         decoration: BoxDecoration(
-          color: isSel ? color : ArcadeTheme.darkCard,
+          color: isSel ? color : ArcadeTheme.cardWhite,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
           boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
@@ -520,36 +653,8 @@ class _AddPayScreenState extends State<AddPayScreen> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.pureWhite,
-            fontWeight: FontWeight.w900,
-            fontSize: 10,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQrImportanceChip(String val, String label, Color color) {
-    final isSel = _importance == val;
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        setState(() => _importance = val);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 7),
-        decoration: BoxDecoration(
-          color: isSel ? color : ArcadeTheme.lightCanvas,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
-          boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: const TextStyle(
             color: ArcadeTheme.pureBlack,
-            fontWeight: FontWeight.w900,
+            fontWeight: isSel ? FontWeight.w900 : FontWeight.w700,
             fontSize: 10,
           ),
         ),
@@ -560,15 +665,16 @@ class _AddPayScreenState extends State<AddPayScreen> {
   Widget _buildKeypadRow(List<String> keys) {
     return Row(
       children: keys.map((k) {
+        final isSpecial = k == '⌫' || k == '.';
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3),
             child: GestureDetector(
               onTap: () => _onKeypadTap(k),
               child: Container(
-                height: 42,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: ArcadeTheme.darkCardLight,
+                  color: isSpecial ? ArcadeTheme.lightCanvas : ArcadeTheme.cardWhite,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                   boxShadow: ArcadeTheme.neoShadow(offset: const Offset(1.5, 1.5)),
@@ -577,9 +683,9 @@ class _AddPayScreenState extends State<AddPayScreen> {
                 child: Text(
                   k,
                   style: const TextStyle(
-                    color: ArcadeTheme.pureWhite,
+                    color: ArcadeTheme.pureBlack,
                     fontWeight: FontWeight.w900,
-                    fontSize: 16,
+                    fontSize: 18,
                   ),
                 ),
               ),
@@ -590,13 +696,13 @@ class _AddPayScreenState extends State<AddPayScreen> {
     );
   }
 
-  // --- QR Pay Content ---
+  // --- QR Pay Content (Neo-Brutalist Light Style) ---
   Widget _buildQrPayView() {
     return Column(
       children: [
         // Camera Viewfinder
         Expanded(
-          flex: 5,
+          flex: 4,
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -604,17 +710,27 @@ class _AddPayScreenState extends State<AddPayScreen> {
                 controller: _scannerCtrl,
                 onDetect: _onDetect,
               ),
-              // Clean Viewfinder Overlay (hollow interior with sharp yellow border for maximum scan clarity)
+              // Viewfinder square with high-contrast Acid Yellow border
               Container(
-                width: 250,
-                height: 250,
+                width: 220,
+                height: 220,
                 decoration: BoxDecoration(
-                  border: Border.all(color: ArcadeTheme.acidYellow, width: 3),
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: ArcadeTheme.acidYellow,
+                    width: 3.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: ArcadeTheme.pureBlack.withValues(alpha: 0.4),
+                      spreadRadius: 2,
+                    ),
+                  ],
                 ),
               ),
+              // Instructions tag
               Positioned(
-                top: 16,
+                bottom: 14,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
@@ -623,11 +739,11 @@ class _AddPayScreenState extends State<AddPayScreen> {
                     border: Border.all(color: ArcadeTheme.acidYellow, width: 1.5),
                   ),
                   child: const Text(
-                    'ALIGN ANY UPI QR CODE',
+                    'POINT CAMERA AT ANY UPI QR CODE',
                     style: TextStyle(
                       color: ArcadeTheme.acidYellow,
-                      fontWeight: FontWeight.w900,
                       fontSize: 10,
+                      fontWeight: FontWeight.w900,
                       letterSpacing: 0.6,
                     ),
                   ),
@@ -639,7 +755,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
 
         // Pay Actions with Light Canvas Background
         Expanded(
-          flex: 4,
+          flex: 6,
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -678,7 +794,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: ArcadeTheme.pureWhite,
+                        color: ArcadeTheme.cardWhite,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
                         boxShadow: ArcadeTheme.neoShadow(offset: const Offset(3, 3)),
@@ -803,10 +919,12 @@ class _AddPayScreenState extends State<AddPayScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
+
+                          // Category Quick Chips
                           const Text(
-                            'CATEGORY / TITLE',
+                            'QUICK TITLE / CATEGORY',
                             style: TextStyle(
-                              color: ArcadeTheme.punchPink,
+                              color: ArcadeTheme.pureBlack,
                               fontWeight: FontWeight.w900,
                               fontSize: 11,
                               letterSpacing: 0.8,
@@ -822,12 +940,19 @@ class _AddPayScreenState extends State<AddPayScreen> {
                               return GestureDetector(
                                 onTap: () {
                                   HapticFeedback.selectionClick();
-                                  setState(() => _selectedCategory = c['name'] as String);
+                                  setState(() {
+                                    _selectedCategory = c['name'] as String;
+                                    if (c['name'] != 'Other') {
+                                      _customTitleCtrl.text = c['name'] as String;
+                                    } else {
+                                      _customTitleCtrl.clear();
+                                    }
+                                  });
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: isSel ? ArcadeTheme.acidYellow : ArcadeTheme.lightCanvas,
+                                    color: isSel ? ArcadeTheme.acidYellow : ArcadeTheme.cardWhite,
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                                     boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
@@ -885,7 +1010,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
                           const Text(
                             'IMPORTANCE',
                             style: TextStyle(
-                              color: ArcadeTheme.punchPink,
+                              color: ArcadeTheme.pureBlack,
                               fontWeight: FontWeight.w900,
                               fontSize: 11,
                               letterSpacing: 0.8,
@@ -895,15 +1020,15 @@ class _AddPayScreenState extends State<AddPayScreen> {
                           Row(
                             children: [
                               Expanded(
-                                child: _buildQrImportanceChip('essential', 'ESSENTIAL', ArcadeTheme.arcadeGreen),
+                                child: _buildImportancePill('essential', 'ESSENTIAL', ArcadeTheme.arcadeGreen),
                               ),
                               const SizedBox(width: 6),
                               Expanded(
-                                child: _buildQrImportanceChip('moderate', 'MODERATE', ArcadeTheme.acidYellow),
+                                child: _buildImportancePill('moderate', 'MODERATE', ArcadeTheme.acidYellow),
                               ),
                               const SizedBox(width: 6),
                               Expanded(
-                                child: _buildQrImportanceChip('low_value', 'LOW VALUE', ArcadeTheme.punchPink),
+                                child: _buildImportancePill('low_value', 'LOW VALUE', ArcadeTheme.punchPink),
                               ),
                             ],
                           ),

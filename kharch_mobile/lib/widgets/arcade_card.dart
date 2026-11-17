@@ -13,7 +13,7 @@ class ArcadeCard extends StatelessWidget {
   const ArcadeCard({
     super.key,
     required this.child,
-    this.fillColor = ArcadeTheme.darkCard,
+    this.fillColor = ArcadeTheme.cardWhite,
     this.borderColor = ArcadeTheme.pureBlack,
     this.shadowOffset = const Offset(4, 4),
     this.padding = const EdgeInsets.all(16),

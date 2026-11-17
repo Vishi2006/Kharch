@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import '../theme/arcade_theme.dart';
 import 'cute_coin_loader.dart';
@@ -55,6 +56,7 @@ class _ArcadeButtonState extends State<ArcadeButton> {
     return GestureDetector(
       onTapDown: (_) {
         if (!widget.isLoading && widget.onTap != null) {
+          HapticFeedback.lightImpact();
           setState(() => _isPressed = true);
         }
       },

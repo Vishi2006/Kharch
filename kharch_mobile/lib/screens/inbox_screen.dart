@@ -8,8 +8,9 @@ import '../widgets/arcade_card.dart';
 
 class InboxScreen extends StatefulWidget {
   final AppState appState;
+  final bool isEmbedded;
 
-  const InboxScreen({super.key, required this.appState});
+  const InboxScreen({super.key, required this.appState, this.isEmbedded = false});
 
   @override
   State<InboxScreen> createState() => _InboxScreenState();
@@ -567,14 +568,17 @@ class _InboxScreenState extends State<InboxScreen> {
         final allUnmatched = [...unmatchedEvents, ...unknownAttempts];
 
         return Scaffold(
-      backgroundColor: ArcadeTheme.darkCanvas,
-      appBar: AppBar(
-        backgroundColor: ArcadeTheme.darkCanvas,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
-          onPressed: () => Navigator.pop(context),
-        ),
+          backgroundColor: ArcadeTheme.lightCanvas,
+          appBar: AppBar(
+            backgroundColor: ArcadeTheme.lightCanvas,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            leading: widget.isEmbedded
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded, color: ArcadeTheme.pureBlack),
+                    onPressed: () => Navigator.pop(context),
+                  ),
         title: const Text(
           'INBOX',
           style: TextStyle(
@@ -601,12 +605,10 @@ class _InboxScreenState extends State<InboxScreen> {
                         decoration: BoxDecoration(
                           color: _activeTab == 'matches'
                               ? ArcadeTheme.acidYellow
-                              : ArcadeTheme.darkCard,
+                              : ArcadeTheme.cardWhite,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
-                          boxShadow: _activeTab == 'matches'
-                              ? ArcadeTheme.neoShadow(offset: const Offset(2, 2))
-                              : null,
+                          boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
                         ),
                         alignment: Alignment.center,
                         child: Text(
@@ -614,7 +616,7 @@ class _InboxScreenState extends State<InboxScreen> {
                           style: TextStyle(
                             color: _activeTab == 'matches'
                                 ? ArcadeTheme.pureBlack
-                                : ArcadeTheme.slateMuted,
+                                : ArcadeTheme.pureBlack,
                             fontWeight: FontWeight.w900,
                             fontSize: 11,
                           ),
@@ -631,12 +633,10 @@ class _InboxScreenState extends State<InboxScreen> {
                         decoration: BoxDecoration(
                           color: _activeTab == 'unmatched'
                               ? ArcadeTheme.acidYellow
-                              : ArcadeTheme.darkCard,
+                              : ArcadeTheme.cardWhite,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
-                          boxShadow: _activeTab == 'unmatched'
-                              ? ArcadeTheme.neoShadow(offset: const Offset(2, 2))
-                              : null,
+                          boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
                         ),
                         alignment: Alignment.center,
                         child: Text(
@@ -644,7 +644,7 @@ class _InboxScreenState extends State<InboxScreen> {
                           style: TextStyle(
                             color: _activeTab == 'unmatched'
                                 ? ArcadeTheme.pureBlack
-                                : ArcadeTheme.slateMuted,
+                                : ArcadeTheme.pureBlack,
                             fontWeight: FontWeight.w900,
                             fontSize: 11,
                           ),
@@ -712,7 +712,7 @@ class _InboxScreenState extends State<InboxScreen> {
         final amt = (event['amount'] ?? attempt['amount'] ?? 0.0).toDouble();
 
         return ArcadeCard(
-          fillColor: ArcadeTheme.darkCard,
+          fillColor: ArcadeTheme.cardWhite,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -742,7 +742,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: ArcadeTheme.darkCardLight,
+                        color: ArcadeTheme.lightCanvas,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                       ),
@@ -758,8 +758,8 @@ class _InboxScreenState extends State<InboxScreen> {
                           Text(
                             event['counterparty'] ?? 'Bank Alert',
                             style: const TextStyle(
-                                color: ArcadeTheme.pureWhite,
-                                fontWeight: FontWeight.w800,
+                                color: ArcadeTheme.pureBlack,
+                                fontWeight: FontWeight.w900,
                                 fontSize: 12),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -778,7 +778,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: ArcadeTheme.darkCardLight,
+                        color: ArcadeTheme.lightCanvas,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                       ),
@@ -794,8 +794,8 @@ class _InboxScreenState extends State<InboxScreen> {
                           Text(
                             attempt['payeeName'] ?? 'QR Payee',
                             style: const TextStyle(
-                                color: ArcadeTheme.pureWhite,
-                                fontWeight: FontWeight.w800,
+                                color: ArcadeTheme.pureBlack,
+                                fontWeight: FontWeight.w900,
                                 fontSize: 12),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -836,8 +836,8 @@ class _InboxScreenState extends State<InboxScreen> {
                     text: 'DISMISS',
                     height: 42,
                     fontSize: 12,
-                    backgroundColor: ArcadeTheme.darkCardLight,
-                    textColor: ArcadeTheme.pureWhite,
+                    backgroundColor: ArcadeTheme.cardWhite,
+                    textColor: ArcadeTheme.pureBlack,
                     isLoading: _actioningKey == 'dismiss_${event['_id']}',
                     loadingText: 'Dismissing...',
                     onTap: () {
@@ -889,7 +889,7 @@ class _InboxScreenState extends State<InboxScreen> {
         final type = item['type'] ?? 'DEBIT';
 
         return ArcadeCard(
-          fillColor: ArcadeTheme.darkCard,
+          fillColor: ArcadeTheme.cardWhite,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -899,7 +899,7 @@ class _InboxScreenState extends State<InboxScreen> {
                   Text(
                     title,
                     style: const TextStyle(
-                      color: ArcadeTheme.pureWhite,
+                      color: ArcadeTheme.pureBlack,
                       fontWeight: FontWeight.w900,
                       fontSize: 15,
                     ),
@@ -940,8 +940,8 @@ class _InboxScreenState extends State<InboxScreen> {
                     text: 'IGNORE',
                     height: 40,
                     fontSize: 11,
-                    backgroundColor: ArcadeTheme.darkCardLight,
-                    textColor: ArcadeTheme.slateMuted,
+                    backgroundColor: ArcadeTheme.cardWhite,
+                    textColor: ArcadeTheme.pureBlack,
                     isLoading: _actioningKey == 'dismiss_${item['_id']}',
                     loadingText: 'Ignoring...',
                     onTap: () {

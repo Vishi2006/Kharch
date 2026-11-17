@@ -42,6 +42,13 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
     if (mounted) {
       _openingCtrl.clear();
       setState(() => _isSavingOpening = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('OPENING BALANCE UPDATED', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureBlack)),
+          backgroundColor: ArcadeTheme.arcadeGreen,
+          duration: Duration(seconds: 1),
+        ),
+      );
     }
   }
 
@@ -54,6 +61,13 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
     if (mounted) {
       _closingCtrl.clear();
       setState(() => _isLockingMonth = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('MONTH-END RECONCILED & SEALED', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureBlack)),
+          backgroundColor: ArcadeTheme.arcadeGreen,
+          duration: Duration(seconds: 1),
+        ),
+      );
     }
   }
 
@@ -72,9 +86,9 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
     final discrepancy = actual != null ? actual - calculated : 0.0;
 
     return Scaffold(
-      backgroundColor: ArcadeTheme.darkCanvas,
+      backgroundColor: ArcadeTheme.lightCanvas,
       appBar: AppBar(
-        backgroundColor: ArcadeTheme.darkCanvas,
+        backgroundColor: ArcadeTheme.lightCanvas,
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: widget.isEmbedded
@@ -99,7 +113,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Expected Current Balance Card (Privately Moved to Audit/Reconcile)
+              // 1. Expected Current Balance Card (Private Vault)
               ArcadeCard(
                 fillColor: ArcadeTheme.acidYellow,
                 child: Column(
@@ -160,9 +174,9 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 2. Vault Status Card
+              // 2. Vault Status Card (Light Neo-Brutalist)
               ArcadeCard(
-                fillColor: isLocked ? ArcadeTheme.darkCardLight : ArcadeTheme.acidYellow,
+                fillColor: isLocked ? ArcadeTheme.cardWhite : ArcadeTheme.cardWhite,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -172,7 +186,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                         Text(
                           isLocked ? 'STATUS: RECONCILED' : 'STATUS: ACTIVE',
                           style: TextStyle(
-                            color: isLocked ? ArcadeTheme.neonCyan : ArcadeTheme.pureBlack,
+                            color: isLocked ? ArcadeTheme.arcadeGreen : ArcadeTheme.punchPink,
                             fontWeight: FontWeight.w900,
                             fontSize: 12,
                           ),
@@ -182,9 +196,9 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                           isLocked
                               ? 'Closing balance is reconciled'
                               : 'Reconcile actual vs ledger balance',
-                          style: TextStyle(
-                            color: isLocked ? ArcadeTheme.slateMuted : ArcadeTheme.pureBlack,
-                            fontWeight: FontWeight.w700,
+                          style: const TextStyle(
+                            color: ArcadeTheme.pureBlack,
+                            fontWeight: FontWeight.w800,
                             fontSize: 13,
                           ),
                         ),
@@ -192,7 +206,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                     ),
                     Icon(
                       isLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
-                      color: isLocked ? ArcadeTheme.arcadeGreen : ArcadeTheme.pureBlack,
+                      color: isLocked ? ArcadeTheme.arcadeGreen : ArcadeTheme.punchPink,
                       size: 28,
                     ),
                   ],
@@ -200,9 +214,9 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Balances Breakdown
+              // 3. Balances Breakdown (White Card)
               ArcadeCard(
-                fillColor: ArcadeTheme.darkCard,
+                fillColor: ArcadeTheme.cardWhite,
                 child: Column(
                   children: [
                     _buildBalanceRow('Opening Balance', '₹ ${opening.toStringAsFixed(2)}'),
@@ -225,7 +239,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
               ),
               const SizedBox(height: 18),
 
-              // Set Opening Balance
+              // 4. Set Opening Balance (Light Inputs)
               if (!isLocked) ...[
                 const Text(
                   'UPDATE OPENING BALANCE',
@@ -243,18 +257,28 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                         controller: _openingCtrl,
                         keyboardType: TextInputType.number,
                         style: const TextStyle(
-                            color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900),
+                            color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900),
                         decoration: InputDecoration(
                           hintText: '₹ Opening Balance',
                           hintStyle: const TextStyle(color: ArcadeTheme.slateMuted),
                           filled: true,
-                          fillColor: ArcadeTheme.darkCard,
+                          fillColor: ArcadeTheme.cardWhite,
                           contentPadding:
                               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide:
                                 const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                const BorderSide(color: ArcadeTheme.punchPink, width: 2),
                           ),
                         ),
                       ),
@@ -287,17 +311,25 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                   controller: _closingCtrl,
                   keyboardType: TextInputType.number,
                   style: const TextStyle(
-                      color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900),
+                      color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900),
                   decoration: InputDecoration(
                     hintText: 'Enter bank account closing balance (₹)',
                     hintStyle: const TextStyle(color: ArcadeTheme.slateMuted),
                     filled: true,
-                    fillColor: ArcadeTheme.darkCard,
+                    fillColor: ArcadeTheme.cardWhite,
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
                     ),
                   ),
                 ),
@@ -327,15 +359,15 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
         Text(
           label,
           style: const TextStyle(
-            color: ArcadeTheme.slateMuted,
-            fontWeight: FontWeight.w700,
+            color: ArcadeTheme.slateDark,
+            fontWeight: FontWeight.w800,
             fontSize: 13,
           ),
         ),
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? ArcadeTheme.pureWhite,
+            color: valueColor ?? ArcadeTheme.pureBlack,
             fontWeight: FontWeight.w900,
             fontSize: 15,
           ),

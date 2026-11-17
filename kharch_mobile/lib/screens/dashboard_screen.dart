@@ -51,25 +51,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _onBottomNavTap(int index) {
     HapticFeedback.selectionClick();
-    if (index == 2) {
-      // Central Scan & Pay button: opens camera QR scanner by default
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AddPayScreen(
-            appState: widget.appState,
-            initialTab: 1, // Default opens Camera Scanner directly
-          ),
-        ),
-      ).then((_) {
-        if (mounted) {
-          widget.appState.refreshDashboard();
-        }
-      });
-      return;
-    }
-
-    // Switch tab statically without losing bottom navigation
     setState(() => _currentNavIndex = index);
   }
 
@@ -78,27 +59,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ListenableBuilder(
       listenable: widget.appState,
       builder: (context, _) {
-        // Map navigation index to IndexedStack child index:
-        // 0: Home, 1: Reconcile, 3: Analytics (index 2 in stack), 4: Spaces (index 3 in stack)
-        final int stackIndex = _currentNavIndex == 4
-            ? 3
-            : (_currentNavIndex == 3 ? 2 : (_currentNavIndex == 1 ? 1 : 0));
-
         return Scaffold(
-          backgroundColor: ArcadeTheme.darkCanvas,
+          backgroundColor: ArcadeTheme.lightCanvas,
           body: IndexedStack(
-            index: stackIndex,
+            index: _currentNavIndex,
             children: [
               _buildHomeTab(context),
               ReconcileScreen(appState: widget.appState, isEmbedded: true),
-              AnalyticsScreen(appState: widget.appState, isEmbedded: true),
-              SpacesScreen(
+              AddPayScreen(
                 appState: widget.appState,
                 isEmbedded: true,
-                onSpaceSwitched: () {
-                  setState(() => _currentNavIndex = 0);
-                },
+                initialTab: 1,
+                onBackOrDone: () => setState(() => _currentNavIndex = 0),
               ),
+              AnalyticsScreen(appState: widget.appState, isEmbedded: true),
+              InboxScreen(appState: widget.appState, isEmbedded: true),
             ],
           ),
           bottomNavigationBar: _buildPersistentBottomNav(),
@@ -111,7 +86,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final user = widget.appState.user;
     final data = widget.appState.dashboardData;
     final activeSpace = widget.appState.activeSpace;
-    final unreadInbox = widget.appState.inboxData?['unreadCount'] ?? 0;
 
     final openingBalance = (data?['openingBalance'] ?? 0.0).toDouble();
     final monthEarned = (data?['monthEarned'] ?? data?['monthlyIncome'] ?? 0.0).toDouble();
@@ -163,7 +137,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    setState(() => _currentNavIndex = 4); // Switch to Spaces
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SpacesScreen(
+                          appState: widget.appState,
+                          isEmbedded: false,
+                          onSpaceSwitched: () {
+                            widget.appState.refreshDashboard();
+                          },
+                        ),
+                      ),
+                    );
                   },
                   child: Row(
                     children: [
@@ -184,41 +169,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
-          // Inbox icon with unread badge
-          IconButton(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.inbox_rounded, color: ArcadeTheme.pureBlack, size: 22),
-                if (unreadInbox > 0)
-                  Positioned(
-                    right: -4,
-                    top: -4,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: ArcadeTheme.punchPink,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        '$unreadInbox',
-                        style: const TextStyle(
-                          color: ArcadeTheme.pureWhite,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => InboxScreen(appState: widget.appState)),
-              );
-            },
-          ),
           // Settings icon
           IconButton(
             icon: const Icon(Icons.settings_rounded, color: ArcadeTheme.pureBlack, size: 22),
@@ -259,9 +209,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: ArcadeTheme.darkCard,
+                    color: ArcadeTheme.cardWhite,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: ArcadeTheme.punchPink, width: 2),
+                    border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
                     boxShadow: ArcadeTheme.neoShadow(offset: const Offset(3, 3)),
                   ),
                   child: Column(
@@ -284,7 +234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 4),
                       const Text(
                         'To calculate monthly reconciliation and cashflow, enter your starting bank balance.',
-                        style: TextStyle(color: ArcadeTheme.slateMuted, fontSize: 11),
+                        style: TextStyle(color: ArcadeTheme.slateDark, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -294,7 +244,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               controller: _openingCtrl,
                               keyboardType: TextInputType.number,
                               style: const TextStyle(
-                                color: ArcadeTheme.pureWhite,
+                                color: ArcadeTheme.pureBlack,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                               ),
@@ -302,7 +252,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 hintText: 'e.g. ₹25,000',
                                 hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
                                 filled: true,
-                                fillColor: ArcadeTheme.darkCardLight,
+                                fillColor: ArcadeTheme.lightCanvas,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
@@ -349,7 +299,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               // 2. HERO TODAY'S EXPENSES CARD (Punch Pink Neo-Brutal styling)
               // Note: Expected Current Balance is placed in Audit/Reconcile tab for privacy
               ArcadeCard(
-                fillColor: ArcadeTheme.punchPink,
+                fillColor: ArcadeTheme.cardWhite,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -361,16 +311,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: ArcadeTheme.pureBlack,
+                                color: ArcadeTheme.acidYellow,
                                 borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                               ),
-                              child: const Icon(Icons.flash_on_rounded, size: 14, color: ArcadeTheme.acidYellow),
+                              child: const Icon(Icons.flash_on_rounded, size: 14, color: ArcadeTheme.pureBlack),
                             ),
                             const SizedBox(width: 8),
                             const Text(
                               "TODAY'S SPENT",
                               style: TextStyle(
-                                color: ArcadeTheme.pureWhite,
+                                color: ArcadeTheme.pureBlack,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 12,
                                 letterSpacing: 0.8,
@@ -378,27 +329,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ],
                         ),
-                        // Private Vault Audit Indicator Button
                         GestureDetector(
                           onTap: () {
-                            setState(() => _currentNavIndex = 1); // Switch to Reconcile
+                            setState(() => _currentNavIndex = 1); // Switch to Audit
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: ArcadeTheme.pureBlack,
+                              color: ArcadeTheme.acidYellow,
                               borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
-                              border: Border.all(color: ArcadeTheme.acidYellow, width: 1.5),
+                              border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.shield_rounded, size: 11, color: ArcadeTheme.acidYellow),
+                                Icon(Icons.shield_rounded, size: 11, color: ArcadeTheme.pureBlack),
                                 SizedBox(width: 4),
                                 Text(
                                   'AUDIT VAULT →',
                                   style: TextStyle(
-                                    color: ArcadeTheme.acidYellow,
+                                    color: ArcadeTheme.pureBlack,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 9,
                                     letterSpacing: 0.5,
@@ -418,7 +368,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Text(
                           '₹ ${todaySpent.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            color: ArcadeTheme.pureWhite,
+                            color: ArcadeTheme.punchPink,
                             fontWeight: FontWeight.w900,
                             fontSize: 34,
                             letterSpacing: -0.5,
@@ -427,8 +377,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 8),
                         Text(
                           '($dateStr)',
-                          style: TextStyle(
-                            color: ArcadeTheme.pureWhite.withValues(alpha: 0.85),
+                          style: const TextStyle(
+                            color: ArcadeTheme.slateDark,
                             fontWeight: FontWeight.w700,
                             fontSize: 11,
                           ),
@@ -436,20 +386,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    // Month Inflow & Outflow Pill Bars
                     Row(
                       children: [
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             decoration: BoxDecoration(
-                              color: ArcadeTheme.pureBlack,
+                              color: ArcadeTheme.lightCanvas,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: ArcadeTheme.acidYellow, width: 1.5),
+                              border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.trending_down_rounded, color: ArcadeTheme.acidYellow, size: 16),
+                                const Icon(Icons.trending_down_rounded, color: ArcadeTheme.punchPink, size: 16),
                                 const SizedBox(width: 6),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,7 +406,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     const Text(
                                       'THIS MONTH',
                                       style: TextStyle(
-                                        color: ArcadeTheme.slateMuted,
+                                        color: ArcadeTheme.slateDark,
                                         fontWeight: FontWeight.w900,
                                         fontSize: 9,
                                       ),
@@ -465,7 +414,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     Text(
                                       '₹ ${monthSpent.toStringAsFixed(0)}',
                                       style: const TextStyle(
-                                        color: ArcadeTheme.acidYellow,
+                                        color: ArcadeTheme.punchPink,
                                         fontWeight: FontWeight.w900,
                                         fontSize: 13,
                                       ),
@@ -481,9 +430,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             decoration: BoxDecoration(
-                              color: ArcadeTheme.pureBlack,
+                              color: ArcadeTheme.lightCanvas,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: ArcadeTheme.arcadeGreen, width: 1.5),
+                              border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                             ),
                             child: Row(
                               children: [
@@ -495,7 +444,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     const Text(
                                       'INFLOW',
                                       style: TextStyle(
-                                        color: ArcadeTheme.slateMuted,
+                                        color: ArcadeTheme.slateDark,
                                         fontWeight: FontWeight.w900,
                                         fontSize: 9,
                                       ),
@@ -563,7 +512,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               // 4. Today's Spend Breakdown & AI Insight Card
               ArcadeCard(
-                fillColor: ArcadeTheme.darkCard,
+                fillColor: ArcadeTheme.cardWhite,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -573,7 +522,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const Text(
                           "TODAY'S SPEND BREAKDOWN",
                           style: TextStyle(
-                            color: ArcadeTheme.pureWhite,
+                            color: ArcadeTheme.pureBlack,
                             fontWeight: FontWeight.w900,
                             fontSize: 12,
                             letterSpacing: 0.6,
@@ -582,7 +531,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Text(
                           '₹ ${todaySpent.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            color: ArcadeTheme.acidYellow,
+                            color: ArcadeTheme.punchPink,
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
                           ),
@@ -630,14 +579,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ] else
                       const Text(
                         'No transactions recorded today.',
-                        style: TextStyle(color: ArcadeTheme.slateMuted, fontSize: 11, fontStyle: FontStyle.italic),
+                        style: TextStyle(color: ArcadeTheme.slateDark, fontSize: 11, fontStyle: FontStyle.italic, fontWeight: FontWeight.w600),
                       ),
                     const SizedBox(height: 10),
                     // Dynamic AI Insight banner
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: ArcadeTheme.darkCardLight,
+                        color: ArcadeTheme.lightCanvas,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: ArcadeTheme.punchPink, width: 1.5),
                       ),
@@ -650,8 +599,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Text(
                               insight,
                               style: const TextStyle(
-                                color: ArcadeTheme.pureWhite,
-                                fontWeight: FontWeight.w600,
+                                color: ArcadeTheme.pureBlack,
+                                fontWeight: FontWeight.w700,
                                 fontSize: 11,
                                 height: 1.3,
                               ),
@@ -742,7 +691,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: ArcadeTheme.darkCard,
+                        color: ArcadeTheme.cardWhite,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
                         boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
@@ -813,7 +762,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(width: 4),
         Text(
           '$label (₹${val.toStringAsFixed(0)})',
-          style: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 9, fontWeight: FontWeight.w700),
+          style: const TextStyle(color: ArcadeTheme.pureBlack, fontSize: 9, fontWeight: FontWeight.w800),
         ),
       ],
     );
@@ -835,7 +784,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(0, 'Home', Icons.home_rounded, ArcadeTheme.punchPink),
-            _buildNavItem(1, 'Audit', Icons.scale_rounded, ArcadeTheme.punchPink),
+            _buildNavItem(1, 'Audit', Icons.fact_check_rounded, ArcadeTheme.punchPink),
             // Central Elevated Scan & Pay Button (camera opens by default)
             GestureDetector(
               onTap: () => _onBottomNavTap(2),
@@ -843,20 +792,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: ArcadeTheme.acidYellow,
+                  color: _currentNavIndex == 2 ? ArcadeTheme.punchPink : ArcadeTheme.acidYellow,
                   shape: BoxShape.circle,
                   border: Border.all(color: ArcadeTheme.pureBlack, width: 2.5),
                   boxShadow: ArcadeTheme.neoShadow(offset: const Offset(3, 3)),
                 ),
-                child: const Icon(
-                  Icons.qr_code_scanner_rounded, // Scan icon
-                  color: ArcadeTheme.pureBlack,
+                child: Icon(
+                  Icons.qr_code_scanner_rounded,
+                  color: _currentNavIndex == 2 ? ArcadeTheme.pureWhite : ArcadeTheme.pureBlack,
                   size: 28,
                 ),
               ),
             ),
             _buildNavItem(3, 'Analytics', Icons.bar_chart_rounded, ArcadeTheme.punchPink),
-            _buildNavItem(4, 'Spaces', Icons.folder_shared_rounded, ArcadeTheme.punchPink),
+            _buildInboxNavItem(4, 'Inbox', Icons.inbox_rounded, ArcadeTheme.punchPink, widget.appState.inboxData?['unreadCount'] ?? 0),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInboxNavItem(int index, String label, IconData icon, Color activeColor, int unreadCount) {
+    final isSelected = _currentNavIndex == index;
+    return GestureDetector(
+      onTap: () => _onBottomNavTap(index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: activeColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+              )
+            : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected ? activeColor : ArcadeTheme.slateDark,
+                  size: 22,
+                ),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: -6,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: ArcadeTheme.punchPink,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: ArcadeTheme.pureBlack, width: 1),
+                      ),
+                      child: Text(
+                        '$unreadCount',
+                        style: const TextStyle(
+                          color: ArcadeTheme.pureWhite,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? ArcadeTheme.pureBlack : ArcadeTheme.slateDark,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                fontSize: 10,
+              ),
+            ),
           ],
         ),
       ),

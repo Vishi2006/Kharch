@@ -326,6 +326,7 @@ class AppState extends ChangeNotifier {
     required String type,
     String? importance,
     String? date,
+    String? note,
   }) async {
     if (_activeSpace == null) return false;
 
@@ -336,6 +337,7 @@ class AppState extends ChangeNotifier {
       'type': type,
       'importance': type == 'expense' ? (importance ?? 'essential') : null,
       'date': date ?? DateTime.now().toIso8601String(),
+      if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
     };
 
     final res = await _api.post('/api/transactions', body);

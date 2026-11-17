@@ -347,7 +347,7 @@ router.get('/dashboard', protect, async (req, res) => {
 // @desc    Retrieve statistics for charts
 // @access  Private
 router.get('/analytics', protect, async (req, res) => {
-  const { spaceId, period = 'month', timezone = 'UTC' } = req.query; // period can be: 'day', 'week', 'month', 'year'
+  const { spaceId, period = 'month' } = req.query;
 
   if (!spaceId) {
     return res.status(400).json({ message: 'spaceId is required' });
@@ -356,200 +356,164 @@ router.get('/analytics', protect, async (req, res) => {
   try {
     const spaceObjectId = mongoose.Types.ObjectId.isValid(spaceId) ? new mongoose.Types.ObjectId(spaceId) : null;
     const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, spaceId.toString()] } : spaceId;
-    
-    // Date cutoff helper
+
     const now = new Date();
-    let startDate = new Date();
-    
-    if (period === 'day') {
-      // Last 60 days so all days of current and previous month (e.g. Nov 2, Nov 3) are included
-      startDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-    } else if (period === 'week') {
-      // Last 26 weeks (6 months) so past months (e.g. August 2026) are included
-      startDate = new Date(now.getTime() - 26 * 7 * 24 * 60 * 60 * 1000);
-    } else if (period === 'month') {
-      // Last 24 months (2 years)
-      startDate = new Date(now.getFullYear() - 2, now.getMonth(), 1);
-    } else if (period === 'year') {
-      // Last 10 years
-      startDate = new Date(now.getFullYear() - 10, 0, 1);
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    let startDate;
+    let endDate;
+
+    if (period === 'year') {
+      startDate = new Date(currentYear, 0, 1, 0, 0, 0, 0);
+      endDate = new Date(currentYear, 11, 31, 23, 59, 59, 999);
     } else {
-      startDate = new Date(now.getFullYear() - 1, 0, 1); // fallback
+      // 'day', 'week', 'month' strictly scope to the CURRENT MONTH
+      startDate = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
+      endDate = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
     }
 
-    // 1. Earned vs Spent vs Investment vs Savings trends
-    let groupFormat = '%Y-%m-%d';
-    if (period === 'week') groupFormat = '%Y-W%V';
-    if (period === 'month') groupFormat = '%Y-%m';
-    if (period === 'year') groupFormat = '%Y';
+    const transactions = await Transaction.find({
+      spaceId: spaceMatch,
+      $or: [
+        { date: { $gte: startDate, $lte: endDate } },
+        { date: { $gte: startDate.toISOString(), $lte: endDate.toISOString() } },
+      ],
+    }).populate({ path: 'titleId', model: ExpenseTitle }).lean();
 
-    const trends = await Transaction.aggregate([
-      { 
-        $match: { 
-          spaceId: spaceMatch,
-          $or: [
-            { date: { $gte: startDate } },
-            { date: { $gte: startDate.toISOString() } }
-          ]
-        } 
-      },
-      {
-        $group: {
-          _id: {
-            period: {
-              $dateToString: {
-                format: groupFormat,
-                date: {
-                  $convert: {
-                    input: '$date',
-                    to: 'date',
-                    onError: new Date(),
-                    onNull: new Date()
-                  }
-                },
-                timezone: timezone || 'UTC'
-              }
-            },
-            type: '$type'
-          },
-          total: { $sum: '$amount' }
-        }
-      },
-      { $sort: { '_id.period': 1 } }
-    ]);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-    // Reshape trends for chart intake
-    const trendMap = {};
-    trends.forEach(item => {
-      const periodLabel = item._id.period;
-      const type = item._id.type;
-      
-      if (!trendMap[periodLabel]) {
-        trendMap[periodLabel] = { label: periodLabel, earned: 0, spent: 0, investments: 0, savings: 0 };
+    // 1. Build Trends
+    let trendData = [];
+
+    if (period === 'week') {
+      // Exactly 4 weeks of the current month
+      const weekBuckets = {
+        'Week 1': { label: 'Week 1', spent: 0, earned: 0, investments: 0, savings: 0 },
+        'Week 2': { label: 'Week 2', spent: 0, earned: 0, investments: 0, savings: 0 },
+        'Week 3': { label: 'Week 3', spent: 0, earned: 0, investments: 0, savings: 0 },
+        'Week 4': { label: 'Week 4', spent: 0, earned: 0, investments: 0, savings: 0 },
+      };
+
+      for (const tx of transactions) {
+        const d = new Date(tx.date);
+        const dayOfMonth = d.getDate();
+        let weekKey = 'Week 1';
+        if (dayOfMonth <= 7) weekKey = 'Week 1';
+        else if (dayOfMonth <= 14) weekKey = 'Week 2';
+        else if (dayOfMonth <= 21) weekKey = 'Week 3';
+        else weekKey = 'Week 4';
+
+        const amt = tx.amount || 0;
+        if (tx.type === 'expense') weekBuckets[weekKey].spent += amt;
+        else if (tx.type === 'income') weekBuckets[weekKey].earned += amt;
+        else if (tx.type === 'investment') weekBuckets[weekKey].investments += amt;
+        else if (tx.type === 'savings') weekBuckets[weekKey].savings += amt;
       }
 
-      if (type === 'income') trendMap[periodLabel].earned += item.total;
-      if (type === 'expense') trendMap[periodLabel].spent += item.total;
-      if (type === 'investment') trendMap[periodLabel].investments += item.total;
-      if (type === 'savings') trendMap[periodLabel].savings += item.total;
-    });
+      trendData = Object.values(weekBuckets);
+    } else if (period === 'year') {
+      const yearBuckets = {};
+      for (let m = 0; m < 12; m++) {
+        const key = monthNames[m];
+        yearBuckets[key] = { label: key, spent: 0, earned: 0, investments: 0, savings: 0 };
+      }
 
-    const trendData = Object.values(trendMap);
-
-    // 2. Importance Distribution (essential vs moderate vs low_val) for expenses
-    const importanceAgg = await Transaction.aggregate([
-      {
-        $match: {
-          spaceId: spaceMatch,
-          type: 'expense',
-          $or: [
-            { date: { $gte: startDate } },
-            { date: { $gte: startDate.toISOString() } }
-          ]
-        }
-      },
-      {
-        $group: {
-          _id: '$importance',
-          value: { $sum: '$amount' }
+      for (const tx of transactions) {
+        const d = new Date(tx.date);
+        const mKey = monthNames[d.getMonth()];
+        if (yearBuckets[mKey]) {
+          const amt = tx.amount || 0;
+          if (tx.type === 'expense') yearBuckets[mKey].spent += amt;
+          else if (tx.type === 'income') yearBuckets[mKey].earned += amt;
+          else if (tx.type === 'investment') yearBuckets[mKey].investments += amt;
+          else if (tx.type === 'savings') yearBuckets[mKey].savings += amt;
         }
       }
-    ]);
+
+      trendData = Object.values(yearBuckets);
+    } else {
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const dayBuckets = {};
+      for (let day = 1; day <= daysInMonth; day++) {
+        const label = `${day} ${monthNames[currentMonth]}`;
+        dayBuckets[label] = { label, spent: 0, earned: 0, investments: 0, savings: 0 };
+      }
+
+      for (const tx of transactions) {
+        const d = new Date(tx.date);
+        const label = `${d.getDate()} ${monthNames[d.getMonth()]}`;
+        if (dayBuckets[label]) {
+          const amt = tx.amount || 0;
+          if (tx.type === 'expense') dayBuckets[label].spent += amt;
+          else if (tx.type === 'income') dayBuckets[label].earned += amt;
+          else if (tx.type === 'investment') dayBuckets[label].investments += amt;
+          else if (tx.type === 'savings') dayBuckets[label].savings += amt;
+        }
+      }
+
+      const todayDay = now.getDate();
+      trendData = Object.values(dayBuckets).slice(0, Math.max(todayDay, 7));
+    }
+
+    // 2. Importance Distribution (Current Period Only)
+    const importanceMap = {
+      essential: 0,
+      moderate: 0,
+      low_value: 0,
+    };
+
+    for (const tx of transactions) {
+      if (tx.type === 'expense' && tx.importance) {
+        const key = tx.importance.toLowerCase();
+        if (importanceMap[key] !== undefined) {
+          importanceMap[key] += tx.amount || 0;
+        }
+      }
+    }
 
     const importanceData = [
-      { name: 'Essential', value: 0, key: 'essential' },
-      { name: 'Moderate', value: 0, key: 'moderate' },
-      { name: 'Low Value', value: 0, key: 'low_value' }
+      { name: 'Essential', value: importanceMap.essential, key: 'essential' },
+      { name: 'Moderate', value: importanceMap.moderate, key: 'moderate' },
+      { name: 'Low Value', value: importanceMap.low_value, key: 'low_value' },
     ];
 
-    importanceAgg.forEach(item => {
-      const target = importanceData.find(i => i.key === item._id);
-      if (target) {
-        target.value = item.value;
+    // 3. Top Spending Titles (Current Period Only)
+    const titleSpendMap = {};
+    for (const tx of transactions) {
+      if (tx.type === 'expense') {
+        const name = tx.titleId?.displayName || tx.titleId?.normalizedName || 'Other Expense';
+        titleSpendMap[name] = (titleSpendMap[name] || 0) + (tx.amount || 0);
       }
-    });
+    }
 
-    // 3. Top Spending Titles
-    const topTitlesAgg = await Transaction.aggregate([
-      {
-        $match: {
-          spaceId: spaceMatch,
-          type: 'expense',
-          $or: [
-            { date: { $gte: startDate } },
-            { date: { $gte: startDate.toISOString() } }
-          ]
+    const topSpendingTitles = Object.entries(titleSpendMap)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 15);
+
+    // 4. Repeated Low-Value / Wasteful Spending (Current Period Only)
+    const wastefulMap = {};
+    for (const tx of transactions) {
+      if (tx.type === 'expense' && tx.importance === 'low_value') {
+        const name = tx.titleId?.displayName || tx.titleId?.normalizedName || 'Low-Value Expense';
+        if (!wastefulMap[name]) {
+          wastefulMap[name] = { name, amount: 0, count: 0 };
         }
-      },
-      {
-        $group: {
-          _id: '$titleId',
-          total: { $sum: '$amount' }
-        }
-      },
-      { $sort: { total: -1 } },
-      { $limit: 20 }
-    ]);
+        wastefulMap[name].amount += tx.amount || 0;
+        wastefulMap[name].count += 1;
+      }
+    }
 
-    // Populate titles display name with explicit model
-    const topTitleIds = topTitlesAgg
-      .map(t => t._id)
-      .filter(Boolean)
-      .map(id => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id);
-
-    let topTitles = await ExpenseTitle.find({ _id: { $in: topTitleIds } });
-    const topSpendingTitles = topTitlesAgg.map(item => {
-      const match = topTitles.find(t => t._id.toString() === item._id?.toString());
-      return {
-        name: match ? match.displayName : 'Other Expense',
-        amount: item.total
-      };
-    });
-
-    // 4. Repeated Low-Value / Wasteful Spending
-    const wastefulAgg = await Transaction.aggregate([
-      {
-        $match: {
-          spaceId: spaceMatch,
-          type: 'expense',
-          importance: 'low_value',
-          $or: [
-            { date: { $gte: startDate } },
-            { date: { $gte: startDate.toISOString() } }
-          ]
-        }
-      },
-      {
-        $group: {
-          _id: '$titleId',
-          total: { $sum: '$amount' },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { total: -1 } },
-      { $limit: 20 }
-    ]);
-
-    const wastefulTitleIds = wastefulAgg
-      .map(w => w._id)
-      .filter(Boolean)
-      .map(id => mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id);
-
-    let wastefulTitles = await ExpenseTitle.find({ _id: { $in: wastefulTitleIds } });
-    const repeatedWasteful = wastefulAgg.map(item => {
-      const match = wastefulTitles.find(t => t._id.toString() === item._id?.toString());
-      return {
-        name: match ? match.displayName : 'Unspecified Low-Value',
-        amount: item.total,
-        count: item.count
-      };
-    });
+    const repeatedWasteful = Object.values(wastefulMap)
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 15);
 
     res.json({
       trends: trendData,
-      importance: importanceData.filter(i => i.value > 0),
+      importance: importanceData.filter((i) => i.value > 0),
       topSpendingTitles,
-      repeatedWasteful
+      repeatedWasteful,
     });
   } catch (error) {
     console.error('Error fetching analytics:', error.message);

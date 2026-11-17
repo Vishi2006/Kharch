@@ -13,8 +13,8 @@ class ArcadeTheme {
   // Warm Beige / Off-White Canvas for authentic high-contrast Neo-Brutalism
   static const Color lightCanvas = Color(0xFFF7F4EB); // Warm off-white / light beige canvas
   static const Color darkCanvas = Color(0xFFF7F4EB);  // Primary app background
-  static const Color darkCard = Color(0xFF1E2230);    // High-contrast container fill
-  static const Color darkCardLight = Color(0xFF2C3242); // Elevated card container
+  static const Color darkCard = Color(0xFFFFFFFF);    // Pure white Neo-Brutalist card fill
+  static const Color darkCardLight = Color(0xFFF7F4EB); // Warm light beige elevated container
   static const Color cardWhite = Color(0xFFFFFFFF);
   static const Color pureBlack = Color(0xFF000000);
   static const Color pureWhite = Color(0xFFFFFFFF);

@@ -46,12 +46,12 @@ class _KharchAppState extends State<KharchApp> {
       title: 'Kharch',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: ArcadeTheme.darkCanvas,
-        colorScheme: const ColorScheme.dark(
-          primary: ArcadeTheme.acidYellow,
-          secondary: ArcadeTheme.arcadeViolet,
-          surface: ArcadeTheme.darkCard,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: ArcadeTheme.lightCanvas,
+        colorScheme: const ColorScheme.light(
+          primary: ArcadeTheme.punchPink,
+          secondary: ArcadeTheme.acidYellow,
+          surface: ArcadeTheme.cardWhite,
         ),
       ),
       home: ListenableBuilder(
