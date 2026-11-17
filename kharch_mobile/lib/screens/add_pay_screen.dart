@@ -188,6 +188,9 @@ class _AddPayScreenState extends State<AddPayScreen> {
     final payeeName = _payeeNameCtrl.text.trim().isNotEmpty
         ? _payeeNameCtrl.text.trim()
         : 'UPI Merchant';
+    final title = _customTitleCtrl.text.trim().isNotEmpty
+        ? _customTitleCtrl.text.trim()
+        : (_selectedCategory.isNotEmpty ? _selectedCategory : payeeName);
 
     HapticFeedback.selectionClick();
     setState(() => _isProcessing = true);
@@ -201,6 +204,10 @@ class _AddPayScreenState extends State<AddPayScreen> {
         'amount': amtVal,
         'payeeVpa': payeeVpa,
         'payeeName': payeeName,
+        'category': _selectedCategory,
+        'title': title,
+        'importance': _importance,
+        'note': _noteCtrl.text.trim(),
         'status': 'PENDING',
       }).catchError((e) => <String, dynamic>{'error': e.toString()}),
     );
@@ -522,6 +529,34 @@ class _AddPayScreenState extends State<AddPayScreen> {
     );
   }
 
+  Widget _buildQrImportanceChip(String val, String label, Color color) {
+    final isSel = _importance == val;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _importance = val);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        decoration: BoxDecoration(
+          color: isSel ? color : ArcadeTheme.lightCanvas,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+          boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: ArcadeTheme.pureBlack,
+            fontWeight: FontWeight.w900,
+            fontSize: 10,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildKeypadRow(List<String> keys) {
     return Row(
       children: keys.map((k) {
@@ -750,6 +785,137 @@ class _AddPayScreenState extends State<AddPayScreen> {
                               labelStyle: const TextStyle(color: ArcadeTheme.punchPink, fontWeight: FontWeight.w800, fontSize: 12),
                               hintText: '0.00',
                               hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 14),
+                              filled: true,
+                              fillColor: ArcadeTheme.lightCanvas,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'CATEGORY / TITLE',
+                            style: TextStyle(
+                              color: ArcadeTheme.punchPink,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _getAllCategories().map((c) {
+                              final isSel = _selectedCategory == c['name'];
+                              final icon = c['icon'] as IconData;
+                              return GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(() => _selectedCategory = c['name'] as String);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: isSel ? ArcadeTheme.acidYellow : ArcadeTheme.lightCanvas,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+                                    boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        icon,
+                                        size: 13,
+                                        color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.punchPink,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        c['name'] as String,
+                                        style: TextStyle(
+                                          color: ArcadeTheme.pureBlack,
+                                          fontWeight: isSel ? FontWeight.w900 : FontWeight.w700,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _customTitleCtrl,
+                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w800, fontSize: 13),
+                            decoration: InputDecoration(
+                              labelText: 'Custom Title / Expense Name (Optional)',
+                              labelStyle: const TextStyle(color: ArcadeTheme.slateDark, fontWeight: FontWeight.w800, fontSize: 12),
+                              hintText: 'e.g. Lunch with team / Chai',
+                              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
+                              filled: true,
+                              fillColor: ArcadeTheme.lightCanvas,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'IMPORTANCE',
+                            style: TextStyle(
+                              color: ArcadeTheme.punchPink,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildQrImportanceChip('essential', 'ESSENTIAL', ArcadeTheme.arcadeGreen),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: _buildQrImportanceChip('moderate', 'MODERATE', ArcadeTheme.acidYellow),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: _buildQrImportanceChip('low_value', 'LOW VALUE', ArcadeTheme.punchPink),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _noteCtrl,
+                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w700, fontSize: 13),
+                            decoration: InputDecoration(
+                              labelText: 'Note / Remarks (Optional)',
+                              labelStyle: const TextStyle(color: ArcadeTheme.slateDark, fontWeight: FontWeight.w800, fontSize: 12),
+                              hintText: 'e.g. Paid at canteen',
+                              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
                               filled: true,
                               fillColor: ArcadeTheme.lightCanvas,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

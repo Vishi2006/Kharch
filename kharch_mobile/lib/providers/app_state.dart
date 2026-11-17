@@ -361,8 +361,24 @@ class AppState extends ChangeNotifier {
     required String attemptId,
     required String title,
     required String importance,
+    String? note,
   }) async {
     if (_activeSpace == null) return false;
+
+    if (_inboxData != null && _inboxData!['mediumMatches'] is List) {
+      (_inboxData!['mediumMatches'] as List).removeWhere(
+        (x) =>
+            x['event']?['_id']?.toString() == eventId ||
+            x['event']?['notificationId']?.toString() == eventId ||
+            x['suggestedAttempt']?['_id']?.toString() == attemptId ||
+            x['suggestedAttempt']?['paymentAttemptId']?.toString() == attemptId,
+      );
+      final mm = (_inboxData!['mediumMatches'] as List?)?.length ?? 0;
+      final ue = (_inboxData!['unmatchedEvents'] as List?)?.length ?? 0;
+      final ua = (_inboxData!['unknownAttempts'] as List?)?.length ?? 0;
+      _inboxData!['unreadCount'] = mm + ue + ua;
+      notifyListeners();
+    }
 
     final res = await _api.post('/api/inbox/accept-match', {
       'eventId': eventId,
@@ -372,11 +388,13 @@ class AppState extends ChangeNotifier {
       'spaceId': _activeSpace!['_id'],
       'title': title,
       'importance': importance,
+      'note': note,
     });
 
     if (res['error'] == null) {
       await refreshInbox();
       await refreshDashboard();
+      await fetchAnalytics();
       return true;
     }
     return false;
@@ -387,8 +405,29 @@ class AppState extends ChangeNotifier {
     required String itemType,
     required String title,
     required String importance,
+    String? category,
+    String? note,
   }) async {
     if (_activeSpace == null) return false;
+
+    // Optimistically remove from inbox data in memory so UI reflects immediately
+    if (_inboxData != null) {
+      if (_inboxData!['unknownAttempts'] is List) {
+        (_inboxData!['unknownAttempts'] as List).removeWhere(
+          (x) => x['_id']?.toString() == itemId || x['paymentAttemptId']?.toString() == itemId,
+        );
+      }
+      if (_inboxData!['unmatchedEvents'] is List) {
+        (_inboxData!['unmatchedEvents'] as List).removeWhere(
+          (x) => x['_id']?.toString() == itemId || x['notificationId']?.toString() == itemId,
+        );
+      }
+      final mm = (_inboxData!['mediumMatches'] as List?)?.length ?? 0;
+      final ue = (_inboxData!['unmatchedEvents'] as List?)?.length ?? 0;
+      final ua = (_inboxData!['unknownAttempts'] as List?)?.length ?? 0;
+      _inboxData!['unreadCount'] = mm + ue + ua;
+      notifyListeners();
+    }
 
     final res = await _api.post('/api/inbox/convert', {
       'id': itemId,
@@ -397,7 +436,9 @@ class AppState extends ChangeNotifier {
       'itemType': itemType,
       'spaceId': _activeSpace!['_id'],
       'title': title,
+      'category': category,
       'importance': importance,
+      'note': note,
     });
 
     if (res['error'] == null) {

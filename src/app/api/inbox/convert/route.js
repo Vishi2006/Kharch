@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { connectDB } from '@/lib/mongodb';
 import { getAuthenticatedUser, unauthorized } from '@/lib/auth';
 import NotificationEvent from '@/models/NotificationEvent';
@@ -25,7 +26,7 @@ export async function POST(request) {
   await connectDB();
 
   try {
-    const { id, source, spaceId, title, importance, type, note, date } = await request.json();
+    const { id, source, spaceId, title, category, importance, type, note, date } = await request.json();
 
     if (!id || !source) {
       return NextResponse.json({ message: 'id and source are required' }, { status: 400 });
@@ -77,11 +78,13 @@ export async function POST(request) {
       if (!attemptRecord) return NextResponse.json({ message: 'Payment attempt not found' }, { status: 404 });
       amount = attemptRecord.amount;
       resolvedDate = attemptRecord.initiatedAt;
-      defaultTitle = attemptRecord.payeeName || 'UPI Payment';
+      defaultTitle = attemptRecord.title || attemptRecord.category || attemptRecord.payeeName || 'UPI Payment';
       txType = attemptRecord.type || 'expense';
     }
 
-    const titleStr = title || defaultTitle;
+    const titleStr = title || category || attemptRecord?.title || attemptRecord?.category || defaultTitle;
+    const importanceStr = importance || attemptRecord?.importance || 'moderate';
+    const noteStr = note || attemptRecord?.note || '';
     const normalizedName = titleStr.toLowerCase().trim();
 
     let canonicalTitle = await ExpenseTitle.findOne({
@@ -105,9 +108,9 @@ export async function POST(request) {
       type: txType,
       amount,
       titleId: canonicalTitle._id,
-      importance: txType === 'expense' ? (importance || 'moderate') : undefined,
+      importance: txType === 'expense' ? importanceStr : undefined,
       date: resolvedDate,
-      note: note || '',
+      note: noteStr,
     });
 
     await transaction.save();

@@ -48,7 +48,7 @@ export async function POST(request) {
   await connectDB();
 
   try {
-    const { paymentAttemptId, type, amount, payeeVpa, payeeName, initiatedAt, status, linkedTransactionId } = await request.json();
+    const { paymentAttemptId, type, amount, payeeVpa, payeeName, initiatedAt, status, linkedTransactionId, category, title, importance, note } = await request.json();
 
     if (!paymentAttemptId || !amount) {
       return NextResponse.json({ message: 'paymentAttemptId and amount are required' }, { status: 400 });
@@ -62,6 +62,10 @@ export async function POST(request) {
         amount,
         payeeVpa,
         payeeName,
+        category: category || undefined,
+        title: title || undefined,
+        importance: importance || 'moderate',
+        note: note || '',
         initiatedAt: initiatedAt ? new Date(initiatedAt) : new Date(),
         status: status || 'PENDING',
         linkedTransactionId,

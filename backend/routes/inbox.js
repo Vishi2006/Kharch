@@ -180,7 +180,7 @@ router.post('/convert', protect, async (req, res) => {
   try {
     const id = req.body.id || req.body.itemId;
     const source = req.body.source || req.body.itemType;
-    const { spaceId, title, importance, type, note, date } = req.body;
+    const { spaceId, title, category, importance, type, note, date } = req.body;
 
     if (!id || !source) {
       return res.status(400).json({ message: 'id and source are required' });
@@ -236,7 +236,9 @@ router.post('/convert', protect, async (req, res) => {
       txType = attemptRecord.type || 'expense';
     }
 
-    const titleStr = title || defaultTitle;
+    const titleStr = title || category || attemptRecord?.title || attemptRecord?.category || defaultTitle;
+    const importanceStr = importance || attemptRecord?.importance || 'moderate';
+    const noteStr = note || attemptRecord?.note || '';
     const normalizedName = titleStr.toLowerCase().trim();
 
     let canonicalTitle = await ExpenseTitle.findOne({
@@ -260,9 +262,9 @@ router.post('/convert', protect, async (req, res) => {
       type: txType,
       amount,
       titleId: canonicalTitle._id,
-      importance: txType === 'expense' ? (importance || 'moderate') : undefined,
+      importance: txType === 'expense' ? importanceStr : undefined,
       date: resolvedDate,
-      note: note || '',
+      note: noteStr,
     });
 
     await transaction.save();

@@ -116,7 +116,9 @@ async function processNotificationEvent(event) {
       return { matched: true, confidence: 'MEDIUM' };
     }
 
-    const titleStr = event.counterparty || bestAttempt.payeeName || 'UPI Payment';
+    const titleStr = bestAttempt.title || bestAttempt.category || event.counterparty || bestAttempt.payeeName || 'UPI Payment';
+    const importanceStr = bestAttempt.importance || 'moderate';
+    const noteStr = bestAttempt.note || `Auto-matched UPI payment (${event.counterparty || bestAttempt.payeeName || ''})`.trim();
     const normalizedName = titleStr.toLowerCase().trim();
 
     let canonicalTitle = await ExpenseTitle.findOne({
@@ -142,9 +144,9 @@ async function processNotificationEvent(event) {
       type: txType,
       amount: event.amount,
       titleId: canonicalTitle._id,
-      importance: txType === 'expense' ? 'moderate' : undefined,
+      importance: txType === 'expense' ? importanceStr : undefined,
       date: event.timestamp,
-      note: `Auto-matched UPI payment (${event.counterparty || bestAttempt.payeeName || ''})`.trim(),
+      note: noteStr,
     });
 
     await transaction.save();

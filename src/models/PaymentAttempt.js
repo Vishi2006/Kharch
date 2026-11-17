@@ -31,6 +31,23 @@ const PaymentAttemptSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  category: {
+    type: String,
+    trim: true,
+  },
+  title: {
+    type: String,
+    trim: true,
+  },
+  importance: {
+    type: String,
+    enum: ['essential', 'moderate', 'low_value'],
+    default: 'moderate',
+  },
+  note: {
+    type: String,
+    trim: true,
+  },
   initiatedAt: {
     type: Date,
     default: Date.now,

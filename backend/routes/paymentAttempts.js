@@ -24,7 +24,7 @@ async function tryMatchOpenEvents(userId, amount) {
 // POST /api/payment-attempts - Create or sync a payment attempt
 router.post('/', protect, async (req, res) => {
   try {
-    const { paymentAttemptId, type, amount, payeeVpa, payeeName, initiatedAt, status, linkedTransactionId } = req.body;
+    const { paymentAttemptId, type, amount, payeeVpa, payeeName, initiatedAt, status, linkedTransactionId, category, title, importance, note } = req.body;
 
     if (!paymentAttemptId || !amount) {
       return res.status(400).json({ message: 'paymentAttemptId and amount are required' });
@@ -38,6 +38,10 @@ router.post('/', protect, async (req, res) => {
         amount,
         payeeVpa,
         payeeName,
+        category: category || undefined,
+        title: title || undefined,
+        importance: importance || 'moderate',
+        note: note || '',
         initiatedAt: initiatedAt || Date.now(),
         status: status || 'PENDING',
         linkedTransactionId,
