@@ -1,0 +1,3 @@
+module.exports=[99622,a=>{"use strict";var b=a.i(87924);a.s(["default",0,function({error:a,reset:c}){return(0,b.jsxs)("div",{className:"flex flex-col items-center justify-center min-h-[50vh] p-6 text-center",children:[(0,b.jsx)("h2",{className:"text-xl font-bold text-white",children:"Something went wrong!"}),(0,b.jsx)("p",{className:"text-sm text-slate-400 mt-2",children:a?.message||"An unexpected client error occurred."}),(0,b.jsx)("button",{onClick:()=>c?.(),className:"mt-4 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold text-xs cursor-pointer shadow-lg shadow-indigo-600/30 transition-all",children:"Try Again"})]})}])}];
+
+//# sourceMappingURL=src_app_error_1a00219.js.map
