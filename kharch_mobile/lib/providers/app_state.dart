@@ -529,7 +529,7 @@ class AppState extends ChangeNotifier {
     final now = DateTime.now();
     final monthStr = '${now.year}-${now.month.toString().padLeft(2, '0')}';
 
-    final res = await _api.post('/api/closing', {
+    final res = await _api.post('/api/summaries/closing', {
       'spaceId': _activeSpace!['_id'],
       'month': monthStr,
       'amount': amount,

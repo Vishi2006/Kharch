@@ -7,7 +7,6 @@ import '../providers/app_state.dart';
 import '../services/api_service.dart';
 import '../theme/arcade_theme.dart';
 import '../widgets/arcade_button.dart';
-import '../widgets/arcade_card.dart';
 
 class AddPayScreen extends StatefulWidget {
   final AppState appState;
@@ -432,33 +431,39 @@ class _AddPayScreenState extends State<AddPayScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Amount Display Card (White Neo-Brutal Card)
-          ArcadeCard(
-            fillColor: ArcadeTheme.cardWhite,
-            child: Column(
+          // Amount Display Card (Compact Neo-Brutal Card)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: ArcadeTheme.cardWhite,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
+              boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   'ENTER AMOUNT',
                   style: TextStyle(
                     color: ArcadeTheme.slateDark,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 0.8,
+                    letterSpacing: 0.6,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
                   '₹ $_amountStr',
                   style: const TextStyle(
                     color: ArcadeTheme.punchPink,
-                    fontSize: 34,
+                    fontSize: 26,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
 
           // Category Quick Chips
           const Text(
@@ -563,16 +568,16 @@ class _AddPayScreenState extends State<AddPayScreen> {
             child: Column(
               children: [
                 _buildKeypadRow(['1', '2', '3']),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _buildKeypadRow(['4', '5', '6']),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _buildKeypadRow(['7', '8', '9']),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _buildKeypadRow(['.', '0', '⌫']),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
           // Save Button
           ArcadeButton(
@@ -597,7 +602,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
       final chunk = categories.sublist(i, (i + crossAxisCount > categories.length) ? categories.length : i + crossAxisCount);
       rows.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.only(bottom: 3),
           child: Row(
             children: [
               for (final c in chunk)
@@ -634,32 +639,33 @@ class _AddPayScreenState extends State<AddPayScreen> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 7),
+        height: 27,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           color: isSel ? ArcadeTheme.acidYellow : ArcadeTheme.cardWhite,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
           border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
-          boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(1.5, 1.5)) : null,
+          boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(1, 1)) : null,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 15,
+              size: 11,
               color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.punchPink,
             ),
-            const SizedBox(height: 3),
-            Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: ArcadeTheme.pureBlack,
-                fontWeight: isSel ? FontWeight.w900 : FontWeight.w700,
-                fontSize: 10,
+            const SizedBox(width: 3),
+            Flexible(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: ArcadeTheme.pureBlack,
+                  fontWeight: isSel ? FontWeight.w900 : FontWeight.w700,
+                  fontSize: 9.5,
+                ),
               ),
             ),
           ],
@@ -748,7 +754,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
             child: GestureDetector(
               onTap: () => _onKeypadTap(k),
               child: Container(
-                height: 44,
+                height: 34,
                 decoration: BoxDecoration(
                   color: isSpecial ? ArcadeTheme.lightCanvas : ArcadeTheme.cardWhite,
                   borderRadius: BorderRadius.circular(6),

@@ -18,19 +18,19 @@ class KharchLogo extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFE2FD52),
         borderRadius: BorderRadius.circular(size * 0.28),
-        border: Border.all(color: Colors.black, width: size > 40 ? 2.5 : 2.0),
+        border: Border.all(color: Colors.white, width: size > 40 ? 3.5 : 2.5),
         boxShadow: showShadow
             ? [
                 BoxShadow(
                   color: Colors.black,
-                  offset: Offset(size > 40 ? 3.5 : 2.0, size > 40 ? 3.5 : 2.0),
+                  offset: Offset(size > 40 ? 3.0 : 2.0, size > 40 ? 3.0 : 2.0),
                   blurRadius: 0,
                 ),
               ]
             : null,
       ),
       child: Padding(
-        padding: EdgeInsets.all(size * 0.08),
+        padding: EdgeInsets.all(size * 0.16),
         child: Image.asset(
           'assets/logo.png',
           fit: BoxFit.contain,
@@ -38,7 +38,7 @@ class KharchLogo extends StatelessWidget {
             child: Text(
               '₹',
               style: TextStyle(
-                fontSize: size * 0.58,
+                fontSize: size * 0.50,
                 fontWeight: FontWeight.w900,
                 color: Colors.black,
                 height: 1.0,

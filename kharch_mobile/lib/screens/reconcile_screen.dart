@@ -229,9 +229,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
                       _buildBalanceRow(
                         'Audit Discrepancy',
                         '₹ ${discrepancy.toStringAsFixed(2)}',
-                        valueColor: discrepancy.abs() < 1.0
-                            ? ArcadeTheme.arcadeGreen
-                            : ArcadeTheme.pureWhite,
+                        valueColor: ArcadeTheme.pureWhite,
                         isPinkBg: true,
                       ),
                     ],
@@ -368,7 +366,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? (isPinkBg ? ArcadeTheme.acidYellow : ArcadeTheme.pureBlack),
+            color: valueColor ?? (isPinkBg ? ArcadeTheme.pureWhite : ArcadeTheme.pureBlack),
             fontWeight: FontWeight.w900,
             fontSize: 15,
           ),

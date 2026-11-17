@@ -6,3 +6,4 @@ frontend/node_modules/
 .DS_Store
 kharch_mobile/build/
 kharch_mobile/.dart_tool/
+build/

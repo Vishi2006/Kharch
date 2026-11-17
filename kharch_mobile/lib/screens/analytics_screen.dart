@@ -252,10 +252,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         const SizedBox(height: 16),
                       ],
 
-                      // 2. Month View Only: Current Month Cashflow Summary Card (Single Pink Accent)
+                      // 2. Month View Only: Current Month Cashflow Summary Card (Punch Pink Neo-Brutal)
                       if (_selectedPeriod == 'month') ...[
                         ArcadeCard(
-                          fillColor: ArcadeTheme.creamWhite,
+                          fillColor: ArcadeTheme.punchPink,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -265,7 +265,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   const Text(
                                     'CURRENT MONTH CASHFLOW',
                                     style: TextStyle(
-                                      color: ArcadeTheme.pureBlack,
+                                      color: ArcadeTheme.pureWhite,
                                       fontWeight: FontWeight.w900,
                                       fontSize: 12,
                                       letterSpacing: 0.6,
@@ -296,8 +296,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     child: _buildMetricTile(
                                       label: 'EARNED',
                                       amount: totalEarned,
-                                      color: ArcadeTheme.punchPink,
+                                      color: ArcadeTheme.arcadeGreen,
                                       icon: Icons.trending_up_rounded,
+                                      backgroundColor: ArcadeTheme.pureBlack,
+                                      textColor: ArcadeTheme.pureWhite,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -305,8 +307,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     child: _buildMetricTile(
                                       label: 'SPENT',
                                       amount: totalSpent,
-                                      color: ArcadeTheme.punchPink,
+                                      color: ArcadeTheme.acidYellow,
                                       icon: Icons.trending_down_rounded,
+                                      backgroundColor: ArcadeTheme.pureBlack,
+                                      textColor: ArcadeTheme.pureWhite,
                                     ),
                                   ),
                                 ],
@@ -619,11 +623,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     required double amount,
     required Color color,
     required IconData icon,
+    Color? backgroundColor,
+    Color? textColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: ArcadeTheme.lightCanvas,
+        color: backgroundColor ?? ArcadeTheme.lightCanvas,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
       ),
@@ -648,8 +654,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           const SizedBox(height: 6),
           Text(
             '₹ ${amount.toStringAsFixed(0)}',
-            style: const TextStyle(
-              color: ArcadeTheme.pureBlack,
+            style: TextStyle(
+              color: textColor ?? ArcadeTheme.pureBlack,
               fontWeight: FontWeight.w900,
               fontSize: 16,
             ),

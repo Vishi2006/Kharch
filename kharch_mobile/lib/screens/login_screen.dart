@@ -18,7 +18,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   double _dragPosition = 0;
-  bool _isUnlocked = false;
   bool _isLoading = false;
   String _errorMessage = '';
   bool _isApi10 = false;
@@ -44,7 +43,6 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
         _errorMessage = result['error'] ?? 'Sign-in failed. Please try again.';
         _isApi10 = result['isApi10'] == true;
-        _isUnlocked = false;
         _dragPosition = 0;
       });
     }
@@ -150,84 +148,96 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Slide-to-Unlock Slider with Punch Pink Touch & Authentic Google Logo
-                      if (!_isUnlocked)
-                        Container(
-                          width: _sliderWidth,
-                          height: 58,
-                          decoration: BoxDecoration(
-                            color: ArcadeTheme.darkCardLight,
-                            borderRadius: BorderRadius.circular(100),
-                            border: Border.all(color: ArcadeTheme.punchPink, width: 2.5),
-                            boxShadow: ArcadeTheme.neoShadow(offset: const Offset(3, 3)),
-                          ),
-                          child: Stack(
-                            children: [
-                              const Center(
-                                child: Text(
-                                  'SLIDE TO SIGN IN',
-                                  style: TextStyle(
-                                    color: ArcadeTheme.slateMuted,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 12,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                left: _dragPosition,
-                                top: 2,
-                                bottom: 2,
-                                child: GestureDetector(
-                                  onHorizontalDragUpdate: (details) {
-                                    setState(() {
-                                      _dragPosition = (_dragPosition + details.delta.dx)
-                                          .clamp(0.0, _sliderWidth - _handleWidth - 4);
-                                    });
-                                  },
-                                  onHorizontalDragEnd: (details) {
-                                    if (_dragPosition >= (_sliderWidth - _handleWidth - 20)) {
-                                      setState(() {
-                                        _isUnlocked = true;
-                                        _dragPosition = _sliderWidth - _handleWidth - 4;
-                                      });
-                                    } else {
-                                      setState(() {
-                                        _dragPosition = 0;
-                                      });
-                                    }
-                                  },
-                                  child: Container(
-                                    width: _handleWidth,
-                                    decoration: BoxDecoration(
-                                      color: ArcadeTheme.pureWhite,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: ArcadeTheme.pureBlack, width: 2.5),
-                                      boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
+                      // Slide-to-Sign-In Slider (Directly triggers Google Sign In upon slide)
+                      Container(
+                        width: _sliderWidth,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          color: ArcadeTheme.creamWhite,
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(color: ArcadeTheme.punchPink, width: 2.5),
+                          boxShadow: ArcadeTheme.neoShadow(offset: const Offset(3, 3)),
+                        ),
+                        child: _isLoading
+                            ? const Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        color: ArcadeTheme.punchPink,
+                                      ),
                                     ),
-                                    child: const Center(
-                                      child: GoogleLogo(size: 26),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'OPENING GOOGLE SIGN IN...',
+                                      style: TextStyle(
+                                        color: ArcadeTheme.pureBlack,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 12,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Stack(
+                                children: [
+                                  const Center(
+                                    child: Text(
+                                      'SLIDE TO SIGN IN',
+                                      style: TextStyle(
+                                        color: ArcadeTheme.slateDark,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 12,
+                                        letterSpacing: 1.2,
+                                      ),
                                     ),
                                   ),
-                                ),
+                                  Positioned(
+                                    left: _dragPosition,
+                                    top: 2,
+                                    bottom: 2,
+                                    child: GestureDetector(
+                                      onHorizontalDragUpdate: (details) {
+                                        setState(() {
+                                          _dragPosition = (_dragPosition + details.delta.dx)
+                                              .clamp(0.0, _sliderWidth - _handleWidth - 4);
+                                        });
+                                      },
+                                      onHorizontalDragEnd: (details) {
+                                        if (_dragPosition >= (_sliderWidth - _handleWidth - 20)) {
+                                          HapticFeedback.mediumImpact();
+                                          setState(() {
+                                            _dragPosition = _sliderWidth - _handleWidth - 4;
+                                          });
+                                          _handleGoogleLogin();
+                                        } else {
+                                          setState(() {
+                                            _dragPosition = 0;
+                                          });
+                                        }
+                                      },
+                                      child: Container(
+                                        width: _handleWidth,
+                                        decoration: BoxDecoration(
+                                          color: ArcadeTheme.pureWhite,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: ArcadeTheme.pureBlack, width: 2.5),
+                                          boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
+                                        ),
+                                        child: const Center(
+                                          child: GoogleLogo(size: 26),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-
-                      // Sign In Action (Rendered when unlocked)
-                      if (_isUnlocked) ...[
-                        ArcadeButton(
-                          text: 'SIGN IN WITH GOOGLE',
-                          icon: Icons.g_mobiledata_rounded,
-                          backgroundColor: ArcadeTheme.acidYellow,
-                          textColor: ArcadeTheme.pureBlack,
-                          isLoading: _isLoading,
-                          loadingText: 'Signing in...',
-                          onTap: _handleGoogleLogin,
-                          width: double.infinity,
-                        ),
-                      ],
+                      ),
 
                       if (_errorMessage.isNotEmpty) ...[
                         const SizedBox(height: 14),
