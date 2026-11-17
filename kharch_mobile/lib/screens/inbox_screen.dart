@@ -712,7 +712,7 @@ class _InboxScreenState extends State<InboxScreen> {
         final amt = (event['amount'] ?? attempt['amount'] ?? 0.0).toDouble();
 
         return ArcadeCard(
-          fillColor: ArcadeTheme.cardWhite,
+          fillColor: ArcadeTheme.creamWhite,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -727,7 +727,7 @@ class _InboxScreenState extends State<InboxScreen> {
                   Text(
                     '₹ ${amt.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      color: ArcadeTheme.acidYellow,
+                      color: ArcadeTheme.punchPink,
                       fontWeight: FontWeight.w900,
                       fontSize: 18,
                     ),
@@ -742,7 +742,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: ArcadeTheme.lightCanvas,
+                        color: ArcadeTheme.pureWhite,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                       ),
@@ -751,7 +751,7 @@ class _InboxScreenState extends State<InboxScreen> {
                         children: [
                           const Text('NOTIFICATION',
                               style: TextStyle(
-                                  color: ArcadeTheme.neonCyan,
+                                  color: ArcadeTheme.punchPink,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 10)),
                           const SizedBox(height: 4),
@@ -767,7 +767,7 @@ class _InboxScreenState extends State<InboxScreen> {
                           Text(
                             event['sourceApp'] ?? 'SMS',
                             style: const TextStyle(
-                                color: ArcadeTheme.slateMuted, fontSize: 10),
+                                color: ArcadeTheme.slateDark, fontSize: 10, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -778,7 +778,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: ArcadeTheme.lightCanvas,
+                        color: ArcadeTheme.pureWhite,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                       ),
@@ -787,7 +787,7 @@ class _InboxScreenState extends State<InboxScreen> {
                         children: [
                           const Text('QR ATTEMPT',
                               style: TextStyle(
-                                  color: ArcadeTheme.punchPink,
+                                  color: ArcadeTheme.arcadeGreen,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 10)),
                           const SizedBox(height: 4),
@@ -803,7 +803,7 @@ class _InboxScreenState extends State<InboxScreen> {
                           Text(
                             attempt['payeeVpa'] ?? 'vpa',
                             style: const TextStyle(
-                                color: ArcadeTheme.slateMuted, fontSize: 10),
+                                color: ArcadeTheme.slateDark, fontSize: 10, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -836,7 +836,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     text: 'DISMISS',
                     height: 42,
                     fontSize: 12,
-                    backgroundColor: ArcadeTheme.cardWhite,
+                    backgroundColor: ArcadeTheme.pureWhite,
                     textColor: ArcadeTheme.pureBlack,
                     isLoading: _actioningKey == 'dismiss_${event['_id']}',
                     loadingText: 'Dismissing...',
@@ -889,25 +889,29 @@ class _InboxScreenState extends State<InboxScreen> {
         final type = item['type'] ?? 'DEBIT';
 
         return ArcadeCard(
-          fillColor: ArcadeTheme.cardWhite,
+          fillColor: ArcadeTheme.creamWhite,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: ArcadeTheme.pureBlack,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: ArcadeTheme.pureBlack,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '₹ ${amt.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      color: ArcadeTheme.acidYellow,
+                      color: ArcadeTheme.punchPink,
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
                     ),
@@ -940,7 +944,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     text: 'IGNORE',
                     height: 40,
                     fontSize: 11,
-                    backgroundColor: ArcadeTheme.cardWhite,
+                    backgroundColor: ArcadeTheme.pureWhite,
                     textColor: ArcadeTheme.pureBlack,
                     isLoading: _actioningKey == 'dismiss_${item['_id']}',
                     loadingText: 'Ignoring...',

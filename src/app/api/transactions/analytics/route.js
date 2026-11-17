@@ -184,11 +184,20 @@ export async function GET(request) {
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 15);
 
+    // Day transaction count
+    const todayDay = now.getDate();
+    const dayTransactions = transactions.filter(tx => {
+      const d = new Date(tx.date);
+      return d.getDate() === todayDay && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+
     return NextResponse.json({
       trends: trendData,
       importance: importanceData.filter((i) => i.value > 0),
       topSpendingTitles,
       repeatedWasteful,
+      totalTransactions: transactions.length,
+      dayTransactionCount: dayTransactions.length,
     });
   } catch (error) {
     console.error('Error fetching analytics:', error.message);

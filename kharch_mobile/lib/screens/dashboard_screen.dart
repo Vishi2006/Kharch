@@ -299,7 +299,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               // 2. HERO TODAY'S EXPENSES CARD (Punch Pink Neo-Brutal styling)
               // Note: Expected Current Balance is placed in Audit/Reconcile tab for privacy
               ArcadeCard(
-                fillColor: ArcadeTheme.cardWhite,
+                fillColor: ArcadeTheme.punchPink,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -321,9 +321,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const Text(
                               "TODAY'S SPENT",
                               style: TextStyle(
-                                color: ArcadeTheme.pureBlack,
+                                color: ArcadeTheme.pureWhite,
                                 fontWeight: FontWeight.w900,
-                                fontSize: 12,
+                                fontSize: 13,
                                 letterSpacing: 0.8,
                               ),
                             ),
@@ -368,7 +368,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Text(
                           '₹ ${todaySpent.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            color: ArcadeTheme.punchPink,
+                            color: ArcadeTheme.pureWhite,
                             fontWeight: FontWeight.w900,
                             fontSize: 34,
                             letterSpacing: -0.5,
@@ -377,8 +377,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 8),
                         Text(
                           '($dateStr)',
-                          style: const TextStyle(
-                            color: ArcadeTheme.slateDark,
+                          style: TextStyle(
+                            color: ArcadeTheme.pureWhite.withValues(alpha: 0.85),
                             fontWeight: FontWeight.w700,
                             fontSize: 11,
                           ),
@@ -392,7 +392,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             decoration: BoxDecoration(
-                              color: ArcadeTheme.lightCanvas,
+                              color: ArcadeTheme.pureBlack,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                             ),
@@ -403,10 +403,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'THIS MONTH',
                                       style: TextStyle(
-                                        color: ArcadeTheme.slateDark,
+                                        color: ArcadeTheme.pureWhite.withValues(alpha: 0.7),
                                         fontWeight: FontWeight.w900,
                                         fontSize: 9,
                                       ),
@@ -414,7 +414,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     Text(
                                       '₹ ${monthSpent.toStringAsFixed(0)}',
                                       style: const TextStyle(
-                                        color: ArcadeTheme.punchPink,
+                                        color: ArcadeTheme.acidYellow,
                                         fontWeight: FontWeight.w900,
                                         fontSize: 13,
                                       ),
@@ -430,7 +430,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             decoration: BoxDecoration(
-                              color: ArcadeTheme.lightCanvas,
+                              color: ArcadeTheme.pureBlack,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                             ),
@@ -441,10 +441,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'INFLOW',
                                       style: TextStyle(
-                                        color: ArcadeTheme.slateDark,
+                                        color: ArcadeTheme.pureWhite.withValues(alpha: 0.7),
                                         fontWeight: FontWeight.w900,
                                         fontSize: 9,
                                       ),
@@ -510,9 +510,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 14),
 
-              // 4. Today's Spend Breakdown & AI Insight Card
+              // 4. Today's Spend Breakdown & AI Insight Card (Pink Neo-Brutal background)
               ArcadeCard(
-                fillColor: ArcadeTheme.cardWhite,
+                fillColor: const Color(0xFFFFD9E8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -531,7 +531,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Text(
                           '₹ ${todaySpent.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            color: ArcadeTheme.punchPink,
+                            color: ArcadeTheme.pureBlack,
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
                           ),
@@ -586,9 +586,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: ArcadeTheme.lightCanvas,
+                        color: ArcadeTheme.creamWhite,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: ArcadeTheme.punchPink, width: 1.5),
+                        border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -691,7 +691,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: ArcadeTheme.cardWhite,
+                        color: ArcadeTheme.creamWhite,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
                         boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
@@ -699,41 +699,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 9,
-                                height: 9,
-                                decoration: BoxDecoration(
-                                  color: dotColor,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: ArcadeTheme.pureBlack, width: 1),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: dotColor,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: ArcadeTheme.pureBlack, width: 1),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title,
-                                    style: const TextStyle(
-                                      color: ArcadeTheme.pureWhite,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 13,
-                                    ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        style: const TextStyle(
+                                          color: ArcadeTheme.pureBlack,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 13,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        note.isNotEmpty ? '$dateLabel • $note' : dateLabel,
+                                        style: const TextStyle(
+                                          color: ArcadeTheme.slateDark,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    note.isNotEmpty ? '$dateLabel • $note' : dateLabel,
-                                    style: const TextStyle(
-                                      color: ArcadeTheme.slateMuted,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Text(
                             '${isIncome ? '+' : '-'}₹ ${amt.toStringAsFixed(0)}',
                             style: TextStyle(

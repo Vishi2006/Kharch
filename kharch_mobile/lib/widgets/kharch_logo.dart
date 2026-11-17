@@ -29,13 +29,11 @@ class KharchLogo extends StatelessWidget {
               ]
             : null,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(size * 0.28),
+      child: Padding(
+        padding: EdgeInsets.all(size * 0.08),
         child: Image.asset(
           'assets/logo.png',
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => Center(
             child: Text(
               '₹',

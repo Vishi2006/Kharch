@@ -214,24 +214,25 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 3. Balances Breakdown (White Card)
+              // 3. Balances Breakdown (Punch Pink Card)
               ArcadeCard(
-                fillColor: ArcadeTheme.cardWhite,
+                fillColor: ArcadeTheme.punchPink,
                 child: Column(
                   children: [
-                    _buildBalanceRow('Opening Balance', '₹ ${opening.toStringAsFixed(2)}'),
+                    _buildBalanceRow('Opening Balance', '₹ ${opening.toStringAsFixed(2)}', isPinkBg: true),
                     const Divider(color: ArcadeTheme.pureBlack, thickness: 1.5, height: 20),
-                    _buildBalanceRow('Calculated Ledger', '₹ ${calculated.toStringAsFixed(2)}'),
+                    _buildBalanceRow('Calculated Ledger', '₹ ${calculated.toStringAsFixed(2)}', isPinkBg: true),
                     if (actual != null) ...[
                       const Divider(color: ArcadeTheme.pureBlack, thickness: 1.5, height: 20),
-                      _buildBalanceRow('Actual Bank Closing', '₹ ${actual.toStringAsFixed(2)}'),
+                      _buildBalanceRow('Actual Bank Closing', '₹ ${actual.toStringAsFixed(2)}', isPinkBg: true),
                       const Divider(color: ArcadeTheme.pureBlack, thickness: 1.5, height: 20),
                       _buildBalanceRow(
                         'Audit Discrepancy',
                         '₹ ${discrepancy.toStringAsFixed(2)}',
                         valueColor: discrepancy.abs() < 1.0
                             ? ArcadeTheme.arcadeGreen
-                            : ArcadeTheme.punchPink,
+                            : ArcadeTheme.pureWhite,
+                        isPinkBg: true,
                       ),
                     ],
                   ],
@@ -352,14 +353,14 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
     );
   }
 
-  Widget _buildBalanceRow(String label, String value, {Color? valueColor}) {
+  Widget _buildBalanceRow(String label, String value, {Color? valueColor, bool isPinkBg = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: ArcadeTheme.slateDark,
+          style: TextStyle(
+            color: isPinkBg ? ArcadeTheme.pureWhite : ArcadeTheme.slateDark,
             fontWeight: FontWeight.w800,
             fontSize: 13,
           ),
@@ -367,7 +368,7 @@ class _ReconcileScreenState extends State<ReconcileScreen> {
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? ArcadeTheme.pureBlack,
+            color: valueColor ?? (isPinkBg ? ArcadeTheme.acidYellow : ArcadeTheme.pureBlack),
             fontWeight: FontWeight.w900,
             fontSize: 15,
           ),

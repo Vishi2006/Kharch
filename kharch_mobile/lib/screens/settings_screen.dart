@@ -74,9 +74,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Notification Access Card
+              // Notification Access Card (Cream White with Neon Button)
               ArcadeCard(
-                fillColor: ArcadeTheme.darkCard,
+                fillColor: ArcadeTheme.creamWhite,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -86,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Text(
                           'NOTIFICATION LISTENER',
                           style: TextStyle(
-                            color: ArcadeTheme.pureWhite,
+                            color: ArcadeTheme.pureBlack,
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
                           ),
@@ -116,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 6),
                     const Text(
                       'Captures PhonePe, Google Pay, Paytm, and bank SMS transactions instantly. Runs 0% idle CPU and zero battery drain.',
-                      style: TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
+                      style: TextStyle(color: ArcadeTheme.slateDark, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 12),
                     if (!isNotifGranted)
@@ -149,9 +149,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Battery Optimization Exemption Card
+              // Battery Optimization Exemption Card (Cream White with Pink Button)
               ArcadeCard(
-                fillColor: ArcadeTheme.darkCard,
+                fillColor: ArcadeTheme.creamWhite,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -161,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Text(
                           'BATTERY OPTIMIZATION',
                           style: TextStyle(
-                            color: ArcadeTheme.pureWhite,
+                            color: ArcadeTheme.pureBlack,
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
                           ),
@@ -189,14 +189,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 6),
                     const Text(
                       'Prevents aggressive OEM task killers (Xiaomi, Samsung, OnePlus) from stopping the listener when app is closed.',
-                      style: TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
+                      style: TextStyle(color: ArcadeTheme.slateDark, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 12),
                     if (!isBatteryIgnored)
                       ArcadeButton(
                         text: 'EXEMPT FROM BATTERY KILLER',
                         icon: Icons.battery_charging_full_rounded,
-                        backgroundColor: ArcadeTheme.darkCardLight,
+                        backgroundColor: ArcadeTheme.punchPink,
                         textColor: ArcadeTheme.pureWhite,
                         onTap: () => widget.appState.requestBatteryOptimization(),
                         width: double.infinity,
@@ -219,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 10),
                 ArcadeCard(
-                  fillColor: ArcadeTheme.darkCard,
+                  fillColor: ArcadeTheme.creamWhite,
                   child: Row(
                     children: [
                       Container(
@@ -261,7 +261,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Text(
                               user['name'] ?? 'Kharch User',
                               style: const TextStyle(
-                                color: ArcadeTheme.pureWhite,
+                                color: ArcadeTheme.pureBlack,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 15,
                               ),
@@ -269,8 +269,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Text(
                               user['email'] ?? '',
                               style: const TextStyle(
-                                color: ArcadeTheme.slateMuted,
+                                color: ArcadeTheme.slateDark,
                                 fontSize: 12,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],

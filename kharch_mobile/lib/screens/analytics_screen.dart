@@ -61,6 +61,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         }
         final totalImportance = essentialVal + moderateVal + lowVal;
 
+        final dayTxCount = (analytics?['dayTransactionCount'] as num?)?.toInt() ??
+            (widget.appState.dashboardData?['todaySpent'] != null && (widget.appState.dashboardData?['todaySpent'] as num) > 0 ? 1 : 0);
+        final todaySpentDay = (widget.appState.dashboardData?['todaySpent'] as num?)?.toDouble() ?? 0.0;
+
         return Scaffold(
           backgroundColor: ArcadeTheme.lightCanvas,
           appBar: AppBar(
@@ -135,76 +139,187 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         ),
                       )
                     else ...[
-                      // Period Totals Summary Card
-                      ArcadeCard(
-                        fillColor: ArcadeTheme.cardWhite,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _selectedPeriod == 'year' ? 'CURRENT YEAR CASHFLOW' : 'CURRENT MONTH CASHFLOW',
-                                  style: const TextStyle(
-                                    color: ArcadeTheme.pureBlack,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 11,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: netCashflow >= 0
-                                        ? ArcadeTheme.arcadeGreen
-                                        : ArcadeTheme.punchPink,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
-                                  ),
-                                  child: Text(
-                                    netCashflow >= 0 ? 'NET SAVINGS' : 'NET DEFICIT',
+                      // 1. Day View: Total Transactions on that Day
+                      if (_selectedPeriod == 'day') ...[
+                        ArcadeCard(
+                          fillColor: ArcadeTheme.punchPink,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    "TODAY'S ACTIVITY",
                                     style: TextStyle(
-                                      color: netCashflow >= 0
-                                          ? ArcadeTheme.pureBlack
-                                          : ArcadeTheme.pureWhite,
+                                      color: ArcadeTheme.pureWhite,
                                       fontWeight: FontWeight.w900,
-                                      fontSize: 9,
+                                      fontSize: 12,
+                                      letterSpacing: 0.8,
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildMetricTile(
-                                    label: 'EARNED',
-                                    amount: totalEarned,
-                                    color: ArcadeTheme.arcadeGreen,
-                                    icon: Icons.trending_up_rounded,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: ArcadeTheme.acidYellow,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+                                    ),
+                                    child: Text(
+                                      '$dayTxCount ${dayTxCount == 1 ? 'TRANSACTION' : 'TRANSACTIONS'}',
+                                      style: const TextStyle(
+                                        color: ArcadeTheme.pureBlack,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 9,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _buildMetricTile(
-                                    label: 'SPENT',
-                                    amount: totalSpent,
-                                    color: ArcadeTheme.punchPink,
-                                    icon: Icons.trending_down_rounded,
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: ArcadeTheme.pureBlack,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'TOTAL TRANSACTIONS',
+                                            style: TextStyle(
+                                              color: ArcadeTheme.pureWhite,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 9,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '$dayTxCount',
+                                            style: const TextStyle(
+                                              color: ArcadeTheme.acidYellow,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 22,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: ArcadeTheme.pureBlack,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'TOTAL SPENT TODAY',
+                                            style: TextStyle(
+                                              color: ArcadeTheme.pureWhite,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 9,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '₹ ${todaySpentDay.toStringAsFixed(0)}',
+                                            style: const TextStyle(
+                                              color: ArcadeTheme.arcadeGreen,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 22,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
+                      ],
 
-                      // Spending vs Earning Chart
+                      // 2. Month View Only: Current Month Cashflow Summary Card (Single Pink Accent)
+                      if (_selectedPeriod == 'month') ...[
+                        ArcadeCard(
+                          fillColor: ArcadeTheme.creamWhite,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'CURRENT MONTH CASHFLOW',
+                                    style: TextStyle(
+                                      color: ArcadeTheme.pureBlack,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 12,
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: ArcadeTheme.punchPink,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+                                    ),
+                                    child: Text(
+                                      netCashflow >= 0 ? 'NET SAVINGS' : 'NET DEFICIT',
+                                      style: const TextStyle(
+                                        color: ArcadeTheme.pureWhite,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 9,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildMetricTile(
+                                      label: 'EARNED',
+                                      amount: totalEarned,
+                                      color: ArcadeTheme.punchPink,
+                                      icon: Icons.trending_up_rounded,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildMetricTile(
+                                      label: 'SPENT',
+                                      amount: totalSpent,
+                                      color: ArcadeTheme.punchPink,
+                                      icon: Icons.trending_down_rounded,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // 3. Spending vs Earning Chart (Cream White Card)
                       ArcadeCard(
-                        fillColor: ArcadeTheme.cardWhite,
+                        fillColor: ArcadeTheme.creamWhite,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -250,10 +365,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Importance Breakdown (Essential, Moderate, Low-Value)
+                      // 4. Importance Breakdown (Cream White Card)
                       if (totalImportance > 0) ...[
                         ArcadeCard(
-                          fillColor: ArcadeTheme.cardWhite,
+                          fillColor: ArcadeTheme.creamWhite,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -329,7 +444,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         const SizedBox(height: 16),
                       ],
 
-                      // Top Spending Categories
+                      // 5. Top Spending Categories (Cream White Cards)
                       if (topTitles.isNotEmpty) ...[
                         const Text(
                           'TOP SPENDING CATEGORIES',
@@ -354,7 +469,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: ArcadeTheme.cardWhite,
+                                color: ArcadeTheme.creamWhite,
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: ArcadeTheme.pureBlack, width: 2),
                                 boxShadow: ArcadeTheme.neoShadow(offset: const Offset(2, 2)),
@@ -399,10 +514,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         const SizedBox(height: 16),
                       ],
 
-                      // Wasteful / Low-Value Watch
+                      // 6. Wasteful / Low-Value Watch (Pink Pastel Card)
                       if (wasteful.isNotEmpty) ...[
                         ArcadeCard(
-                          fillColor: ArcadeTheme.cardWhite,
+                          fillColor: const Color(0xFFFFD9E8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -414,7 +529,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   Text(
                                     'REPEATED LOW-VALUE SPENDING',
                                     style: TextStyle(
-                                      color: ArcadeTheme.punchPink,
+                                      color: ArcadeTheme.pureBlack,
                                       fontWeight: FontWeight.w900,
                                       fontSize: 12,
                                       letterSpacing: 0.6,

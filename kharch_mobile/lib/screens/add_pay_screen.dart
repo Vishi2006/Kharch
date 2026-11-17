@@ -39,26 +39,58 @@ class _AddPayScreenState extends State<AddPayScreen> {
   final TextEditingController _noteCtrl = TextEditingController();
   bool _isSaving = false;
 
-  // 15-20 Curated Daily Life Title Chips + Other
-  final List<Map<String, dynamic>> _coreCategories = [
+  // 20 Curated Daily Life Title Chips (4 per row, 5 rows) for Expense
+  static final List<Map<String, dynamic>> _expenseCategories = [
+    // Row 1
     {'name': 'Transportation', 'icon': Icons.directions_car_rounded},
     {'name': 'Groceries', 'icon': Icons.shopping_cart_rounded},
     {'name': 'Fast Food', 'icon': Icons.fastfood_rounded},
     {'name': 'Chai Pani', 'icon': Icons.local_cafe_rounded},
+    // Row 2
     {'name': 'Shopping', 'icon': Icons.shopping_bag_rounded},
     {'name': 'Home', 'icon': Icons.home_rounded},
-    {'name': 'Salary', 'icon': Icons.account_balance_wallet_rounded},
     {'name': 'Udhari', 'icon': Icons.handshake_rounded},
     {'name': 'Tech', 'icon': Icons.devices_rounded},
+    // Row 3
     {'name': 'Dining', 'icon': Icons.restaurant_rounded},
     {'name': 'Fuel', 'icon': Icons.local_gas_station_rounded},
     {'name': 'Rent', 'icon': Icons.apartment_rounded},
     {'name': 'Bills', 'icon': Icons.receipt_long_rounded},
+    // Row 4
     {'name': 'Healthcare', 'icon': Icons.medical_services_rounded},
-    {'name': 'Entertainment', 'icon': Icons.movie_creation_rounded},
-    {'name': 'Investment', 'icon': Icons.trending_up_rounded},
+    {'name': 'Fun', 'icon': Icons.movie_creation_rounded},
     {'name': 'Education', 'icon': Icons.school_rounded},
     {'name': 'Personal Care', 'icon': Icons.spa_rounded},
+    // Row 5
+    {'name': 'Subscriptions', 'icon': Icons.subscriptions_rounded},
+    {'name': 'Travel', 'icon': Icons.flight_takeoff_rounded},
+    {'name': 'Gifts', 'icon': Icons.card_giftcard_rounded},
+    {'name': 'Other', 'icon': Icons.add_circle_outline_rounded},
+  ];
+
+  static final List<Map<String, dynamic>> _incomeCategories = [
+    {'name': 'Salary', 'icon': Icons.account_balance_wallet_rounded},
+    {'name': 'Freelance', 'icon': Icons.laptop_mac_rounded},
+    {'name': 'Business', 'icon': Icons.storefront_rounded},
+    {'name': 'Invest Return', 'icon': Icons.trending_up_rounded},
+    {'name': 'Gift', 'icon': Icons.card_giftcard_rounded},
+    {'name': 'Other', 'icon': Icons.add_circle_outline_rounded},
+  ];
+
+  static final List<Map<String, dynamic>> _investmentCategories = [
+    {'name': 'Mutual Funds', 'icon': Icons.pie_chart_rounded},
+    {'name': 'Stocks', 'icon': Icons.show_chart_rounded},
+    {'name': 'Gold', 'icon': Icons.diamond_rounded},
+    {'name': 'Crypto', 'icon': Icons.currency_bitcoin_rounded},
+    {'name': 'FD', 'icon': Icons.savings_rounded},
+    {'name': 'Other', 'icon': Icons.add_circle_outline_rounded},
+  ];
+
+  static final List<Map<String, dynamic>> _savingsCategories = [
+    {'name': 'Emergency Fund', 'icon': Icons.security_rounded},
+    {'name': 'Bank Deposit', 'icon': Icons.account_balance_rounded},
+    {'name': 'Savings', 'icon': Icons.savings_rounded},
+    {'name': 'Chit Fund', 'icon': Icons.groups_rounded},
     {'name': 'Other', 'icon': Icons.add_circle_outline_rounded},
   ];
 
@@ -79,17 +111,18 @@ class _AddPayScreenState extends State<AddPayScreen> {
     _activeTab = widget.initialTab;
   }
 
-  List<Map<String, dynamic>> _getAllCategories() {
-    final list = List<Map<String, dynamic>>.from(_coreCategories);
-    for (final title in _userAddedTitles) {
-      if (!list.any((c) => c['name'] == title)) {
-        list.insert(list.length - 1, {
-          'name': title,
-          'icon': Icons.label_important_outline_rounded,
-        });
-      }
+  List<Map<String, dynamic>> _getCategoriesForCurrentType() {
+    switch (_type) {
+      case 'income':
+        return _incomeCategories;
+      case 'investment':
+        return _investmentCategories;
+      case 'savings':
+        return _savingsCategories;
+      case 'expense':
+      default:
+        return _expenseCategories;
     }
-    return list;
   }
 
   @override
@@ -438,83 +471,37 @@ class _AddPayScreenState extends State<AddPayScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: _getAllCategories().map((c) {
-              final isSel = _selectedCategory == c['name'];
-              final icon = c['icon'] as IconData;
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  setState(() {
-                    _selectedCategory = c['name'] as String;
-                    if (c['name'] != 'Other') {
-                      _customTitleCtrl.text = c['name'] as String;
-                    } else {
-                      _customTitleCtrl.clear();
-                    }
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSel ? ArcadeTheme.acidYellow : ArcadeTheme.cardWhite,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
-                    boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        icon,
-                        size: 14,
-                        color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.punchPink,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        c['name'] as String,
-                        style: TextStyle(
-                          color: ArcadeTheme.pureBlack,
-                          fontWeight: isSel ? FontWeight.w900 : FontWeight.w700,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
+          _buildCategoryGrid(_getCategoriesForCurrentType(), crossAxisCount: 4),
 
-          // Custom Title (Optional / For "Other")
-          TextField(
-            controller: _customTitleCtrl,
-            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900, fontSize: 13),
-            decoration: InputDecoration(
-              labelText: 'Custom Title / Expense Name (Optional)',
-              labelStyle: const TextStyle(color: ArcadeTheme.punchPink, fontWeight: FontWeight.w800, fontSize: 12),
-              hintText: 'e.g. Swiggy, Metro Card, Cricket Kit',
-              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
-              filled: true,
-              fillColor: ArcadeTheme.cardWhite,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+          // Custom Title (ONLY when "Other" is selected)
+          if (_selectedCategory == 'Other') ...[
+            const SizedBox(height: 8),
+            TextField(
+              controller: _customTitleCtrl,
+              style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900, fontSize: 13),
+              decoration: InputDecoration(
+                labelText: 'Custom Title *',
+                labelStyle: const TextStyle(color: ArcadeTheme.punchPink, fontWeight: FontWeight.w800, fontSize: 12),
+                hintText: 'e.g. Swiggy, Metro Card, Cricket Kit',
+                hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
+                filled: true,
+                fillColor: ArcadeTheme.cardWhite,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 10),
 
           // Additional Optional Note
@@ -604,13 +591,102 @@ class _AddPayScreenState extends State<AddPayScreen> {
     );
   }
 
+  Widget _buildCategoryGrid(List<Map<String, dynamic>> categories, {int crossAxisCount = 4}) {
+    List<Widget> rows = [];
+    for (int i = 0; i < categories.length; i += crossAxisCount) {
+      final chunk = categories.sublist(i, (i + crossAxisCount > categories.length) ? categories.length : i + crossAxisCount);
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            children: [
+              for (final c in chunk)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2.5),
+                    child: _buildCategoryChip(c),
+                  ),
+                ),
+              for (int j = 0; j < crossAxisCount - chunk.length; j++)
+                const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(children: rows);
+  }
+
+  Widget _buildCategoryChip(Map<String, dynamic> c) {
+    final name = c['name'] as String;
+    final icon = c['icon'] as IconData;
+    final isSel = _selectedCategory == name;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _selectedCategory = name;
+          if (name != 'Other') {
+            _customTitleCtrl.text = name;
+          } else {
+            _customTitleCtrl.clear();
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSel ? ArcadeTheme.acidYellow : ArcadeTheme.cardWhite,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
+          boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(1.5, 1.5)) : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.punchPink,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: ArcadeTheme.pureBlack,
+                fontWeight: isSel ? FontWeight.w900 : FontWeight.w700,
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTypeChip(String type, String label, Color color) {
     final isSel = _type == type;
     return Expanded(
       child: GestureDetector(
         onTap: () {
           HapticFeedback.selectionClick();
-          setState(() => _type = type);
+          setState(() {
+            _type = type;
+            if (type == 'expense') {
+              _selectedCategory = 'Fast Food';
+            } else if (type == 'income') {
+              _selectedCategory = 'Salary';
+            } else if (type == 'investment') {
+              _selectedCategory = 'Mutual Funds';
+            } else if (type == 'savings') {
+              _selectedCategory = 'Emergency Fund';
+            }
+            _customTitleCtrl.clear();
+          });
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -710,7 +786,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
                 controller: _scannerCtrl,
                 onDetect: _onDetect,
               ),
-              // Viewfinder square with high-contrast Acid Yellow border
+              // Viewfinder square with high-contrast Acid Yellow border (Clean, no dark shadow)
               Container(
                 width: 220,
                 height: 220,
@@ -720,12 +796,6 @@ class _AddPayScreenState extends State<AddPayScreen> {
                     color: ArcadeTheme.acidYellow,
                     width: 3.5,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: ArcadeTheme.pureBlack.withValues(alpha: 0.4),
-                      spreadRadius: 2,
-                    ),
-                  ],
                 ),
               ),
               // Instructions tag
@@ -920,7 +990,7 @@ class _AddPayScreenState extends State<AddPayScreen> {
                           ),
                           const SizedBox(height: 12),
 
-                          // Category Quick Chips
+                          // Category Quick Chips (Max 4 per row, 5 rows)
                           const Text(
                             'QUICK TITLE / CATEGORY',
                             style: TextStyle(
@@ -931,81 +1001,37 @@ class _AddPayScreenState extends State<AddPayScreen> {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: _getAllCategories().map((c) {
-                              final isSel = _selectedCategory == c['name'];
-                              final icon = c['icon'] as IconData;
-                              return GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(() {
-                                    _selectedCategory = c['name'] as String;
-                                    if (c['name'] != 'Other') {
-                                      _customTitleCtrl.text = c['name'] as String;
-                                    } else {
-                                      _customTitleCtrl.clear();
-                                    }
-                                  });
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: isSel ? ArcadeTheme.acidYellow : ArcadeTheme.cardWhite,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
-                                    boxShadow: isSel ? ArcadeTheme.neoShadow(offset: const Offset(2, 2)) : null,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        icon,
-                                        size: 13,
-                                        color: isSel ? ArcadeTheme.pureBlack : ArcadeTheme.punchPink,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        c['name'] as String,
-                                        style: TextStyle(
-                                          color: ArcadeTheme.pureBlack,
-                                          fontWeight: isSel ? FontWeight.w900 : FontWeight.w700,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                          _buildCategoryGrid(_expenseCategories, crossAxisCount: 4),
+
+                          // Custom Title (ONLY when "Other" is selected)
+                          if (_selectedCategory == 'Other') ...[
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _customTitleCtrl,
+                              style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w800, fontSize: 13),
+                              decoration: InputDecoration(
+                                labelText: 'Custom Title *',
+                                labelStyle: const TextStyle(color: ArcadeTheme.punchPink, fontWeight: FontWeight.w800, fontSize: 12),
+                                hintText: 'e.g. Lunch with team / Chai',
+                                hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
+                                filled: true,
+                                fillColor: ArcadeTheme.lightCanvas,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            controller: _customTitleCtrl,
-                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w800, fontSize: 13),
-                            decoration: InputDecoration(
-                              labelText: 'Custom Title / Expense Name (Optional)',
-                              labelStyle: const TextStyle(color: ArcadeTheme.slateDark, fontWeight: FontWeight.w800, fontSize: 12),
-                              hintText: 'e.g. Lunch with team / Chai',
-                              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
-                              filled: true,
-                              fillColor: ArcadeTheme.lightCanvas,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                           const SizedBox(height: 10),
                           const Text(
                             'IMPORTANCE',
