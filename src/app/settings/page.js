@@ -1,0 +1,510 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { 
+  LogOut, 
+  Trash2, 
+  ShieldAlert, 
+  Database, 
+  Calendar, 
+  Info,
+  UserCheck,
+  AlertOctagon,
+  Smartphone,
+  Key,
+  Download,
+  X,
+  Copy,
+  Check
+} from 'lucide-react';
+import { formatDateDMY } from '../../utils/date';
+
+export default function SettingsPage() {
+  const { user, activeSpace, logout, apiFetch, isOffline, API_BASE } = useApp();
+
+  // Companion Pairing States (Android)
+  const [pairingModalOpen, setPairingModalOpen] = useState(false);
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const [pairingToken, setPairingToken] = useState('');
+  const [copiedToken, setCopiedToken] = useState(false);
+  const [copiedServerUrl, setCopiedServerUrl] = useState(false);
+
+  // iOS Shortcuts Automation States
+  const [iosToken, setIosToken] = useState('');
+  const [iosTokenLoading, setIosTokenLoading] = useState(false);
+  const [copiedIosToken, setCopiedIosToken] = useState(false);
+
+  const handleOpenPairing = async () => {
+    setPairingModalOpen(true);
+    setPairingLoading(true);
+    try {
+      const res = await apiFetch('/api/companion/token', { method: 'POST' });
+      if (res && res.success) {
+        setPairingToken(res.token);
+      }
+    } catch (err) {
+      console.error('Failed to generate pairing token:', err);
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  const handleCopyToken = () => {
+    if (pairingToken) {
+      navigator.clipboard.writeText(pairingToken);
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 2000);
+    }
+  };
+
+  const handleCopyServerUrl = () => {
+    const url = typeof window !== 'undefined' ? window.location.origin : 'https://kharch2026.vercel.app';
+    navigator.clipboard.writeText(url);
+    setCopiedServerUrl(true);
+    setTimeout(() => setCopiedServerUrl(false), 2000);
+  };
+
+  const handleGenerateIosToken = async () => {
+    setIosTokenLoading(true);
+    try {
+      const res = await apiFetch('/api/companion/token', {
+        method: 'POST',
+        body: JSON.stringify({ deviceName: 'iPhone Shortcuts' }),
+      });
+      if (res?.success) {
+        setIosToken(res.token);
+      }
+    } catch (err) {
+      console.error('Failed to generate iOS token:', err);
+    } finally {
+      setIosTokenLoading(false);
+    }
+  };
+
+  // Selective cleanup states
+  const [cleanupRange, setCleanupRange] = useState('6months'); // '6months' | '1year' | 'custom'
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState('');
+
+  // Danger zone account deletion state
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  // Trigger history cleanup
+  const handleHistoryCleanup = async (e) => {
+    e.preventDefault();
+    if (isOffline) return;
+
+    let confirmMsg = '';
+    if (cleanupRange === '6months') {
+      confirmMsg = `Are you sure you want to delete detailed transactions older than 6 months in "${activeSpace?.name}"?\n\nHigh-level monthly summaries and locked balances will be preserved.`;
+    } else if (cleanupRange === '1year') {
+      confirmMsg = `Are you sure you want to delete detailed transactions older than 1 year in "${activeSpace?.name}"?\n\nHigh-level monthly summaries and locked balances will be preserved.`;
+    } else {
+      if (!startDate || !endDate) {
+        alert('Please select start and end dates.');
+        return;
+      }
+      const formattedStart = formatDateDMY(new Date(startDate));
+      const formattedEnd = formatDateDMY(new Date(endDate));
+      confirmMsg = `Are you sure you want to delete detailed transactions between ${formattedStart} and ${formattedEnd} in "${activeSpace?.name}"?\n\nHigh-level monthly summaries and locked balances will be preserved.`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    setIsCleaning(true);
+    setCleanupResult('');
+    
+    const payload = {
+      spaceId: activeSpace._id,
+      range: cleanupRange
+    };
+
+    if (cleanupRange === 'custom') {
+      payload.startDate = new Date(startDate).toISOString();
+      payload.endDate = new Date(endDate).toISOString();
+    }
+
+    const data = await apiFetch('/api/settings/cleanup', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    if (data && !data.error) {
+      setCleanupResult(data.message || 'Cleanup completed.');
+      setStartDate('');
+      setEndDate('');
+    } else {
+      alert(data.error || 'Failed to complete cleanup');
+    }
+    setIsCleaning(false);
+  };
+
+  // Trigger account deletion
+  const handleDeleteAccount = async () => {
+    if (isOffline) return;
+
+    const firstConfirm = confirm('DANGER: Are you absolutely sure you want to delete your Kharch account?\n\nThis will permanently delete your Google account link, all isolated spaces, all transactions, and all locked monthly summaries. This cannot be undone.');
+    if (!firstConfirm) return;
+
+    const secondConfirm = confirm('FINAL CONFIRMATION: This will erase your entire database record. Do you want to proceed?');
+    if (!secondConfirm) return;
+
+    setIsDeletingAccount(true);
+    const data = await apiFetch('/api/settings/delete-account', {
+      method: 'DELETE'
+    });
+
+    if (data && !data.error) {
+      alert('Your account has been deleted. Goodbye!');
+      window.location.reload(); // Wipes context and routes to /login
+    } else {
+      alert(data.error || 'Failed to delete account');
+      setIsDeletingAccount(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6 mt-2 max-w-lg mx-auto pb-10 animate-fade-in">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-extrabold text-white font-display tracking-tight">Settings</h1>
+        <p className="text-xs text-slate-400">Account management, auto-sync companion, and data controls</p>
+      </div>
+
+      {/* User Profile Card */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          {user?.picture ? (
+            <img src={user.picture} alt={user.name} className="w-12 h-12 rounded-2xl border border-slate-700 object-cover" />
+          ) : (
+            <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-lg">
+              {user?.name?.[0] || 'U'}
+            </div>
+          )}
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-sm font-bold text-white">{user?.name || 'Account Holder'}</h2>
+              <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
+            </div>
+            <p className="text-xs text-slate-400">{user?.email}</p>
+          </div>
+        </div>
+
+        <button
+          onClick={logout}
+          className="p-2.5 bg-slate-950 hover:bg-slate-850 text-slate-300 hover:text-white rounded-xl border border-slate-800 transition-colors cursor-pointer"
+          title="Sign Out"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Data Maintenance / Selective Cleanup */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
+        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+          <Database className="w-4 h-4 text-indigo-400 shrink-0" /> Space Storage Maintenance
+        </h3>
+        <p className="text-[10px] text-slate-500 leading-normal mb-4">
+          To fit comfortably within the MongoDB Atlas Free 512MB tier, clear raw log lists periodically.
+        </p>
+
+        {/* Safety banner */}
+        <div className="p-3.5 bg-indigo-950/20 border border-indigo-900/30 rounded-2xl flex items-start gap-2.5 mb-5 text-[11px] leading-relaxed text-indigo-200">
+          <Info className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-extrabold uppercase text-[9px] block text-indigo-400 tracking-wider mb-0.5">Permanent Summaries Guard</span>
+            Daily item logs are purged, but your high-level monthly summaries (Earned, Spent, Closing balance, Reconciliation adjustments) are locked and permanently preserved for annual reports.
+          </div>
+        </div>
+
+        {cleanupResult && (
+          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold rounded-xl">
+            {cleanupResult}
+          </div>
+        )}
+
+        <form onSubmit={handleHistoryCleanup} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] text-slate-400 font-bold uppercase">Purge Date Range</label>
+            <select
+              value={cleanupRange}
+              onChange={(e) => {
+                setCleanupRange(e.target.value);
+                setCleanupResult('');
+              }}
+              disabled={isCleaning || isOffline}
+              className="bg-slate-950 border border-slate-850 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-300 outline-none cursor-pointer"
+            >
+              <option value="6months">Older than 6 Months</option>
+              <option value="1year">Older than 1 Year</option>
+              <option value="custom">Custom Date Range...</option>
+            </select>
+          </div>
+
+          {/* Custom Date selection inputs */}
+          {cleanupRange === 'custom' && (
+            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 border border-slate-850 rounded-2xl animate-fade-in">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-slate-500 font-bold uppercase flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-slate-500" /> Start Date
+                </span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                  className="bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-slate-500 font-bold uppercase flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-slate-500" /> End Date
+                </span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                  className="bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-white"
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isCleaning || isOffline}
+            className={`w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:scale-98 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-500/10 flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <Trash2 className="w-4 h-4" /> Purge Raw Transactions Log
+          </button>
+        </form>
+      </div>
+
+      {/* Android Companion App & Auto-Sync Card */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg border-indigo-500/20">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Smartphone className="w-4 h-4 text-indigo-400 shrink-0" /> Android Auto-Sync Companion
+          </h3>
+          <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-full">
+            Android only
+          </span>
+        </div>
+        <p className="text-[10px] text-slate-500 leading-normal mb-4">
+          Automate expense capture from PhonePe, Google Pay, and Paytm transaction notifications. Download the lightweight native APK on your Android device and pair it with this account.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            href="/KharchCompanion.apk"
+            download="KharchCompanion.apk"
+            className="py-3 px-3 bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors text-center cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-indigo-400" /> Download APK
+          </a>
+
+          <button
+            type="button"
+            onClick={handleOpenPairing}
+            className="py-3 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-indigo-600/20 cursor-pointer"
+          >
+            <Key className="w-4 h-4" /> Device Token
+          </button>
+        </div>
+
+        {/* Play Protect & Restricted Settings install guide */}
+        <div className="mt-4 p-3.5 bg-amber-950/40 border border-amber-700/40 rounded-2xl text-[11px] text-amber-200/90 leading-relaxed space-y-2">
+          <p className="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+            <ShieldAlert className="w-4 h-4 text-amber-400" /> Sideloading &amp; Permission Guide
+          </p>
+          <p>
+            <span className="font-semibold text-amber-300">Play Protect hard-blocked install (India)?</span> Do <strong className="text-white">NOT tap &quot;Open&quot; directly inside Chrome</strong>. Open your phone&apos;s built-in <strong className="text-white">Files</strong> (or <strong className="text-white">Files by Google</strong>) app &rarr; go to <strong className="text-white">Downloads</strong> &rarr; tap <span className="font-mono bg-slate-800 px-1 py-0.5 rounded text-white">KharchCompanion.apk</span> to install without Chrome&apos;s fraud filter. (Or temporarily pause &quot;Scan apps with Play Protect&quot; in Google Play Store settings).
+          </p>
+          <p>
+            <span className="font-semibold text-amber-300">Play Protect warning?</span> Tap <span className="font-mono bg-slate-800 px-1 py-0.5 rounded text-white">More details</span> &rarr; <span className="font-mono bg-slate-800 px-1 py-0.5 rounded text-white">Install anyway</span>.
+          </p>
+          <p>
+            <span className="font-semibold text-amber-300">Updating existing app?</span> Please <strong className="text-white">uninstall the old Kharch app first</strong> before installing this new signed release.
+          </p>
+          <p>
+            <span className="font-semibold text-amber-300">Android 13–15 &quot;App was denied access&quot;?</span> Tap <strong className="text-white">Confirm Consent</strong> inside the Companion app to use the <strong className="text-white">3-Step Unlock Assistant</strong>. It automatically opens the exact App Info screen where you tap <span className="font-mono bg-slate-800 px-1 py-0.5 rounded text-white">Allow restricted settings</span>.
+          </p>
+        </div>
+
+        <div className="mt-3 text-center">
+          <a
+            href="https://github.com/Vishi2006/Kharch/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-indigo-400/80 hover:text-indigo-300 hover:underline"
+          >
+            View APK Releases on GitHub ↗
+          </a>
+        </div>
+      </div>
+
+      {/* iPhone & Android Webhook Automation (iOS Shortcuts / MacroDroid) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg border-indigo-500/20">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Smartphone className="w-4 h-4 text-indigo-400 shrink-0" /> Webhook Auto-Sync (iOS &amp; MacroDroid)
+          </h3>
+          <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-full">
+            No Sideload Required
+          </span>
+        </div>
+        <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
+          For iPhone users (via Apple Shortcuts) or Android users who prefer not to sideload an APK (via MacroDroid from Google Play Store). Silently forward payment SMS or notifications to Kharch in the background with zero manual entry.
+        </p>
+
+        {!iosToken ? (
+          <button
+            type="button"
+            onClick={handleGenerateIosToken}
+            disabled={iosTokenLoading || isOffline}
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
+          >
+            {iosTokenLoading ? 'Generating...' : 'Generate Automation Webhook Key'}
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2">
+              <code className="text-[10px] text-indigo-300 font-mono truncate">{iosToken}</code>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(iosToken);
+                  setCopiedIosToken(true);
+                  setTimeout(() => setCopiedIosToken(false), 2000);
+                }}
+                className="shrink-0 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] text-slate-200 font-bold flex items-center gap-1 cursor-pointer"
+              >
+                {copiedIosToken ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                {copiedIosToken ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+
+            <div className="bg-slate-950/60 border border-slate-800/60 rounded-2xl p-4 space-y-3">
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">3-Step Setup in iPhone Shortcuts (or Android MacroDroid)</p>
+              <div className="space-y-2.5 text-[11px] text-slate-400 leading-relaxed">
+                <div className="flex gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+                  <p>Open <strong className="text-slate-200">Shortcuts</strong> app &rarr; tap <strong className="text-slate-200">Automation</strong> tab &rarr; <strong className="text-slate-200">New Automation</strong> &rarr; choose <strong className="text-slate-200">Message</strong> &rarr; Message Contains: <code className="text-indigo-300 bg-slate-900 px-1 rounded">UPI</code> or <code className="text-indigo-300 bg-slate-900 px-1 rounded">debited</code> &rarr; select <strong className="text-slate-200">Run Immediately</strong>.</p>
+                </div>
+                <div className="flex gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+                  <p>Add Action: <strong className="text-slate-200">Get Contents of URL</strong> &rarr; URL: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/api/notifications/ios-shortcut</code> &rarr; Method: <strong className="text-slate-200">POST</strong> &rarr; Headers: Add <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">Authorization: Bearer {iosToken}</code></p>
+                </div>
+                <div className="flex gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
+                  <p>Set Request Body: <strong className="text-slate-200">JSON</strong> with Key: <code className="text-[9px] text-indigo-300 bg-slate-900 px-1 rounded">rawText</code> = <strong className="text-slate-200">Shortcut Input</strong> &rarr; Tap <strong className="text-slate-200">Done</strong>. Kharch will now auto-import every payment SMS silently in the background!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Device Token Pairing Modal */}
+      {pairingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full relative shadow-2xl flex flex-col text-left">
+            <button
+              onClick={() => setPairingModalOpen(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800/50 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
+              <Key className="w-5 h-5 text-indigo-400" />
+            </div>
+
+            <h3 className="text-base font-bold text-white mb-1">Companion Device Token</h3>
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              Copy this token into the Kharch Companion app on your Android phone to start syncing.
+            </p>
+
+            {pairingLoading ? (
+              <div className="py-8 text-center text-xs text-slate-400 animate-pulse">
+                Generating unique device token...
+              </div>
+            ) : pairingToken ? (
+              <div className="space-y-4">
+                {/* Device Token */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Your Device Token
+                  </label>
+                  <div className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between">
+                    <span className="text-[11px] text-indigo-300 font-mono truncate mr-2 select-all">
+                      {pairingToken}
+                    </span>
+                    <button
+                      onClick={handleCopyToken}
+                      className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-lg flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
+                    >
+                      {copiedToken ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedToken ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Server URL */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Server URL (Pre-configured in App)
+                  </label>
+                  <div className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-300 font-mono truncate mr-2 select-all">
+                      {typeof window !== 'undefined' ? window.location.origin : 'https://kharch2026.vercel.app'}
+                    </span>
+                    <button
+                      onClick={handleCopyServerUrl}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold rounded-lg flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
+                    >
+                      {copiedServerUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedServerUrl ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="p-3 bg-indigo-950/40 border border-indigo-800/40 rounded-xl text-[11px] text-indigo-200/90 leading-relaxed space-y-1">
+                  <p className="font-bold text-indigo-300">Quick Pairing on Phone:</p>
+                  <p>1. Open <strong className="text-white">Kharch Companion</strong> on your Android phone.</p>
+                  <p>2. Paste the token above into the <strong className="text-white">Device Token</strong> field.</p>
+                  <p>3. Tap <strong className="text-white">Connect Device Token</strong>.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-rose-400 py-6 text-center">Failed to generate device token. Please retry.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Danger Zone */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg border-rose-500/20 mb-4">
+        <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+          <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" /> Danger Zone
+        </h3>
+        <p className="text-[10px] text-slate-500 leading-normal mb-4">
+          Completely reset your footprint. Once executed, all records will be deleted permanently.
+        </p>
+
+        <button
+          onClick={handleDeleteAccount}
+          disabled={isDeletingAccount || isOffline}
+          className={`w-full py-3 bg-rose-500/10 border border-rose-500/25 hover:bg-rose-500/25 active:scale-98 text-rose-200 font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <AlertOctagon className="w-4 h-4 text-rose-400 shrink-0" /> Wipe Entire Account & History
+        </button>
+      </div>
+    </div>
+  );
+}

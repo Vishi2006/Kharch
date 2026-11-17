@@ -178,19 +178,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           children: [
                             Expanded(
                               child: _buildMetricTile(
-                                label: 'EARNED',
+                                label: 'TOTAL EARNED',
                                 amount: totalEarned,
                                 color: ArcadeTheme.arcadeGreen,
-                                icon: Icons.arrow_upward_rounded,
+                                icon: Icons.trending_up_rounded,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: _buildMetricTile(
-                                label: 'SPENT',
+                                label: 'TOTAL SPENT',
                                 amount: totalSpent,
                                 color: ArcadeTheme.punchPink,
-                                icon: Icons.arrow_downward_rounded,
+                                icon: Icons.trending_down_rounded,
                               ),
                             ),
                           ],
@@ -383,7 +383,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 ],
                               ),
                               Text(
-                                'â‚¹ ${amount.toStringAsFixed(0)}',
+                                '₹ ${amount.toStringAsFixed(0)}',
                                 style: const TextStyle(
                                   color: ArcadeTheme.acidYellow,
                                   fontWeight: FontWeight.w900,
@@ -440,7 +440,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '-â‚¹ ${amount.toStringAsFixed(0)}',
+                                    '-₹ ${amount.toStringAsFixed(0)}',
                                     style: const TextStyle(
                                       color: ArcadeTheme.punchPink,
                                       fontWeight: FontWeight.w900,
@@ -530,7 +530,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'â‚¹ ${amount.toStringAsFixed(0)}',
+            '₹ ${amount.toStringAsFixed(0)}',
             style: const TextStyle(
               color: ArcadeTheme.pureWhite,
               fontWeight: FontWeight.w900,
@@ -594,7 +594,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'â‚¹ ${val.toStringAsFixed(0)}',
+            '₹ ${val.toStringAsFixed(0)}',
             style: const TextStyle(
               color: ArcadeTheme.pureWhite,
               fontWeight: FontWeight.w900,
