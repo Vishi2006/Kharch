@@ -53,14 +53,10 @@ router.get('/', protect, async (req, res) => {
       unmatchedEvents.push(event);
     }
 
-    // 2. Fetch UNKNOWN payment attempts (or stale PENDING > 15m) without linked transactions
-    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
+    // 2. Fetch UNKNOWN and PENDING payment attempts without linked transactions
     const unknownAttempts = await PaymentAttempt.find({
       userId,
-      $or: [
-        { status: 'UNKNOWN' },
-        { status: 'PENDING', initiatedAt: { $lte: fifteenMinsAgo } },
-      ],
+      status: { $in: ['UNKNOWN', 'PENDING'] },
       linkedTransactionId: { $exists: false },
     }).sort({ initiatedAt: -1 });
 
@@ -228,7 +224,6 @@ router.post('/convert', protect, async (req, res) => {
       txType = eventRecord.type === 'CREDIT' ? 'income' : 'expense';
     } else if (source === 'payment_attempt' || source === 'attempt') {
       attemptRecord = await PaymentAttempt.findOne({
-        userId: req.user._id,
         $or: [
           { paymentAttemptId: id },
           ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
@@ -305,51 +300,27 @@ router.post('/dismiss', protect, async (req, res) => {
       return res.status(400).json({ message: 'id is required' });
     }
 
-    if (source === 'notification') {
-      await NotificationEvent.findOneAndUpdate(
-        {
-          userId: req.user._id,
-          $or: [
-            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
-            { notificationId: id },
-          ],
-        },
-        { status: 'DISMISSED' }
-      );
-    } else if (source === 'payment_attempt' || source === 'attempt') {
-      await PaymentAttempt.findOneAndUpdate(
-        {
-          userId: req.user._id,
-          $or: [
-            { paymentAttemptId: id },
-            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
-          ],
-        },
-        { status: 'FAILED' }
-      );
-    } else {
-      // If source wasn't strictly specified, try dismissing in either
-      await NotificationEvent.findOneAndUpdate(
-        {
-          userId: req.user._id,
-          $or: [
-            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
-            { notificationId: id },
-          ],
-        },
-        { status: 'DISMISSED' }
-      );
-      await PaymentAttempt.findOneAndUpdate(
-        {
-          userId: req.user._id,
-          $or: [
-            { paymentAttemptId: id },
-            ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
-          ],
-        },
-        { status: 'FAILED' }
-      );
-    }
+    const objectIdCheck = mongoose.Types.ObjectId.isValid(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : [];
+
+    await NotificationEvent.updateMany(
+      {
+        $or: [
+          ...objectIdCheck,
+          { notificationId: id },
+        ],
+      },
+      { status: 'DISMISSED' }
+    );
+
+    await PaymentAttempt.updateMany(
+      {
+        $or: [
+          { paymentAttemptId: id },
+          ...objectIdCheck,
+        ],
+      },
+      { status: 'FAILED' }
+    );
 
     return res.status(200).json({ success: true, message: 'Item dismissed' });
   } catch (error) {
