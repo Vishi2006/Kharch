@@ -20,8 +20,8 @@ class _InboxScreenState extends State<InboxScreen> {
   String? _actioningKey;
 
   void _handleAcceptMatch(Map<String, dynamic> match) async {
-    final eventId = match['event']?['_id'] ?? '';
-    final attemptId = match['suggestedAttempt']?['_id'] ?? '';
+    final eventId = (match['event']?['_id'] ?? match['event']?['notificationId'] ?? '').toString();
+    final attemptId = (match['suggestedAttempt']?['paymentAttemptId'] ?? match['suggestedAttempt']?['_id'] ?? '').toString();
     HapticFeedback.lightImpact();
     setState(() => _actioningKey = 'accept_$eventId');
 
@@ -29,7 +29,7 @@ class _InboxScreenState extends State<InboxScreen> {
         match['suggestedAttempt']?['payeeName'] ??
         'UPI Payment';
 
-    await widget.appState.acceptInboxMatch(
+    final success = await widget.appState.acceptInboxMatch(
       eventId: eventId,
       attemptId: attemptId,
       title: title,
@@ -38,18 +38,36 @@ class _InboxScreenState extends State<InboxScreen> {
 
     if (mounted) {
       setState(() => _actioningKey = null);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('MATCH ACCEPTED & CONVERTED TO EXPENSE', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureBlack)),
+            backgroundColor: ArcadeTheme.arcadeGreen,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('FAILED TO ACCEPT MATCH', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureWhite)),
+            backgroundColor: ArcadeTheme.punchPink,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
   void _handleConvertUnmatched(Map<String, dynamic> item) async {
-    final itemId = item['_id'] ?? '';
+    final itemId = (item['paymentAttemptId'] ?? item['_id'] ?? '').toString();
+    final mongoId = (item['_id'] ?? '').toString();
     HapticFeedback.lightImpact();
-    setState(() => _actioningKey = 'convert_$itemId');
+    setState(() => _actioningKey = 'convert_$mongoId');
 
     final title = item['counterparty'] ?? item['payeeName'] ?? 'UPI Transaction';
 
-    await widget.appState.convertInboxItem(
-      itemId: itemId,
+    final success = await widget.appState.convertInboxItem(
+      itemId: itemId.isNotEmpty ? itemId : mongoId,
       itemType: item['counterparty'] != null ? 'notification' : 'attempt',
       title: title,
       importance: 'moderate',
@@ -57,28 +75,65 @@ class _InboxScreenState extends State<InboxScreen> {
 
     if (mounted) {
       setState(() => _actioningKey = null);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('CONVERTED TO EXPENSE', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureBlack)),
+            backgroundColor: ArcadeTheme.arcadeGreen,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('FAILED TO CONVERT TO EXPENSE', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureWhite)),
+            backgroundColor: ArcadeTheme.punchPink,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
   void _handleDismiss(String itemId, String itemType) async {
     HapticFeedback.lightImpact();
     setState(() => _actioningKey = 'dismiss_$itemId');
-    await widget.appState.dismissInboxItem(itemId, itemType);
+    final success = await widget.appState.dismissInboxItem(itemId, itemType);
     if (mounted) {
       setState(() => _actioningKey = null);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ITEM IGNORED', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureBlack)),
+            backgroundColor: ArcadeTheme.acidYellow,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('FAILED TO IGNORE ITEM', style: TextStyle(fontWeight: FontWeight.w900, color: ArcadeTheme.pureWhite)),
+            backgroundColor: ArcadeTheme.punchPink,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final inbox = widget.appState.inboxData;
-    final mediumMatches = (inbox?['mediumMatches'] as List?) ?? [];
-    final unmatchedEvents = (inbox?['unmatchedEvents'] as List?) ?? [];
-    final unknownAttempts = (inbox?['unknownAttempts'] as List?) ?? [];
+    return ListenableBuilder(
+      listenable: widget.appState,
+      builder: (context, _) {
+        final inbox = widget.appState.inboxData;
+        final mediumMatches = (inbox?['mediumMatches'] as List?) ?? [];
+        final unmatchedEvents = (inbox?['unmatchedEvents'] as List?) ?? [];
+        final unknownAttempts = (inbox?['unknownAttempts'] as List?) ?? [];
 
-    final allUnmatched = [...unmatchedEvents, ...unknownAttempts];
+        final allUnmatched = [...unmatchedEvents, ...unknownAttempts];
 
-    return Scaffold(
+        return Scaffold(
       backgroundColor: ArcadeTheme.darkCanvas,
       appBar: AppBar(
         backgroundColor: ArcadeTheme.darkCanvas,
@@ -182,6 +237,8 @@ class _InboxScreenState extends State<InboxScreen> {
           ],
         ),
       ),
+    );
+      },
     );
   }
 

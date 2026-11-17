@@ -75,24 +75,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Map navigation index to IndexedStack child index:
-    // 0: Home, 1: Reconcile, 3: Analytics (index 2 in stack), 4: Spaces (index 3 in stack)
-    final int stackIndex = _currentNavIndex == 4
-        ? 3
-        : (_currentNavIndex == 3 ? 2 : (_currentNavIndex == 1 ? 1 : 0));
+    return ListenableBuilder(
+      listenable: widget.appState,
+      builder: (context, _) {
+        // Map navigation index to IndexedStack child index:
+        // 0: Home, 1: Reconcile, 3: Analytics (index 2 in stack), 4: Spaces (index 3 in stack)
+        final int stackIndex = _currentNavIndex == 4
+            ? 3
+            : (_currentNavIndex == 3 ? 2 : (_currentNavIndex == 1 ? 1 : 0));
 
-    return Scaffold(
-      backgroundColor: ArcadeTheme.darkCanvas,
-      body: IndexedStack(
-        index: stackIndex,
-        children: [
-          _buildHomeTab(context),
-          ReconcileScreen(appState: widget.appState, isEmbedded: true),
-          AnalyticsScreen(appState: widget.appState, isEmbedded: true),
-          SpacesScreen(appState: widget.appState, isEmbedded: true),
-        ],
-      ),
-      bottomNavigationBar: _buildPersistentBottomNav(),
+        return Scaffold(
+          backgroundColor: ArcadeTheme.darkCanvas,
+          body: IndexedStack(
+            index: stackIndex,
+            children: [
+              _buildHomeTab(context),
+              ReconcileScreen(appState: widget.appState, isEmbedded: true),
+              AnalyticsScreen(appState: widget.appState, isEmbedded: true),
+              SpacesScreen(
+                appState: widget.appState,
+                isEmbedded: true,
+                onSpaceSwitched: () {
+                  setState(() => _currentNavIndex = 0);
+                },
+              ),
+            ],
+          ),
+          bottomNavigationBar: _buildPersistentBottomNav(),
+        );
+      },
     );
   }
 

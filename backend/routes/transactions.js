@@ -161,96 +161,6 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/transactions/:id
-// @desc    Update a transaction
-// @access  Private
-router.put('/:id', protect, async (req, res) => {
-  const { amount, title, titleId, importance, date, note, type } = req.body;
-
-  try {
-    const transaction = await Transaction.findOne({ _id: req.params.id, userId: req.user._id });
-    if (!transaction) {
-      return res.status(404).json({ message: 'Transaction not found' });
-    }
-
-    const spaceObjectId = mongoose.Types.ObjectId.isValid(transaction.spaceId) ? new mongoose.Types.ObjectId(transaction.spaceId) : null;
-    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, transaction.spaceId.toString()] } : transaction.spaceId;
-
-    if (amount !== undefined) {
-      transaction.amount = parseFloat(amount);
-    }
-
-    if (type && ['income', 'expense', 'investment', 'savings'].includes(type)) {
-      transaction.type = type;
-    }
-
-    // Resolve title if updating
-    if (titleId) {
-      const canonicalTitle = await ExpenseTitle.findOne({ _id: titleId, spaceId: spaceMatch });
-      if (!canonicalTitle) {
-        return res.status(400).json({ message: 'Canonical title not found' });
-      }
-      transaction.titleId = canonicalTitle._id;
-    } else if (title && title.trim()) {
-      const rawTitle = title.trim();
-      const normalizedName = rawTitle.toLowerCase();
-      
-      let canonicalTitle = await ExpenseTitle.findOne({ spaceId: spaceMatch, normalizedName });
-      if (!canonicalTitle) {
-        canonicalTitle = new ExpenseTitle({
-          userId: req.user._id,
-          spaceId: transaction.spaceId,
-          normalizedName,
-          displayName: formatDisplayName(rawTitle)
-        });
-        await canonicalTitle.save();
-      }
-      transaction.titleId = canonicalTitle._id;
-    }
-
-    if (date) {
-      transaction.date = new Date(date);
-    }
-
-    if (note !== undefined) {
-      transaction.note = note;
-    }
-
-    if (transaction.type === 'expense') {
-      if (importance) {
-        transaction.importance = importance;
-      }
-    } else {
-      transaction.importance = undefined;
-    }
-
-    await transaction.save();
-    await transaction.populate({ path: 'titleId', model: ExpenseTitle });
-
-    res.json(transaction);
-  } catch (error) {
-    console.error('Error updating transaction:', error.message);
-    res.status(500).json({ message: 'Server error updating transaction' });
-  }
-});
-
-// @route   DELETE /api/transactions/:id
-// @desc    Delete a transaction
-// @access  Private
-router.delete('/:id', protect, async (req, res) => {
-  try {
-    const transaction = await Transaction.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
-    if (!transaction) {
-      return res.status(404).json({ message: 'Transaction not found' });
-    }
-
-    res.json({ message: 'Transaction removed successfully' });
-  } catch (error) {
-    console.error('Error deleting transaction:', error.message);
-    res.status(500).json({ message: 'Server error deleting transaction' });
-  }
-});
-
 // @route   GET /api/transactions/dashboard
 // @desc    Retrieve real-time stats for the mobile home page
 // @access  Private
@@ -336,7 +246,7 @@ router.get('/dashboard', protect, async (req, res) => {
     const currentBalance = expectedClosing; // At active month, opening + net movements is current expected balance
 
     // 4. Calculate today's spending (respecting user timezone boundary)
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone }); // e.g. "2026-11-16"
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone }); // e.g. "2026-11-17"
 
     const todayExpenses = await Transaction.aggregate([
       {
@@ -452,27 +362,26 @@ router.get('/analytics', protect, async (req, res) => {
     let startDate = new Date();
     
     if (period === 'day') {
-      // Show every day of current month or at least 35 days back so earlier-month txns are fully included
-      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const thirtyFiveDaysAgo = new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000);
-      startDate = thirtyFiveDaysAgo < currentMonthStart ? thirtyFiveDaysAgo : currentMonthStart;
+      // Last 60 days so all days of current and previous month (e.g. Nov 2, Nov 3) are included
+      startDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
     } else if (period === 'week') {
-      // Last 12 weeks
-      startDate = new Date(now.getTime() - 84 * 24 * 60 * 60 * 1000);
+      // Last 26 weeks (6 months) so past months (e.g. August 2026) are included
+      startDate = new Date(now.getTime() - 26 * 7 * 24 * 60 * 60 * 1000);
     } else if (period === 'month') {
-      // Last 12 months
-      startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+      // Last 24 months (2 years)
+      startDate = new Date(now.getFullYear() - 2, now.getMonth(), 1);
     } else if (period === 'year') {
-      // Last 5 years
-      startDate = new Date(now.getFullYear() - 4, 0, 1);
+      // Last 10 years
+      startDate = new Date(now.getFullYear() - 10, 0, 1);
     } else {
-      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1); // fallback
+      startDate = new Date(now.getFullYear() - 1, 0, 1); // fallback
     }
 
     // 1. Earned vs Spent vs Investment vs Savings trends
     let groupFormat = '%Y-%m-%d';
     if (period === 'week') groupFormat = '%Y-W%V';
-    if (period === 'month' || period === 'year') groupFormat = '%Y-%m';
+    if (period === 'month') groupFormat = '%Y-%m';
+    if (period === 'year') groupFormat = '%Y';
 
     const trends = await Transaction.aggregate([
       { 
@@ -645,6 +554,96 @@ router.get('/analytics', protect, async (req, res) => {
   } catch (error) {
     console.error('Error fetching analytics:', error.message);
     res.status(500).json({ message: 'Server error compiling analytics charts' });
+  }
+});
+
+// @route   PUT /api/transactions/:id
+// @desc    Update a transaction
+// @access  Private
+router.put('/:id', protect, async (req, res) => {
+  const { amount, title, titleId, importance, date, note, type } = req.body;
+
+  try {
+    const transaction = await Transaction.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    const spaceObjectId = mongoose.Types.ObjectId.isValid(transaction.spaceId) ? new mongoose.Types.ObjectId(transaction.spaceId) : null;
+    const spaceMatch = spaceObjectId ? { $in: [spaceObjectId, transaction.spaceId.toString()] } : transaction.spaceId;
+
+    if (amount !== undefined) {
+      transaction.amount = parseFloat(amount);
+    }
+
+    if (type && ['income', 'expense', 'investment', 'savings'].includes(type)) {
+      transaction.type = type;
+    }
+
+    // Resolve title if updating
+    if (titleId) {
+      const canonicalTitle = await ExpenseTitle.findOne({ _id: titleId, spaceId: spaceMatch });
+      if (!canonicalTitle) {
+        return res.status(400).json({ message: 'Canonical title not found' });
+      }
+      transaction.titleId = canonicalTitle._id;
+    } else if (title && title.trim()) {
+      const rawTitle = title.trim();
+      const normalizedName = rawTitle.toLowerCase();
+      
+      let canonicalTitle = await ExpenseTitle.findOne({ spaceId: spaceMatch, normalizedName });
+      if (!canonicalTitle) {
+        canonicalTitle = new ExpenseTitle({
+          userId: req.user._id,
+          spaceId: transaction.spaceId,
+          normalizedName,
+          displayName: formatDisplayName(rawTitle)
+        });
+        await canonicalTitle.save();
+      }
+      transaction.titleId = canonicalTitle._id;
+    }
+
+    if (date) {
+      transaction.date = new Date(date);
+    }
+
+    if (note !== undefined) {
+      transaction.note = note;
+    }
+
+    if (transaction.type === 'expense') {
+      if (importance) {
+        transaction.importance = importance;
+      }
+    } else {
+      transaction.importance = undefined;
+    }
+
+    await transaction.save();
+    await transaction.populate({ path: 'titleId', model: ExpenseTitle });
+
+    res.json(transaction);
+  } catch (error) {
+    console.error('Error updating transaction:', error.message);
+    res.status(500).json({ message: 'Server error updating transaction' });
+  }
+});
+
+// @route   DELETE /api/transactions/:id
+// @desc    Delete a transaction
+// @access  Private
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const transaction = await Transaction.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    res.json({ message: 'Transaction removed successfully' });
+  } catch (error) {
+    console.error('Error deleting transaction:', error.message);
+    res.status(500).json({ message: 'Server error deleting transaction' });
   }
 });
 

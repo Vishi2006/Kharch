@@ -44,9 +44,9 @@ class _AddPayScreenState extends State<AddPayScreen> {
 
   // --- QR Pay State ---
   final MobileScannerController _scannerCtrl = MobileScannerController();
-  String _payeeVpa = '';
-  String _payeeName = '';
-  String _qrAmount = '';
+  final TextEditingController _payeeVpaCtrl = TextEditingController();
+  final TextEditingController _payeeNameCtrl = TextEditingController();
+  final TextEditingController _qrAmountCtrl = TextEditingController();
   bool _isProcessing = false;
   bool _hasScanned = false;
 
@@ -78,6 +78,9 @@ class _AddPayScreenState extends State<AddPayScreen> {
     _customTitleCtrl.dispose();
     _noteCtrl.dispose();
     _scannerCtrl.dispose();
+    _payeeVpaCtrl.dispose();
+    _payeeNameCtrl.dispose();
+    _qrAmountCtrl.dispose();
     super.dispose();
   }
 
@@ -149,20 +152,42 @@ class _AddPayScreenState extends State<AddPayScreen> {
   void _parseUpiUri(String uriStr) {
     try {
       final uri = Uri.parse(uriStr);
-      _payeeVpa = uri.queryParameters['pa'] ?? '';
-      _payeeName = uri.queryParameters['pn'] ?? 'UPI Merchant';
-      _qrAmount = uri.queryParameters['am'] ?? '';
+      _payeeVpaCtrl.text = uri.queryParameters['pa'] ?? '';
+      _payeeNameCtrl.text = uri.queryParameters['pn'] ?? 'UPI Merchant';
+      _qrAmountCtrl.text = uri.queryParameters['am'] ?? '';
     } catch (_) {
-      _payeeVpa = '';
-      _payeeName = 'UPI Merchant';
+      _payeeVpaCtrl.text = '';
+      _payeeNameCtrl.text = 'UPI Merchant';
+      _qrAmountCtrl.text = '';
     }
   }
 
   void _launchUpiIntent() async {
-    if (_payeeVpa.isEmpty) return;
+    final payeeVpa = _payeeVpaCtrl.text.trim();
+    if (payeeVpa.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid UPI VPA / ID (e.g. merchant@okaxis)'),
+          backgroundColor: ArcadeTheme.punchPink,
+        ),
+      );
+      return;
+    }
 
-    final amtVal = double.tryParse(_qrAmount) ?? 0.0;
-    if (amtVal <= 0) return;
+    final amtVal = double.tryParse(_qrAmountCtrl.text.trim()) ?? 0.0;
+    if (amtVal <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter an amount greater than ₹0'),
+          backgroundColor: ArcadeTheme.punchPink,
+        ),
+      );
+      return;
+    }
+
+    final payeeName = _payeeNameCtrl.text.trim().isNotEmpty
+        ? _payeeNameCtrl.text.trim()
+        : 'UPI Merchant';
 
     HapticFeedback.selectionClick();
     setState(() => _isProcessing = true);
@@ -174,15 +199,15 @@ class _AddPayScreenState extends State<AddPayScreen> {
       ApiService.instance.post('/api/payment-attempts', {
         'paymentAttemptId': paymentAttemptId,
         'amount': amtVal,
-        'payeeVpa': _payeeVpa,
-        'payeeName': _payeeName,
+        'payeeVpa': payeeVpa,
+        'payeeName': payeeName,
         'status': 'PENDING',
       }).catchError((e) => <String, dynamic>{'error': e.toString()}),
     );
 
     // 2. Build UPI intent URI
     final intentUri = Uri.parse(
-      'upi://pay?pa=$_payeeVpa&pn=${Uri.encodeComponent(_payeeName)}&am=$amtVal&cu=INR&tr=$paymentAttemptId',
+      'upi://pay?pa=$payeeVpa&pn=${Uri.encodeComponent(payeeName)}&am=$amtVal&cu=INR&tr=$paymentAttemptId',
     );
 
     // 3. Launch UPI App immediately
@@ -607,16 +632,16 @@ class _AddPayScreenState extends State<AddPayScreen> {
                         HapticFeedback.lightImpact();
                         setState(() {
                           _hasScanned = true;
-                          _payeeVpa = 'merchant@upi';
-                          _payeeName = 'Manual UPI Merchant';
-                          _qrAmount = '100';
+                          _payeeVpaCtrl.clear();
+                          _payeeNameCtrl.clear();
+                          _qrAmountCtrl.clear();
                         });
                       },
                       width: double.infinity,
                     ),
                   ] else ...[
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: ArcadeTheme.pureWhite,
                         borderRadius: BorderRadius.circular(10),
@@ -636,15 +661,20 @@ class _AddPayScreenState extends State<AddPayScreen> {
                                   borderRadius: BorderRadius.circular(ArcadeTheme.pillRadius),
                                   border: Border.all(color: ArcadeTheme.pureBlack, width: 1.5),
                                 ),
-                                child: const Text(
-                                  'MERCHANT DETECTED',
-                                  style: TextStyle(color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900, fontSize: 10),
+                                child: Text(
+                                  _payeeVpaCtrl.text.trim().isNotEmpty ? 'MERCHANT / VPA DETECTED' : 'ENTER UPI DETAILS',
+                                  style: const TextStyle(color: ArcadeTheme.pureWhite, fontWeight: FontWeight.w900, fontSize: 10),
                                 ),
                               ),
                               GestureDetector(
                                 onTap: () {
                                   HapticFeedback.lightImpact();
-                                  setState(() => _hasScanned = false);
+                                  setState(() {
+                                    _hasScanned = false;
+                                    _payeeVpaCtrl.clear();
+                                    _payeeNameCtrl.clear();
+                                    _qrAmountCtrl.clear();
+                                  });
                                 },
                                 child: const Text(
                                   'SCAN AGAIN',
@@ -658,32 +688,84 @@ class _AddPayScreenState extends State<AddPayScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _payeeName,
-                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900, fontSize: 16),
-                          ),
-                          Text(
-                            _payeeVpa,
-                            style: const TextStyle(color: ArcadeTheme.slateDark, fontWeight: FontWeight.w700, fontSize: 11),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _payeeVpaCtrl,
+                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900, fontSize: 14),
+                            decoration: InputDecoration(
+                              labelText: 'UPI ID / VPA *',
+                              labelStyle: const TextStyle(color: ArcadeTheme.punchPink, fontWeight: FontWeight.w800, fontSize: 12),
+                              hintText: 'e.g. mobile@upi or name@okaxis',
+                              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
+                              filled: true,
+                              fillColor: ArcadeTheme.lightCanvas,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 10),
                           TextField(
-                            keyboardType: TextInputType.number,
-                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900, fontSize: 15),
+                            controller: _payeeNameCtrl,
+                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w800, fontSize: 14),
                             decoration: InputDecoration(
-                              labelText: 'Amount (₹)',
-                              labelStyle: const TextStyle(color: ArcadeTheme.punchPink, fontWeight: FontWeight.w800),
+                              labelText: 'Payee / Merchant Name (Optional)',
+                              labelStyle: const TextStyle(color: ArcadeTheme.slateDark, fontWeight: FontWeight.w800, fontSize: 12),
+                              hintText: 'e.g. Grocery Store / Friend',
+                              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 12),
                               filled: true,
-                              fillColor: ArcadeTheme.pureWhite,
+                              fillColor: ArcadeTheme.lightCanvas,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 2),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
                               ),
                             ),
-                            controller: TextEditingController(text: _qrAmount)
-                              ..selection = TextSelection.fromPosition(TextPosition(offset: _qrAmount.length)),
-                            onChanged: (val) => _qrAmount = val,
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _qrAmountCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: ArcadeTheme.pureBlack, fontWeight: FontWeight.w900, fontSize: 16),
+                            decoration: InputDecoration(
+                              labelText: 'Amount (₹) *',
+                              labelStyle: const TextStyle(color: ArcadeTheme.punchPink, fontWeight: FontWeight.w800, fontSize: 12),
+                              hintText: '0.00',
+                              hintStyle: const TextStyle(color: ArcadeTheme.slateMuted, fontSize: 14),
+                              filled: true,
+                              fillColor: ArcadeTheme.lightCanvas,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.pureBlack, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: ArcadeTheme.punchPink, width: 2),
+                              ),
+                            ),
                           ),
                         ],
                       ),
